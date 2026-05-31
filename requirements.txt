@@ -1,0 +1,160 @@
+# ============================================================================
+# In-Silico Drug Discovery Platform — pip requirements
+# ============================================================================
+#
+# READ FIRST:
+#   1. PYTHON VERSION: Use Python 3.10. The scientific stack (RDKit, OpenMM,
+#      GROMACS, pdbfixer) does NOT build on Python 3.14 (your current .venv).
+#      Create a conda env first:  see environment.yml + INSTALL.md
+#   2. This file = the PIP layer (web, orchestration, API clients, ML).
+#      The CONDA-ONLY layer (rdkit, openmm, gromacs, openbabel, pdbfixer,
+#      fpocket build) lives in environment.yml — install that FIRST.
+#   3. Some tools are NOT pip/conda installable and must be git-cloned or
+#      installed from academic servers — see INSTALL.md (ProteinMPNN,
+#      NetMHCpan, ADFRsuite, BindCraft).
+#
+# Install order:
+#   conda env create -f environment.yml      # creates 'rxdis' (py3.10 + sci stack)
+#   conda activate rxdis
+#   pip install -r requirements.txt
+#   # then follow INSTALL.md for git-clone tools
+# ============================================================================
+
+
+# ----------------------------------------------------------------------------
+# Web / API / UI layer
+# ----------------------------------------------------------------------------
+fastapi>=0.115
+uvicorn[standard]>=0.32
+pydantic>=2.9
+pydantic-settings>=2.6
+python-multipart>=0.0.12
+jinja2>=3.1
+# UI is now a standalone React/Vite SPA in ./frontend (talks to this FastAPI bridge).
+# Gradio removed 2026-05-31 in favour of the React studio (see DESIGN.md).
+
+# ----------------------------------------------------------------------------
+# Orchestration: Celery + Redis (job queue, multi-worker, resumable)
+# ----------------------------------------------------------------------------
+celery[redis]>=5.4
+redis>=5.2
+flower>=2.0                 # Celery monitoring dashboard (optional)
+
+# ----------------------------------------------------------------------------
+# Supabase (Postgres + Storage + Auth) — state & multi-tenant isolation
+# ----------------------------------------------------------------------------
+supabase>=2.10
+postgrest>=0.18
+psycopg[binary]>=3.2        # direct Postgres access for workers if needed
+
+# ----------------------------------------------------------------------------
+# LLM clients — PLUGGABLE provider layer (see docs/PRD_llm_provider_layer.md)
+#   The pipeline calls one provider-agnostic interface; user picks per run.
+#   - openai SDK doubles as the LM Studio client (OpenAI-compatible endpoint)
+#   - anthropic SDK for Claude (with prompt caching for long DB-context prompts)
+# ----------------------------------------------------------------------------
+openai>=1.55                # OpenAI provider AND local LM Studio (base_url override)
+anthropic>=0.39             # Anthropic Claude provider
+tiktoken>=0.8               # token counting for chunk sizing (map-reduce)
+tenacity>=9.0               # retry/backoff on LLM + hosted calls
+
+# ----------------------------------------------------------------------------
+# HTTP clients for DB APIs + hosted compute (NIM, Neurosnap, Modal, RunPod...)
+# ----------------------------------------------------------------------------
+httpx>=0.28
+requests>=2.32
+requests-cache>=1.2         # cache idempotent DB API responses
+ratelimit>=2.2              # client-side rate limiting (complements Redis buckets)
+gql[all]>=3.5               # GraphQL: Open Targets, Pharos, Reactome
+aiohttp>=3.11
+
+# ----------------------------------------------------------------------------
+# Bioinformatics / cheminformatics data handling (pip-safe parts)
+#   NOTE: rdkit, openbabel, openmm, pdbfixer come from CONDA (environment.yml)
+# ----------------------------------------------------------------------------
+biopython>=1.84
+pypdb>=2.4                  # RCSB PDB queries
+chembl-webresource-client>=0.10.9
+pyarrow>=18.0
+pandas>=2.2
+numpy>=1.26,<2.0           # pin <2.0 for compatibility w/ sci stack
+scipy>=1.14
+
+# ----------------------------------------------------------------------------
+# Networks / graphs (Phase 1.6 PPI centrality)
+# ----------------------------------------------------------------------------
+networkx>=3.4
+node2vec>=0.5
+
+# ----------------------------------------------------------------------------
+# ML / scoring / optimization
+# ----------------------------------------------------------------------------
+scikit-learn>=1.5
+xgboost>=2.1               # Phase 2.9 target validation classifier
+shap>=0.46                 # GradientSHAP attributions
+torch>=2.2                 # backend for botorch/gpytorch, REINVENT4
+botorch>=0.12              # Phase 7 multi-objective Bayesian optimization
+gpytorch>=1.13
+
+# ----------------------------------------------------------------------------
+# Pathway / omics (Phase 1.7)
+# ----------------------------------------------------------------------------
+decoupler>=1.8             # pathway/TF activity (PROGENy, Reactome, MSigDB)
+gseapy>=1.1                # GSEA
+
+# ----------------------------------------------------------------------------
+# ADMET (local prediction; ADMETlab 3.0 is an API, no install)
+# ----------------------------------------------------------------------------
+admet-ai>=1.3              # local Chemprop-based ADMET
+
+# ----------------------------------------------------------------------------
+# De novo small molecule generation (Phase 5)
+#   REINVENT4: pip-installable but heavy; ~8 GiB GPU recommended.
+# ----------------------------------------------------------------------------
+reinvent4>=4.5
+
+# ----------------------------------------------------------------------------
+# Docking (Phase 4/5) — python bindings; the Vina BINARY may also be needed
+# ----------------------------------------------------------------------------
+vina>=1.2.5                # AutoDock Vina python API
+meeko>=0.6                 # ligand prep for Vina
+
+# ----------------------------------------------------------------------------
+# MM-PBSA / MD analysis (Phase 8) — gmx_MMPBSA via pip; GROMACS via conda
+# ----------------------------------------------------------------------------
+gmx-MMPBSA>=1.6
+MDAnalysis>=2.7
+
+# ----------------------------------------------------------------------------
+# Browser automation (PockDrug, SwissADME, SAbPred, CamSol web servers)
+# ----------------------------------------------------------------------------
+playwright>=1.49           # run `playwright install chromium` after pip install
+pypdf>=5.1                 # PDF extraction (literature fallback)
+
+# ----------------------------------------------------------------------------
+# Hosted compute SDKs
+# ----------------------------------------------------------------------------
+modal>=0.66                # Phase 2 ProteomeLM, Phase 8 PMX FEP
+# runpod  -> use REST via httpx (SDK optional): pip install runpod>=1.7
+runpod>=1.7
+
+# ----------------------------------------------------------------------------
+# 3D molecular visualization in Gradio (Phase 9 results viewer)
+# ----------------------------------------------------------------------------
+py3Dmol>=2.4
+nglview>=3.1
+
+# ----------------------------------------------------------------------------
+# Config / secrets / utils
+# ----------------------------------------------------------------------------
+python-dotenv>=1.0
+pyyaml>=6.0
+structlog>=24.4            # structured logging -> compute_log / decisions
+orjson>=3.10               # fast JSON for large phase outputs
+
+# ----------------------------------------------------------------------------
+# Dev / test
+# ----------------------------------------------------------------------------
+pytest>=8.3
+pytest-asyncio>=0.24
+ruff>=0.8

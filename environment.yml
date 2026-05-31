@@ -1,0 +1,35 @@
+# ============================================================================
+# Conda environment for the scientific stack (Python 3.10)
+# ============================================================================
+# These packages are conda-first: they ship compiled binaries (RDKit, OpenMM,
+# GROMACS, OpenBabel, pdbfixer) that do NOT reliably pip-install, and DO NOT
+# build on Python 3.14. This env is the base; pip layer (requirements.txt)
+# installs on top.
+#
+#   conda env create -f environment.yml
+#   conda activate rxdis
+#   pip install -r requirements.txt
+#   playwright install chromium
+#   # then INSTALL.md for git-clone tools (ProteinMPNN, NetMHCpan, ADFRsuite)
+# ============================================================================
+name: rxdis
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - python=3.10
+  # --- core compiled scientific tools (conda-only / conda-best) ---
+  - rdkit>=2024.03
+  - openbabel>=3.1
+  - pdbfixer>=1.9
+  - openmm>=8.1            # GPU MD (Phase 8); CUDA build auto-selected
+  - gromacs>=2024          # Phase 8 MD (CPU/GPU); large
+  - mdtraj>=1.10
+  # --- build deps for fpocket (compiled from source per INSTALL.md) ---
+  - make
+  - gcc_linux-64
+  - gxx_linux-64
+  # --- pip handles the rest ---
+  - pip>=24
+  - pip:
+      - -r requirements.txt
