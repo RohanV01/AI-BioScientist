@@ -547,7 +547,7 @@ If you use RxDis in your research, please cite:
   author = {Vyas, Rohan},
   title  = {RxDis: An AI-Native End-to-End Drug Discovery Pipeline},
   year   = {2026},
-  url    = {https://github.com/RohanV01/AI-Scientist},
+  url    = {https://github.com/RohanV01/AI-BioScientist},
 }
 ```
 
