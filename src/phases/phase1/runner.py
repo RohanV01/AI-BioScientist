@@ -29,6 +29,7 @@ from typing import Any, Dict, List, Optional
 from src.config.run_config import RunConfig
 from src.db import run_state
 from src.llm.factory import make_provider
+from src.phases.base_runner import PhaseGuard
 
 from .disease_normalization import normalize_disease
 from .matrix import build_feature_matrix
@@ -44,6 +45,13 @@ log = logging.getLogger(__name__)
 # (keeps the output focused; all positives/seed_targets bypass this).
 _PU_SCORE_FLOOR = 0.50
 
+# OT v4 uses current HGNC-approved symbols; STRING v12.0 preferred_name uses older aliases.
+# Map OT symbols → STRING symbols so PU scores and omics features resolve correctly.
+_OT_TO_STRING: Dict[str, str] = {
+    "GBA1":  "GBA",
+    "DJ1":   "PARK7",
+}
+
 
 def run_phase1(
     run_id: str,
@@ -53,10 +61,20 @@ def run_phase1(
     lit_max_abstracts: int = 0,   # ignored — kept for signature compat with kickoff.py
 ) -> Dict[str, Any]:
     """Execute Phase 1. Returns the standardised output JSON."""
-    if phase0_output.get("go_no_go") != "go":
-        raise RuntimeError("Phase 0 did not return go_no_go='go'. Run Phase 0 first.")
+    with PhaseGuard(db, run_id, phase=1, config=config) as guard:
+        guard.check_budget()
+        guard.validate_input(phase0_output, ["go_no_go"], source_phase=0)
+        if phase0_output.get("go_no_go") != "go":
+            raise RuntimeError("Phase 0 did not return go_no_go='go'. Run Phase 0 first.")
+        return _run_phase1_body(run_id, config, db, phase0_output)
 
-    run_state.mark_phase_running(db, run_id, phase=1)
+
+def _run_phase1_body(
+    run_id: str,
+    config: RunConfig,
+    db,
+    phase0_output: Dict,
+) -> Dict[str, Any]:
     t_start = time.monotonic()
 
     provider = make_provider(config.llm)
@@ -95,6 +113,7 @@ def run_phase1(
     tractability_map: Dict[str, float] = {}
     ot_genetic_map: Dict[str, float] = {}
     disease_doid_ids: List[str] = []
+    ot_targets: List[Dict] = []
     try:
         from .open_targets import pull_ot_associations, get_disease_xrefs
         log.info("[1.2] OT pull (tractability + genetic scores) for '%s'", efo_id)
@@ -102,6 +121,7 @@ def run_phase1(
             efo_id, min_score=0.05, cap=300,
             seed_targets=set(known_positives) | seed_set,
             exclude_targets=exclude_set,
+            disease_name=disease,
         )
         for t in ot_targets:
             sym = t["symbol"]
@@ -116,6 +136,18 @@ def run_phase1(
     except Exception as exc:
         log.warning("[1.2] OT pull failed (%s) — tractability/genetic defaults to 0.0", exc)
 
+    # ── 1.2b Pharos TDL annotation ────────────────────────────────────────────
+    tdl_map: Dict[str, str] = {}
+    if ot_targets:
+        try:
+            from .open_targets import annotate_pharos_tdl
+            log.info("[1.2b] Fetching Pharos TDL for %d targets…", len(ot_targets))
+            pharos_result = annotate_pharos_tdl(ot_targets)
+            tdl_map = {sym: d.get("tdl", "Tbio") for sym, d in pharos_result.items()}
+            log.info("[1.2b] Pharos TDL: %d / %d symbols resolved", len(tdl_map), len(ot_targets))
+        except Exception as exc:
+            log.warning("[1.2b] Pharos TDL failed (%s) — tdl defaults to 'Tbio'", exc)
+
     # ── 1.3 Feature matrix assembly ───────────────────────────────────────────
     log.info("[1.3] Assembling feature matrix…")
     matrix = build_feature_matrix()
@@ -128,8 +160,10 @@ def run_phase1(
         )
 
     # Verify positives are in the matrix; warn on any that aren't.
-    valid_positives = [p for p in known_positives if p in matrix.index]
-    missing = set(known_positives) - set(valid_positives)
+    # Apply OT→STRING alias map so symbols like "GBA1"→"GBA" resolve correctly.
+    normalized_positives = [_OT_TO_STRING.get(p, p) for p in known_positives]
+    valid_positives = [p for p in normalized_positives if p in matrix.index]
+    missing = set(normalized_positives) - set(valid_positives)
     if missing:
         log.warning("[1.4] known_positives not in gene universe: %s", missing)
     if not valid_positives:
@@ -218,8 +252,10 @@ def run_phase1(
         if rank_counter > config.target_count_max and not is_seeded:
             continue
 
+        # matrix_sym: STRING-keyed symbol for feature/PU lookups (handles GBA1→GBA etc.)
+        matrix_sym = _OT_TO_STRING.get(sym, sym)
         causal = causal_map.get(sym, {})
-        shap_top = get_top_shap(shap_map, sym, matrix.index)
+        shap_top = get_top_shap(shap_map, matrix_sym, matrix.index)
 
         evidence_trail = {
             # ── PU-specific (new) ─────────────────────────────────────────────
@@ -231,9 +267,9 @@ def run_phase1(
             "dorothea_confidence": causal.get("dorothea_confidence", ""),
             "shap_top": shap_top[:10],
             # ── Raw omics (display-only, additive) ────────────────────────────
-            "essentiality": _feat(sym, "chronos_median"),
-            "selective_fraction": _feat(sym, "selective_fraction"),
-            "expression": _feat(sym, "gtex_log_mean_tpm"),
+            "essentiality": _feat(matrix_sym, "chronos_median"),
+            "selective_fraction": _feat(matrix_sym, "selective_fraction"),
+            "expression": _feat(matrix_sym, "gtex_log_mean_tpm"),
             # ── Phase-2 compat keys (REQUIRED — do not remove) ────────────────
             "tractability": tractability_map.get(sym, 0.0),
             "genetic": genetic_map.get(sym, 0.0),
@@ -246,7 +282,7 @@ def run_phase1(
             "symbol": sym,
             "aggregate_score": round(prob, 6),
             "modality_hint": "unknown",   # Phase 3 will decide
-            "tdl": "unknown",             # Pharos not called in this arch
+            "tdl": tdl_map.get(sym, "Tbio"),
             "seeded": is_seeded,
             "evidence_trail": evidence_trail,
         })
@@ -257,17 +293,18 @@ def run_phase1(
     for sym in always_include - existing_syms:
         if sym in exclude_set:
             continue
-        prob_row = pu_result[pu_result["symbol"] == sym]
+        matrix_sym = _OT_TO_STRING.get(sym, sym)
+        prob_row = pu_result[pu_result["symbol"] == matrix_sym]
         prob = float(prob_row["pu_probability"].values[0]) if len(prob_row) else 0.0
         causal = causal_map.get(sym, {})
-        shap_top = get_top_shap(shap_map, sym, matrix.index)
+        shap_top = get_top_shap(shap_map, matrix_sym, matrix.index)
         ranked.append({
             "rank": rank_counter,
             "ensembl_id": "",
             "symbol": sym,
             "aggregate_score": round(prob, 6),
             "modality_hint": "unknown",
-            "tdl": "unknown",
+            "tdl": tdl_map.get(sym, "Tbio"),
             "seeded": True,
             "evidence_trail": {
                 "xgb_probability": round(prob, 6),
@@ -277,9 +314,9 @@ def run_phase1(
                 "regulon_size": causal.get("regulon_size", 0),
                 "dorothea_confidence": causal.get("dorothea_confidence", ""),
                 "shap_top": shap_top[:10],
-                "essentiality": _feat(sym, "chronos_median"),
-                "selective_fraction": _feat(sym, "selective_fraction"),
-                "expression": _feat(sym, "gtex_log_mean_tpm"),
+                "essentiality": _feat(matrix_sym, "chronos_median"),
+                "selective_fraction": _feat(matrix_sym, "selective_fraction"),
+                "expression": _feat(matrix_sym, "gtex_log_mean_tpm"),
                 "tractability": tractability_map.get(sym, 0.0),
                 "genetic": genetic_map.get(sym, 0.0),
                 "ppi_eigenvector": ppi_map.get(sym, 0.0),

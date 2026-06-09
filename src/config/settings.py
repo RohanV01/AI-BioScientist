@@ -26,6 +26,7 @@ def _get(key: str, default: str = "") -> str:
 SUPABASE_URL: str = _get("SUPABASE_URL")
 SUPABASE_SERVICE_KEY: str = _get("SUPABASE_SERVICE_KEY")
 SUPABASE_ANON_KEY: str = _get("SUPABASE_ANON_KEY")
+LOCAL_STUDIO_PASSWORD: str = _get("LOCAL_STUDIO_PASSWORD", "local-studio-password")
 
 # ── Redis / Celery ───────────────────────────────────────────────────────────
 REDIS_URL: str = _get("REDIS_URL", "redis://localhost:6379/0")
@@ -63,3 +64,8 @@ DB_CHEMBL = _DB_ROOT / "chembl"
 DB_HPA = _DB_ROOT / "human_protein_atlas"
 DB_GWAS = _DB_ROOT / "gwas_catalog"
 DB_OMIM = _DB_ROOT / "omim"
+
+# ── Concurrency & rate limits ────────────────────────────────────────────────
+MAX_CONCURRENT_THREAD_RUNS: int = int(_get("MAX_CONCURRENT_THREAD_RUNS", "10"))
+RATE_LIMIT_RUNS_PER_MINUTE: str = _get("RATE_LIMIT_RUNS_PER_MINUTE", "5/minute")
+RATE_LIMIT_GLOBAL_PER_MINUTE: str = _get("RATE_LIMIT_GLOBAL_PER_MINUTE", "120/minute")

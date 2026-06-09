@@ -59,6 +59,7 @@ create table if not exists targets (
   tdl              text,
   modality_primary text,
   modality_secondary text,
+  seeded           boolean default false,
   evidence_trail   jsonb,
   created_at       timestamptz default now()
 );
@@ -66,7 +67,9 @@ create table if not exists targets (
 create table if not exists candidates (
   id              uuid primary key default gen_random_uuid(),
   run_id          uuid not null references runs(id) on delete cascade,
-  target_id       uuid references targets(id) on delete cascade,
+  -- Gene symbol (e.g. 'KRAS'), NOT a FK to targets.id. The pipeline keys
+  -- candidates by symbol; see src/db/run_state.insert_candidate().
+  target_id       text,
   kind            text not null,
   identifier      text,
   smiles          text,

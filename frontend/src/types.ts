@@ -1,130 +1,130 @@
-export type ViewKey = "engine" | "matrix" | "scorecard" | "studio";
+// ── Shared UI types ───────────────────────────────────────────────────────────
 
-export type PhaseStatus =
-  | "pending"
-  | "running"
-  | "completed"
-  | "failed"
-  | "skipped"
-  | "not_implemented";
+export type PhaseStatus = 'done' | 'active' | 'pending' | 'running' | 'completed' | 'failed' | 'skipped';
 
-export interface Phase {
-  phase: number;
-  name: string;
+export interface PhaseInfo {
+  id: number;
+  label: string;
+  icon: string;
+  path: string;
   status: PhaseStatus;
 }
 
-export interface RunEvent {
-  seq: number;
-  ts: number;
-  type:
-    | "log"
-    | "metric"
-    | "phase"
-    | "run"
-    | "note"
-    | "telemetry"
-    | "targets_ready"
-    | "synced";
-  // log
-  level?: string;
-  logger?: string;
-  message?: string;
-  // metric
-  key?: string;
-  value?: number;
-  label?: string;
-  unit?: string;
-  // phase
-  phase?: number;
-  name?: string;
-  status?: string;
-  // note
-  title?: string;
-  data?: any;
-  // run
-  error?: string;
-  missing_required?: string[];
-  through_phase?: number;
-  running?: boolean;
-  done?: boolean;
-  // telemetry fields are merged in directly
-  ram_used_gb?: number;
-  ram_total_gb?: number;
-  ram_pct?: number;
-  vram_used_mb?: number;
-  vram_total_mb?: number;
-  vram_pct?: number;
-  cpu_pct?: number;
-}
+// ── Target types — used by Phase 1 / Phase 2 views ───────────────────────────
 
-export interface RunSummary {
-  id: string;
-  disease_name: string;
-  status: string;
-  current_phase: number;
-  intent_mode: string;
-  efo_id?: string;
-  created_at: string;
-  running?: boolean;
-}
-
-export interface Telemetry {
-  ram_used_gb?: number | null;
-  ram_total_gb?: number | null;
-  ram_pct?: number | null;
-  vram_used_mb?: number | null;
-  vram_total_mb?: number | null;
-  vram_pct?: number | null;
-  cpu_pct?: number | null;
-}
-
-export interface ShapItem {
-  feature: string;
-  value: number;
-}
-
-export interface EvidenceTrail {
-  xgb_probability?: number;
-  pu_percentile?: number;
-  dorothea_activity?: number;
-  is_master_regulator?: boolean;
-  regulon_size?: number;
-  dorothea_confidence?: string;
-  shap_top?: ShapItem[];
-  essentiality?: number;
-  selective_fraction?: number;
-  expression?: number;
-  tractability?: number;
-  genetic?: number;
-  ppi_eigenvector?: number;
-}
-
+/** Normalised target row for the UI (mapped from ApiTarget in the data hooks). */
 export interface Target {
   rank: number;
   symbol: string;
-  ensembl_id?: string;
-  aggregate_score: number;
-  validation_score?: number | null;
+  mutation?: string;
+  puScore: number;
+  gtexExpr: 'High' | 'Med' | 'Low' | 'V.High';
+  confidence: number;
+  warning?: boolean;
+  seeded?: boolean;
   tdl?: string;
-  modality_primary?: string;
-  modality_secondary?: string | null;
-  evidence_trail: EvidenceTrail;
+  validationScore?: number;
+  modality?: string;
+  shap: { feature: string; value: number }[];
+  evidenceTrail?: Record<string, unknown>;
 }
 
-export interface Metric {
-  key: string;
-  value: number;
+export interface ValidationTarget {
+  id: string;
+  name: string;
+  smiles: string;
+  validationScore: number;
+  pocketScore: number;
+  plddt: number;
+  status: 'Validated' | 'Processing' | 'Insignificant';
+}
+
+// ── Phase 3 ───────────────────────────────────────────────────────────────────
+
+export interface RoutingNode {
+  id: string;
+  symbol: string;
+  plddt: number;
+  status: 'done' | 'active' | 'pending';
+}
+
+export interface ModalityBucket {
   label: string;
-  unit: string;
+  count: number;
+  metric: string;
+  metricValue: string;
+  active?: boolean;
 }
 
-export interface LogLine {
-  seq: number;
-  ts: number;
-  level: string;
-  logger: string;
-  message: string;
+// ── Phase 4 ───────────────────────────────────────────────────────────────────
+
+export interface RepurposingDrug {
+  name: string;
+  target: string;
+  indication: string;
+  overallScore: number;
+  radar: { axis: string; value: number }[];
+  narrative: string;
 }
 
-export type RunState = "idle" | "running" | "completed" | "failed";
+// ── Phase 5 ───────────────────────────────────────────────────────────────────
+
+export interface Molecule {
+  id: string;
+  smiles: string;
+  qed: number;
+  sa: number;
+  mw: number;
+  logP: number;
+  lipinski: boolean;
+  dockScore: number;
+  method: 'REINVENT4' | 'BRICS';
+}
+
+// ── Phase 6 ───────────────────────────────────────────────────────────────────
+
+export interface BiologicsSeq {
+  id: string;
+  sequence: string;
+  bindingScore: number;
+  hotspots: number[];
+}
+
+// ── Phase 7 ───────────────────────────────────────────────────────────────────
+
+export interface MpoMolecule {
+  id: string;
+  smiles: string;
+  qed: number;
+  sa: number;
+  dockScore: number;
+  logP: number;
+  mw: number;
+  pareto: boolean;
+}
+
+// ── Phase 8 ───────────────────────────────────────────────────────────────────
+
+export interface MDTimepoint {
+  ns: number;
+  rmsd: number;
+  bindingEnergy: number;
+}
+
+// ── Run state ─────────────────────────────────────────────────────────────────
+
+export type RunStatus = 'pending' | 'running' | 'completed' | 'failed';
+
+export interface RunSummaryUI {
+  id: string;
+  name: string;
+  disease: string;
+  status: RunStatus;
+  currentPhase: number;
+  isModule: boolean;
+  modulePhase: number | null;
+  costUsd: number | null;
+  createdAt: string;
+  intentMode: string;
+  running: boolean;
+}

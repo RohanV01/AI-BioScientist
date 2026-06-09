@@ -53,24 +53,78 @@ query DiseaseTargets($efoId: String!, $page: Int!) {
 """
 
 
+_OT_ID_CHECK = "query D($id: String!){disease(efoId: $id){id name}}"
+_OT_SEARCH = """
+query S($q: String!) {
+  search(queryString: $q, entityNames: ["disease"], page: {index: 0, size: 5}) {
+    hits { id entity name }
+  }
+}
+"""
+
+
+def _resolve_ot_disease_id(efo_id: str, disease_name: str = "") -> str:
+    """
+    OT Platform v4 migrated many diseases from EFO_ to MONDO_ IDs.
+    If the given ID returns null: (1) search OT by the ID string, then
+    (2) if disease_name provided, search OT by name and return the top hit.
+    """
+    try:
+        check = _ot_post_with_retry(
+            {"query": _OT_ID_CHECK, "variables": {"id": efo_id}},
+            retries=1, timeout=30,
+        )
+        if check.get("data", {}).get("disease"):
+            return efo_id
+    except Exception:
+        pass
+
+    for query_str in filter(None, [efo_id, disease_name]):
+        try:
+            resp = _ot_post_with_retry(
+                {"query": _OT_SEARCH, "variables": {"q": query_str}},
+                retries=2, timeout=30,
+            )
+            hits = resp.get("data", {}).get("search", {}).get("hits", [])
+            for h in hits:
+                if h.get("entity") == "disease" and h.get("id"):
+                    log.info("[OT] Resolved '%s' → %s (%s) via search '%s'",
+                             efo_id, h["id"], h.get("name", ""), query_str)
+                    return h["id"]
+        except Exception as exc:
+            log.warning("[OT] ID resolution search failed (q=%s): %s", query_str, exc)
+
+    log.warning("[OT] Could not resolve disease ID %s — proceeding with original", efo_id)
+    return efo_id
+
+
 def pull_ot_associations(
     efo_id: str,
     min_score: float = 0.1,
     cap: int = 300,
     seed_targets: Set[str] = frozenset(),
     exclude_targets: Set[str] = frozenset(),
+    disease_name: str = "",
 ) -> List[Dict]:
     """
     Returns a list of target dicts with OT association data.
     seed_targets are force-included even if below min_score.
     exclude_targets are never returned.
     """
+    # Resolve to canonical OT ID — v4 uses MONDO IDs for many disease areas
+    resolved_id = _resolve_ot_disease_id(efo_id, disease_name=disease_name)
+
     all_rows = []
     page = 0
 
     while len(all_rows) < cap:
-        resp_json = _ot_post_with_retry({"query": _OT_QUERY, "variables": {"efoId": efo_id, "page": page}})
-        data = resp_json["data"]["disease"]["associatedTargets"]
+        resp_json = _ot_post_with_retry({"query": _OT_QUERY, "variables": {"efoId": resolved_id, "page": page}})
+        disease_node = resp_json.get("data", {}).get("disease")
+        if disease_node is None:
+            log.error("[OT] disease node is null for ID %s (resolved from %s) — no associations",
+                      resolved_id, efo_id)
+            break
+        data = disease_node["associatedTargets"]
         rows = data["rows"]
         total = data["count"]
 
@@ -169,8 +223,9 @@ def get_disease_xrefs(efo_id: str, prefix: str = "DOID") -> List[str]:
       disease(efoId: $efoId) { dbXRefs }
     }
     """
+    resolved_id = _resolve_ot_disease_id(efo_id)
     try:
-        resp = _ot_post_with_retry({"query": query, "variables": {"efoId": efo_id}}, retries=2)
+        resp = _ot_post_with_retry({"query": query, "variables": {"efoId": resolved_id}}, retries=2)
         refs = resp.get("data", {}).get("disease", {}).get("dbXRefs") or []
         return [r for r in refs if r.startswith(prefix)]
     except Exception as exc:
@@ -178,42 +233,37 @@ def get_disease_xrefs(efo_id: str, prefix: str = "DOID") -> List[str]:
         return []
 
 
-_PHAROS_QUERY = """
-query TDL($symbols: [String!]!) {
-  targets(targets: $symbols) {
-    sym
-    tdl
-    novelty
-  }
-}
-"""
-
-
 def annotate_pharos_tdl(targets: List[Dict]) -> Dict[str, Dict]:
     """
-    Add TDL (Tclin/Tchem/Tbio/Tdark) to each target.
-    Returns a dict keyed by symbol with {tdl, novelty}.
+    Fetch TDL (Tclin/Tchem/Tbio/Tdark) for each target from Pharos.
+    Returns a dict keyed by symbol with {tdl}.
+
+    Uses GraphQL aliased queries (one alias per gene) batched 50 per request —
+    the /targets bulk endpoint schema does not support symbol-list filtering.
+    Aliases are indexed (g0, g1, …) to avoid symbol characters invalid in GraphQL.
     """
     symbols = [t["symbol"] for t in targets]
     batch_size = 50
-    tdl_map = {}
+    tdl_map: Dict[str, Dict] = {}
 
     for i in range(0, len(symbols), batch_size):
         batch = symbols[i : i + batch_size]
+        # Map indexed alias back to symbol
+        idx_to_sym = {f"g{j}": sym for j, sym in enumerate(batch)}
+        alias_fragments = " ".join(
+            f'g{j}: target(q: {{sym: "{sym}"}}) {{ sym tdl }}'
+            for j, sym in enumerate(batch)
+        )
+        query = "{ " + alias_fragments + " }"
         try:
-            resp = httpx.post(
-                _PHAROS_GQL,
-                json={"query": _PHAROS_QUERY, "variables": {"symbols": batch}},
-                timeout=20,
-            )
+            resp = httpx.post(_PHAROS_GQL, json={"query": query}, timeout=30)
             resp.raise_for_status()
-            data = resp.json()["data"]["targets"] or []
-            for entry in data:
-                tdl_map[entry["sym"]] = {
-                    "tdl": entry.get("tdl", "Tbio"),
-                    "novelty": entry.get("novelty", 0),
-                }
+            data = resp.json().get("data", {})
+            for alias, entry in data.items():
+                if entry and alias in idx_to_sym:
+                    tdl_map[entry["sym"]] = {"tdl": entry.get("tdl") or "Tbio"}
         except Exception as exc:
-            log.warning("[1.3] Pharos TDL batch failed: %s", exc)
+            log.warning("[Pharos] TDL batch %d failed: %s", i // batch_size, exc)
 
+    log.info("[Pharos] TDL: %d / %d symbols resolved", len(tdl_map), len(symbols))
     return tdl_map

@@ -20,6 +20,19 @@ def _extract_json(text: str) -> str:
     return m.group(1).strip() if m else text.strip()
 
 
+# Models that use extended chain-of-thought and need a large token budget.
+# They burn ~3500 tokens on internal reasoning before producing visible output.
+_THINKING_MODEL_KEYWORDS = ("thinking", "r1", "reasoner", "qwq")
+
+# Minimum completion tokens for thinking models so visible output has room after reasoning.
+_THINKING_MIN_TOKENS = 16000
+
+
+def _is_thinking_model(model: str) -> bool:
+    m = model.lower()
+    return any(kw in m for kw in _THINKING_MODEL_KEYWORDS)
+
+
 class LMStudioProvider(LLMProvider):
     name = "lmstudio"
 
@@ -27,6 +40,7 @@ class LMStudioProvider(LLMProvider):
         from openai import OpenAI
         self._client = OpenAI(base_url=base_url, api_key="lmstudio")
         self.model = model
+        self._thinking = _is_thinking_model(model)
         self.capabilities = LLMCapabilities(
             context_tokens=8_192,
             supports_json_mode=False,
@@ -45,6 +59,10 @@ class LMStudioProvider(LLMProvider):
         max_tokens: int = 4096,
         system: str = "",
     ) -> LLMResult:
+        # Thinking models need room for internal reasoning (~3500 tokens) before output.
+        if self._thinking:
+            max_tokens = max(max_tokens, _THINKING_MIN_TOKENS)
+
         messages = []
         if system:
             messages.append({"role": "system", "content": system})

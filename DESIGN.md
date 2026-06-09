@@ -1,35 +1,56 @@
 # DESIGN.md — RxDis Platform
-## Complete UI/UX Specification · v0.1 · 2026-05-31
+## UI/UX Specification · v0.2 · 2026-06-01
 
-**Platform:** Web — desktop primary (1280 px min), Next.js 14 / React, Tailwind, shadcn/ui
-**Scientific rendering:** Mol* (3D structures), Recharts (charts), Visx (gene scatter), D3 (network graph), react-flow (pipeline DAG), three.js (Pareto 3D nebula)
-**Target user:** Computational medicinal chemist or drug-discovery biologist running RxDis locally; intimate with the domain, wants every number visible.
+**Platform:** Web — desktop primary (1280 px min), Next.js 14 / React, Tailwind, shadcn/ui  
+**Scientific rendering:** Mol* (3D structures), Recharts (charts), Visx (gene scatter), D3 (network), react-flow (pipeline DAG), three.js (Pareto 3D nebula)  
+**Target user:** Computational medicinal chemist or drug-discovery biologist. Intimate with the domain. Wants every number visible.
 
 ---
 
-## 0. Design Philosophy
+## 0. What Changed (v0.1 → v0.2)
 
-### 0.1 The Metaphor
+The platform pivots from **E2E-only** to **module-first**.
 
-A **biotech mission control room, not a consumer app.** The operator is running a long, expensive, compute-heavy run against a disease hypothesis. The UI should feel like a flight-control dashboard crossed with a wet-lab notebook: dense, authoritative, every signal visible, no padding wasted.
+Each of the 9 pipeline phases is now a first-class standalone module. The user picks any phase, provides its required inputs, runs it, gets its outputs — without running the full pipeline. E2E is an orchestration option, not the default.
 
-The three axioms:
+| v0.1 | v0.2 |
+|---|---|
+| New Run Configurator as sole entry point | Home Dashboard with module grid + E2E option |
+| Running = always a 9-phase E2E run | Running = module run OR E2E run |
+| Phases only accessible inside an active run | Any phase launchable standalone, anytime |
+| No concept of piping outputs between runs | Module outputs explicitly typed; can be used as inputs to other modules |
+
+Everything else — design tokens, phase canvases, AI Decision Rail, motion system — carries forward.
+
+---
+
+## 1. Design Philosophy
+
+### 1.1 The Metaphor
+
+**A modular instrument rack in a biotech mission control room.**
+
+The operator has nine precision instruments. They can pick up any one instrument and run it — or rack all nine together for a full automated run. The UI is dense, authoritative, and alive. Every number traces to a source. No padding wasted.
+
+### 1.2 The Three Axioms
 
 | Axiom | Implication |
 |---|---|
-| **Evidence-first** | Every number traces to a source. SHAP values, RMSD, ΔG — always with provenance. |
-| **No black boxes** | Every LLM gate shows the full prompt, full response, confidence score, and an override control. |
-| **Zero forced waiting** | The user can inspect any completed phase result while later phases are still running. |
+| **Evidence-first** | Every number shows provenance. SHAP values, RMSD, ΔG — always with source. |
+| **No black boxes** | Every LLM gate shows full prompt, full response, confidence, and an override. |
+| **Module independence** | Every phase works standalone. No forced E2E. Outputs are typed artifacts that can be piped anywhere. |
 
-### 0.2 Personality
+### 1.3 Visual Personality
 
-Industrial bioluminescence. Not "futuristic glass UI." Not purple-gradient AI slop. Think: deep navy substrate, data elements that glow softly as if backlit through a gel, molecular wire-frames in amber, sequence heatmaps that pulse when newly computed, RMSD waveforms that beat like a cardiogram. The computational biology research is visually alive.
+**Industrial bioluminescence.** Deep navy substrate. Data elements that glow softly as if backlit through a gel. Molecular wireframes in amber. Sequence heatmaps that pulse when newly computed. RMSD waveforms that beat like a cardiogram.
+
+Not futuristic glass UI. Not purple-gradient AI slop. The computation is visually alive.
 
 ---
 
-## 1. Design Tokens
+## 2. Design Tokens
 
-### 1.1 Color System
+### 2.1 Color System
 
 ```css
 /* ── Substrate ─────────────────────────────────────── */
@@ -59,315 +80,501 @@ Industrial bioluminescence. Not "futuristic glass UI." Not purple-gradient AI sl
 --col-p9:  #14B8A6;   /* Phase 9 Package       — teal-2     */
 
 /* ── Semantic ─────────────────────────────────────── */
---col-pass:     #10B981;
---col-warn:     #F59E0B;
---col-fail:     #F43F5E;
---col-seeded:   #6366F1;   /* seeded/known-positive targets */
---col-ai:       #A855F7;   /* all LLM-gate elements        */
---col-cost:     #FB923C;   /* compute cost, budget gauge   */
+--col-pass:    #10B981;
+--col-warn:    #F59E0B;
+--col-fail:    #F43F5E;
+--col-seeded:  #6366F1;
+--col-ai:      #A855F7;
+--col-cost:    #FB923C;
 
-/* ── Glow (box-shadow / filter) ─────────────────── */
+/* ── Module states ────────────────────────────────── */
+--col-module-idle:    #111A2E;   /* card bg, no run */
+--col-module-active:  #172038;   /* card bg, running */
+--col-module-done:    #0F1E35;   /* card bg, completed */
+
+/* ── Glow ─────────────────────────────────────────── */
 --glow-teal:   0 0 12px rgba(0,200,204,0.45);
 --glow-ai:     0 0 16px rgba(168,85,247,0.55);
 --glow-amber:  0 0 10px rgba(245,158,11,0.40);
+--glow-phase:  0 0 14px var(--phase-color, rgba(0,200,204,0.45));
 ```
 
-### 1.2 Typography
+### 2.2 Typography
 
 ```
 Display / Labels:     Chakra Petch (Google Fonts) — geometric, technical
                       weights: 400 (label), 600 (heading), 700 (hero number)
-Body / Prose:         DM Sans — readable at 13–14 px, not Inter
-Monospace (data):     IBM Plex Mono — SMILES strings, JSON, sequences, file paths
-Scientific units:     rendered via KaTeX inline (ΔG, µM, Å, nm, ns)
+Body / Prose:         DM Sans — readable at 13–14 px
+Monospace (data):     IBM Plex Mono — SMILES, JSON, sequences, paths
+Scientific units:     KaTeX inline (ΔG, µM, Å, nm, ns)
 ```
 
 Size scale (px): 11 · 12 · 13 · 14 · 16 · 18 · 22 · 28 · 36 · 48
 
-### 1.3 Spacing & Grid
+### 2.3 Spacing & Grid
 
 - Base unit: 4 px.
-- Content max-width: 1800 px (data-rich views use full width).
-- Sidebar collapsed: 56 px. Expanded: 240 px.
-- Right decision-rail: 320 px (slide-in).
-- Phase detail split: 340 px left target list + flex right canvas.
+- Content max-width: 1800 px.
+- Sidebar collapsed: 56 px · expanded: 240 px.
+- Right AI rail: 320 px (slide-in).
+- Phase canvas split: 340 px left list + flex right canvas.
+- Module card grid: 5-up top row, 4-up bottom row. Min card width: 160 px.
 
-### 1.4 Motion Budget
+### 2.4 Motion Budget
 
 | Token | Value | Used for |
 |---|---|---|
-| `--dur-instant`  | 80 ms  | button press feedback |
-| `--dur-fast`     | 150 ms | tooltips, micro-states |
-| `--dur-standard` | 300 ms | panel slides, card reveals |
-| `--dur-slow`     | 600 ms | page transitions, phase completes |
-| `--dur-dramatic` | 1200 ms | Pareto nebula build, pulse on run-complete |
-| `--ease-spring`  | cubic-bezier(0.34,1.56,0.64,1) | drawers, dropdowns |
-| `--ease-smooth`  | cubic-bezier(0.16,1,0.3,1)    | most transitions |
+| `--dur-instant`  | 80 ms   | Button press feedback |
+| `--dur-fast`     | 150 ms  | Tooltips, micro-states |
+| `--dur-standard` | 300 ms  | Panel slides, card reveals |
+| `--dur-slow`     | 600 ms  | Page transitions, phase completes |
+| `--dur-dramatic` | 1200 ms | Pareto nebula build, run-complete pulse |
+| `--ease-spring`  | cubic-bezier(0.34,1.56,0.64,1) | Drawers, dropdowns |
+| `--ease-smooth`  | cubic-bezier(0.16,1,0.3,1)    | Most transitions |
 
-**Animation principle:** Animate data appearing — never animate waiting. The RMSD waveform draws itself in real time as values stream. The gene scatter populates dot-by-dot (batched 200 genes/frame). The Pareto front builds outward from the origin as candidates score in. The final self-audit terminal types itself. These are meaningful animations, not decorative.
+**Animation principle:** Animate data arriving — never animate waiting.  
+The RMSD waveform draws in real time. The gene scatter populates dot-by-dot. The Pareto front builds outward from the origin. The audit terminal types itself. These are meaningful animations, not decoration.
 
 ---
 
-## 2. Global Chrome
+## 3. Information Architecture
 
-### 2.1 Left Sidebar (56 px collapsed / 240 px expanded)
+### 3.1 View Hierarchy
+
+```
+Home Dashboard (V0)
+├── Module Launcher (V1) ← any of P1–P9
+│   └── Run Canvas (V3) ← single-phase active run
+│       └── Phase Detail View (V4–V12) ← same as E2E, scoped to module
+└── E2E Pipeline Config (V2)
+    └── Run Command Center (V3) ← multi-phase active run
+        └── Phase Detail Views (V4–V12) ← full pipeline
+```
+
+### 3.2 Run Types
+
+| Type | Entry point | Topbar | Left panel |
+|---|---|---|---|
+| **E2E run** | V2 E2E Config → V3 Command Center | Phase pills P1–P9 | Target list |
+| **Module run** | V1 Module Launcher → V3 Run Canvas | Single phase pill | Hidden (not applicable) |
+
+### 3.3 Artifact Types (typed I/O between modules)
+
+Every phase produces a typed artifact. These are the currency of the modular system.
+
+| Artifact | Produced by | Consumed by | Format |
+|---|---|---|---|
+| `target_list` | P1 | P2, P3 | JSON: `[{symbol, score, shap, tdl}]` |
+| `validated_targets` | P2 | P3, P4, P5, P6 | JSON: `[{symbol, val_score, pocket_pdb, modality}]` |
+| `modality_map` | P3 | P4, P5, P6 | JSON: `{target → [modality, ...]}` |
+| `repurposing_hits` | P4 | P7, P8 | JSON: `[{drug, target, vina, lincs_tau, score}]` |
+| `sm_candidates` | P5 | P7, P8 | JSON: `[{id, smiles, qed, sa, admet, vina}]` |
+| `bio_candidates` | P6 | P7, P8 | JSON: `[{id, sequence, iptm, pae, devscores}]` |
+| `mpo_pareto` | P7 | P8 | JSON: `[{id, objectives, pareto_rank}]` |
+| `validated_candidates` | P8 | P9 | JSON: `[{id, combined_score, rmsd, delta_g, pass}]` |
+| `run_package` | P9 | Export | Directory + README |
+
+In the Module Launcher, every artifact input shows a picker: **upload file** · **from a past run** · **type manually** (for simple values like gene symbol).
+
+---
+
+## 4. Global Chrome
+
+### 4.1 Sidebar (56 px collapsed / 240 px expanded)
 
 ```
 ┌──────────────────────────────┐
 │  ⬡ RxDis          [collapse] │  ← logotype + toggle
 ├──────────────────────────────┤
-│  [+] New Run                 │  ← primary CTA (teal pill)
+│  [⌂ Home]                    │  ← always first item
 ├──────────────────────────────┤
-│  RUNS                        │
-│  ● pancreatic_cancer_01  ··· │  ← active run (pulsing dot)
+│  E2E RUNS                    │
+│  ● pancreatic_cancer_01  ··· │  ← active (pulsing dot)
 │  ✓ brca_explore_003          │
-│  ✓ lrrk2_repurpose_001       │
 │  ✗ test_run_002              │
+├──────────────────────────────┤
+│  MODULE RUNS                 │
+│  ● P1 · lrrk2_targets        │  ← active module run
+│  ✓ P5 · kras_molecules       │
+│  ✓ P2 · tgfb1_valid          │
 ├──────────────────────────────┤
 │  SYSTEM                      │
 │  ⚙ Databases                 │
 │  🔑 API Keys                 │
-│  📦 LM Studio               │  ← green/red pill = connected?
+│  📦 LM Studio               │  ← ● LIVE or ○ OFF pill
 │  📋 Changelog                │
 └──────────────────────────────┘
 ```
 
+- E2E runs and Module runs in separate labeled sections.
+- Module run rows prefix with phase number: `P1 · lrrk2_targets`.
 - Active run dot pulses at 1 Hz (CSS keyframe, opacity 1 → 0.3).
-- Hovering a completed run shows a summary tooltip: disease, top target symbol, candidate count, cost.
-- `LM Studio` row shows a status chip: `● LIVE qwen3-4b` (green) or `○ OFF (rules mode)` (amber). Clicking opens the LM Studio settings modal.
+- Hovering a completed run shows a summary tooltip.
+  - E2E: disease, top target, candidate count, cost, runtime.
+  - Module: phase name, key output metric, cost, runtime.
+- LM Studio row: `● LIVE qwen3-4b` (green) or `○ OFF (rules mode)` (amber). Click → settings modal.
 
-### 2.2 Topbar (48 px, always visible)
-
-```
-┌─────────────────────────────────────────────────────────────────────────────────────────────┐
-│  pancreatic_cancer_01                                                                       │
-│                                                                                             │
-│  ╔P1╗━━━━━━━━━━╔P2╗━━━━━━━╔P3╗╌╌╌╌╌╌╌╔P4╗╌╌╌╌╌╌╌╔P5╗╌╌╌╌╌╌╌╔P6╗╌╌╌╌╌╌╌╔P7╗╌╌╌╌╌╔P8╗╔P9╗  │
-│  ●━━━━━━━━━━━━●━━━━━━━━━━━○ ···       ·           ·           ·           ·         ·  ·   │
-│  complete     running     queued                                                            │
-│                                                               CPU ▓▓▓░ 74%   GPU ▓░░░ 28%  │
-│                                                               Hosted: $4.20   Budget: $50   │
-└─────────────────────────────────────────────────────────────────────────────────────────────┘
-```
-
-- **Phase pills:** Click any completed phase pill → jump to that phase's results view instantly, even if a later phase is still running.
-- Phase pill states: `complete` (solid fill, phase color), `running` (outline + spinner + progress %), `queued` (ghost outline), `skipped` (dashed, greyed), `error` (red outline + `!`).
-- **Queue bar:** Inline CPU / GPU / Hosted utilization strips. `Hosted: $4.20` ticks up in real time. `Budget: $50` turns amber at 80%, red at 95%.
-- Clicking the budget area opens the **Budget Burn Modal** (see §4.12).
-
-### 2.3 Compute Status Strip (bottom, 32 px)
-
-Persistent footer strip. Divided into slots:
+### 4.2 Topbar — E2E Mode (48 px)
 
 ```
-[ CPU: 4 workers | queue: 12 tasks ] [ GPU: GROMACS 10ns@RTX3050 | ~14h ] [ Hosted: DiffDock NIM · 2 pending ] [ LLM: gate 2.3_pocket_selection · running… ]
+┌───────────────────────────────────────────────────────────────────────────────┐
+│  pancreatic_cancer_01   [E2E]                                                 │
+│                                                                               │
+│  ╔P1╗━━━━━━━╔P2╗━━━━━━╔P3╗╌╌╌╌╌╌╔P4╗╌╌╌╌╌╌╔P5╗╌╌╌╌╌╌╔P6╗╌╌╌╌╔P7╗╌╌╔P8╗╔P9╗ │
+│  complete   running    queued                                                 │
+│                                           CPU ▓▓▓░ 74%  Hosted $4.20 / $50  │
+└───────────────────────────────────────────────────────────────────────────────┘
 ```
 
-Clicking any slot expands a popover showing the full task queue for that worker type, with task name, phase, start time, estimated completion, and a cancel button.
+### 4.3 Topbar — Module Mode (48 px)
+
+```
+┌───────────────────────────────────────────────────────────────────────────────┐
+│  kras_sm_june   [P5 DE NOVO SM]   ● running   Epoch 12/50 · QED 0.68         │
+│                                               GPU ▓▓▓▓ 82%  $2.40 / $10     │
+└───────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 4.4 Compute Status Strip (bottom, 32 px)
+
+Persistent footer for both run types.
+
+```
+[ CPU: 4 workers | queue: 8 tasks ]  [ GPU: REINVENT4 epoch 12 · RTX3050 ]  [ LLM: gate 5.2_admet · running ]
+```
+
+Clicking any slot → popover with full task queue, start time, ETA, cancel button.
 
 ---
 
-## 3. Views
+## 5. V0 — Home Dashboard
 
----
-
-### V0 — New Run Configurator
-
-The entry point. A full-page form that feels like setting up a mission briefing.
+Primary landing page. Three zones: module grid, active runs, recent results.
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────────┐
+│  ⬡ RxDis                               LM Studio: ● LIVE qwen3-4b-thinking     │
+├──────────────────────────────────────────────────────────────────────────────────┤
 │                                                                                  │
-│   ⬡ RxDis — New Run                                                             │
+│  PIPELINE MODULES                                  [ Launch E2E Pipeline ▶ ]    │
+│  ─────────────────────────────────────────────────────────────────────────────   │
 │                                                                                  │
-│   ┌─────────────────────────────────────────────────────────────────────────┐   │
-│   │  DISEASE TARGET                                                         │   │
-│   │  ┌─────────────────────────────────────┐  ← typeahead (Open Targets)   │   │
-│   │  │  Pancreatic cancer              [×] │                               │   │
-│   │  └─────────────────────────────────────┘                               │   │
-│   │  EFO auto-resolved: EFO_0002618 · pancreatic carcinoma  [override ▾]  │   │
-│   └─────────────────────────────────────────────────────────────────────────┘   │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐              │
+│  │ P1       │ │ P2       │ │ P3       │ │ P4       │ │ P5       │              │
+│  │ TARGET   │ │ VALIDATE │ │ MODALITY │ │ REPURPOSE│ │ SM DESIGN│              │
+│  │ ID       │ │          │ │ ROUTING  │ │          │ │          │              │
+│  │          │ │          │ │          │ │          │ │          │              │
+│  │ ~15 min  │ │ ~30 min  │ │ ~2 min   │ │ ~2h      │ │ ~8h      │              │
+│  │ [Run ▶]  │ │ [Run ▶]  │ │ [Run ▶]  │ │ [Run ▶]  │ │ [Run ▶]  │              │
+│  └──────────┘ └──────────┘ └──────────┘ └──────────┘ └──────────┘              │
 │                                                                                  │
-│   ╔══════════════════════════════════════════════════════════════════════════╗   │
-│   ║  KNOWN VALIDATED TARGETS  ★ ← View 1                                   ║   │
-│   ║                                                                        ║   │
-│   ║  ┌───────────────────────────────┐  ┌──────────────────────────────┐  ║   │
-│   ║  │ GENE UNIVERSE SEARCH          │  │ POSITIVE SET  (5 / min 5 ✓) │  ║   │
-│   ║  │  ┌─────────────────────────┐ │  │                              │  ║   │
-│   ║  │  │ Search gene symbol...   │ │  │  ● KRAS   Tclin  [×]        │  ║   │
-│   ║  │  └─────────────────────────┘ │  │  ● TP53   Tclin  [×]        │  ║   │
-│   ║  │                              │  │  ● SMAD4  Tchem  [×]        │  ║   │
-│   ║  │  EGFR  → Tclin               │  │  ● CDKN2A Tclin  [×]        │  ║   │
-│   ║  │  ERBB2 → Tclin               │  │  ● BRCA2  Tclin  [×]        │  ║   │
-│   ║  │  MYC   → Tbio  [+ add →]     │  │                              │  ║   │
-│   ║  │  NRAS  → Tclin               │  │  ┄┄ PU needs ≥ 5 ✓          │  ║   │
-│   ║  │  ...                         │  │                              │  ║   │
-│   ║  └───────────────────────────────┘  └──────────────────────────────┘  ║   │
-│   ║  Drag genes left → right, or click [+ add →]                          ║   │
-│   ╚══════════════════════════════════════════════════════════════════════════╝   │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐                           │
+│  │ P6       │ │ P7       │ │ P8       │ │ P9       │                           │
+│  │ BIOLOGIC │ │ MPO LAB  │ │ VALIDATE │ │ PACKAGE  │                           │
+│  │ DESIGN   │ │          │ │ GATE     │ │          │                           │
+│  │          │ │          │ │          │ │          │                           │
+│  │ ~4h      │ │ ~6h      │ │ ~24h+    │ │ ~5 min   │                           │
+│  │ [Run ▶]  │ │ [Run ▶]  │ │ [Run ▶]  │ │ [Run ▶]  │                           │
+│  └──────────┘ └──────────┘ └──────────┘ └──────────┘                           │
 │                                                                                  │
-│   ┌─────────────────────────────────────────────────────────────────────────┐   │
-│   │  INTENT MODE                                                            │   │
-│   │  ◉ explore  ○ repurpose  ○ de_novo                                      │   │
-│   │  Tissue of interest:  [Pancreas         ▾]   Indication: [oncology ▾]  │   │
-│   └─────────────────────────────────────────────────────────────────────────┘   │
+│  ─────────────────────────────────────────────────────────────────────────────   │
+│  ACTIVE RUNS                                                                    │
 │                                                                                  │
-│   ┌──── ADVANCED ▸ (collapsed) ─────────────────────────────────────────────┐   │
-│   │  Targets max: [20]  · Candidates/target: [5]  · Budget: [$50]           │   │
-│   │  seed_smiles: (paste SMILES)  · exclude_targets: (gene list)            │   │
-│   │  exclude_drugs: (drug names)  · selectivity_target: (anti-target)       │   │
-│   │  Phase 1: pu_method [bagging▾]  string_confidence [700]                 │   │
-│   │  novelty_mode [off]  modality_preference [any ▾]                        │   │
-│   └─────────────────────────────────────────────────────────────────────────┘   │
+│  ● [E2E] pancreatic_cancer_01    P2 running · 4 targets · $4.20 / $50  [open]  │
+│  ● [P1]  lrrk2_targets           scoring · 18K genes remaining         [open]  │
 │                                                                                  │
-│   ┌─────────────────────────────────────────────────────────────────────────┐   │
-│   │  SYSTEM CHECK                                                           │   │
-│   │  ✓ STRING 9606 links (868 MB)          ✓ DepMap CRISPRGeneEffect       │   │
-│   │  ✓ GTEx TPM parquet                    ✓ AlphaMissense hg38             │   │
-│   │  ⚠ string_node2vec_512.parquet missing — will precompute (~10 min)     │   │
-│   │  ✓ decoupler + omnipath                ✗ DrugBank XML — not found       │   │
-│   │    (P4 will use ChEMBL + OT only; DrugBank upload or set path)         │   │
-│   │  ● LM Studio LIVE (qwen3-4b-thinking)  ✓ NIM_API_KEY set               │   │
-│   └─────────────────────────────────────────────────────────────────────────┘   │
+│  ─────────────────────────────────────────────────────────────────────────────   │
+│  RECENT RESULTS                                                                 │
 │                                                                                  │
-│                              [ LAUNCH RUN ▶ ]                                   │
+│  ✓ [E2E]  brca_explore_003    4 candidates · BRCA1, PARP1    2026-05-28 [open] │
+│  ✓ [P5]   kras_molecules      20 candidates · best QED 0.81  2026-05-27 [open] │
+│  ✓ [P2]   tgfb1_valid         score 0.79 · AB modality        2026-05-25 [open] │
+│                                                                                  │
 └──────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-**View 1 — Known Positives Dual-List (inner component)**
+**Module card spec:**
 
-- Left panel: filterable table of all ~20K genes. Columns: symbol, TDL (Tclin/Tchem/Tbio/Tdark) colored badge, description (1-line).
-- Right panel: the positive set. Chips with an `×` to remove. A minimum-5 gate bar below: fills teal as you add positives, turns amber if <5 at launch time.
-- Drag-and-drop between panels, or click the `[+ add →]` arrow. Shift-click to bulk-add.
-- If a gene symbol can't be resolved to the gene universe, the chip turns red with a `!` tooltip: "not found in HGNC universe."
+Each card (140 × 160 px minimum) has:
+- Phase number badge — top-left, colored with `--col-pN`
+- Phase name — Chakra Petch 600, 13 px
+- 1-line description — DM Sans, 12 px, `--col-text-secondary`
+- Runtime estimate — 11 px, muted
+- `[Run ▶]` CTA — full-width at bottom, teal ghost button
 
-**System Check panel behavior:**
+**Card hover state:**
+- Border glows with the phase accent color (`--glow-phase`)
+- Card background lifts to `--col-base-600`
+- A tooltip appears showing the full input/output spec (see §3.3)
+- Duration: 150 ms `--ease-smooth`
 
-- Runs automatically when the form loads. Each row is a check with a spinner → ✓/✗/⚠.
-- Missing data files show the exact expected path and a `[locate]` button to open a file picker.
-- `string_node2vec_512.parquet missing` → amber warning with an estimated precompute time. Launch is still allowed; the precompute runs as Phase 1's first step.
-- LM Studio status determines whether LLM-gated steps show as optional or unavailable.
+Tooltip content per card:
+
+```
+P5 · DE NOVO SMALL MOLECULE DESIGN
+──────────────────────────────────
+Inputs:  target_symbol (required)
+         pocket_pdb — upload or from P2 run
+         seed_smiles (optional)
+Outputs: sm_candidates.json
+         docked_poses/ (PDB files)
+         chemical_space.png
+Requires: REINVENT4, DiffDock, GPU recommended
+Estimated: ~8h on RTX 3050 / ~2h on A100
+```
+
+**Active Runs strip:** Only visible if runs are in progress. Shows run type badge `[E2E]` / `[P#]`, name, current status, top metric, budget progress.
+
+**Recent Results:** Last 10 completed runs. Click any row → jump to that run's results view. Rows include the same type badge so E2E and module runs are visually distinguished.
+
+**[Launch E2E Pipeline ▶]:** Primary action button, top-right of module grid. Teal fill, Chakra Petch 600. Opens V2.
 
 ---
 
-### V1 — Run Command Center (Active Run Hub)
+## 6. V1 — Module Launcher
 
-The default view once a run starts. This is the "mission control" — a single page that gives full situational awareness.
+A focused two-panel config + launch view for running any single phase. Accessed by clicking any `[Run ▶]` from the Home Dashboard.
 
 ```
-┌──────────────────────────────────────────────────────────────────────────────────────────────┐
-│ TOPBAR (phase pills + queue strip — see §2.2)                                                │
-├────────────────────────┬─────────────────────────────────────────────────┬───────────────────┤
-│  LEFT — TARGET LIST    │  CENTER — ACTIVE PHASE CANVAS                   │  RIGHT — AI RAIL  │
-│  (340 px)              │  (flex)                                          │  (320 px, slide)  │
-│                        │                                                  │                   │
-│  PHASE 1 RESULTS       │  PHASE 2: TARGET VALIDATION                      │  DECISION RAIL    │
-│  ──────────────        │  ──────────────────────────                      │  ────────────     │
-│                        │                                                  │                   │
-│  1 KRAS     0.94 ★     │  (active phase canvas renders here —             │  AI GATES         │
-│  2 SMAD4    0.88 ★     │   see V2–V9 for per-phase detail)                │                   │
-│  3 MUC16    0.81       │                                                  │  ╔══════════════╗ │
-│  4 TGFB1    0.79       │                                                  │  ║ 2.3 POCKET   ║ │
-│  5 KPNA2    0.77       │                                                  │  ║ SELECTION     ║ │
-│    ...                 │                                                  │  ║               ║ │
-│  20 LRRK2   0.54       │                                                  │  ║ ● running…   ║ │
-│                        │                                                  │  ╚══════════════╝ │
-│  ──────────────        │                                                  │                   │
-│  LEGEND                │                                                  │  [expand rail ▸]  │
-│  ★ seeded              │                                                  │                   │
-│  ▶ P4 queued           │                                                  │                   │
-│  ⚗ P5 running          │                                                  │                   │
-│  ✓ P8 passed           │                                                  │                   │
-│  ✗ dropped             │                                                  │                   │
-└────────────────────────┴─────────────────────────────────────────────────┴───────────────────┘
+┌──────────────────────────────────────────────────────────────────────────────────┐
+│  [← Home]     PHASE 5 · DE NOVO SMALL MOLECULE DESIGN     [P5]                  │
+├──────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                  │
+│  ┌──────────────────────────────────────┐  ┌──────────────────────────────────┐ │
+│  │  CONFIGURATION                       │  │  MODULE SPEC                     │ │
+│  │  ─────────────────────────────────── │  │  ──────────────────────────────  │ │
+│  │                                      │  │                                  │ │
+│  │  Run name                            │  │  INPUTS                          │ │
+│  │  ┌──────────────────────────────┐   │  │  target_symbol        required   │ │
+│  │  │ kras_sm_june                 │   │  │  pocket_pdb           required   │ │
+│  │  └──────────────────────────────┘   │  │    ↳ or pipe from P2 run         │ │
+│  │                                      │  │  seed_smiles          optional   │ │
+│  │  TARGET SYMBOL                       │  │  n_candidates         [20]       │ │
+│  │  ┌──────────────────────────────┐   │  │  budget_usd           [$10]      │ │
+│  │  │ KRAS                         │   │  │                                  │ │
+│  │  └──────────────────────────────┘   │  │  OUTPUTS                         │ │
+│  │                                      │  │  sm_candidates.json              │ │
+│  │  POCKET SOURCE                       │  │  docked_poses/  (PDB)            │ │
+│  │  ◉ Upload PDB  ○ From past run       │  │  chemical_space.png              │ │
+│  │  ┌──────────────────────────────┐   │  │  generation_log.txt              │ │
+│  │  │  [drag PDB here or browse]   │   │  │                                  │ │
+│  │  └──────────────────────────────┘   │  │  SYSTEM CHECK                    │ │
+│  │  ✓ KRAS_pocket_G12C.pdb  (420 aa)  │  │  ✓  REINVENT4  4.1.2             │ │
+│  │                                      │  │  ✓  DiffDock  (local)            │ │
+│  │  PARAMETERS                          │  │  ✓  Boltz-2 NIM key              │ │
+│  │  ─────────────────────────────────   │  │  ✓  ADMETlab API key             │ │
+│  │  n_generations          [50   ]      │  │  ⚠  GPU: GTX 1650 (4 GB)        │ │
+│  │  candidates_per_target  [20   ]      │  │     below recommended            │ │
+│  │  seed_smiles            [     ]      │  │     → routing to GenMol NIM      │ │
+│  │  admet_filter           [strict ▾]   │  │                                  │ │
+│  │  budget_hosted_usd      [$10  ]      │  │  EST. COST    ~$3 – $7           │ │
+│  │                                      │  │  EST. TIME    ~6h (local GPU)    │ │
+│  │  ▸ ADVANCED                          │  │                                  │ │
+│  │    docking_engine  [DiffDock ▾]      │  │                                  │ │
+│  │    admet_engine    [ADMETlab ▾]      │  │                                  │ │
+│  │    novelty_mode    [off ▾]           │  │                                  │ │
+│  └──────────────────────────────────────┘  └──────────────────────────────────┘ │
+│                                                                                  │
+│             [ LAUNCH MODULE ▶ ]   [ save as template ]   [ reset ]              │
+└──────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-**Left panel — Target List:**
+**Input behaviors:**
+- "From past run" → dropdown lists all completed runs (E2E + module) that have the relevant artifact type. Shows run name, date, and key metric.
+- File drop zone: accepts the exact types listed in §3.3. On drop: validates format, shows file name + row/record count.
+- `[save as template]` persists the current config to localStorage as a named preset. Accessible from a `[load template ▾]` dropdown on subsequent visits.
 
-- Sorted by PU probability (Phase 1 score). Updates in-place as Phase 2 validation scores come in.
-- Each row: `rank · symbol · score · status icon · branch icons`.
-- Branch icons: small pills for which phases have been/are being run for this target (P4 emerald, P5 amber, P6 fuchsia).
-- Clicking a row focuses the center canvas on that target's detail (Phase 2 per-target view).
-- Seeded targets (★) always float to visible regardless of rank.
-- Strikethrough + faded if a target dropped (validation score failed, MD instability, etc.), with a tooltip showing the failure reason.
+**System Check:**
+- Runs automatically on page load.
+- Blocking failures: missing required tool/API key — `[Launch Module ▶]` is disabled, error row shows the fix path.
+- Non-blocking warnings: suboptimal hardware, stale DB — launch allowed, fallback plan shown inline.
 
-**Center canvas:**
+**Per-phase input spec:**
 
-- Renders the currently-active phase view (see V2–V9). 
-- When multiple phases are running simultaneously for different targets (e.g., P2 running on T3 while P5 runs on T1), a **tab strip** appears at the top of the canvas: `T1 (P5) | T3 (P2) | OVERVIEW`. The OVERVIEW tab shows a mini-dashboard of all active work.
+| Phase | Required Inputs | Optional Inputs | Key Params |
+|---|---|---|---|
+| P1 Target ID | disease_name, known_positives (≥5 gene symbols) | — | pu_method, max_targets, string_confidence |
+| P2 Validation | target_list (JSON or P1 output) | tissue_of_interest | validation_threshold |
+| P3 Modality Routing | validated_targets (P2 output) | intent_mode | modality_preference |
+| P4 Repurposing | target_symbol, pocket_pdb | lincs_db_path | lincs_threshold, docking_engine |
+| P5 SM Design | target_symbol, pocket_pdb | seed_smiles | n_gen, admet_filter, budget_usd |
+| P6 Biologic Design | target_symbol, pocket_pdb | reference_sequence | modality (peptide/nanobody/mAb), iptm_threshold |
+| P7 MPO | candidates_json (P5 and/or P6 output) | — | objectives, max_iter, hv_plateau_pct |
+| P8 Validation Gate | candidates_json (P7 or P5/P6 output), pocket_pdb | — | md_length_ns, fep_method |
+| P9 Package | run_dir (any completed run output directory) | — | report_format, include_structures |
 
 ---
 
-### V2 — Phase 1: Target Identification
+## 7. V2 — E2E Pipeline Config
 
-This is the science heart of the platform. Three sub-views accessed via tabs.
+Full 9-phase run setup. Accessed via `[Launch E2E Pipeline ▶]` from the Home Dashboard.
 
-```
-┌────────────────────────────────────────────────────────────────────────────┐
-│  PHASE 1: TARGET IDENTIFICATION                       AUROC (LOO): 0.91    │
-│                                                                            │
-│  [ Gene Universe Scatter ]  [ Feature Heatmap ]  [ Network Graph ]         │
-├────────────────────────────────────────────────────────────────────────────┤
-```
-
-#### Tab A — Gene Universe Scatter (default)
-
-Full-canvas interactive scatter plot. Every dot is a gene.
-
-- **X axis:** PU probability (0 → 1). **Y axis:** Node2Vec UMAP dim 2 (neighborhood position).
-- **Dot color:** gradient from `--col-base-400` (low probability) → `--col-p1` (teal, high probability), with opacity encoding density.
-- **Known positives (seeded):** rendered as ⬡ hexagon markers in `--col-seeded` (indigo), pulse animation at 2 Hz (scale 1.0 → 1.15, opacity 1 → 0.7). They serve as visual anchors.
-- **Hover:** tooltip shows symbol, probability, TDL badge, top 2 SHAP features.
-- **Click:** opens SHAP Drawer for that gene (View 3 — see §3.1 below).
-- **Lasso select:** drag to select a gene cluster → shows aggregate SHAP attribution for the selection, list of selected genes with checkboxes to add to known_positives for next run.
-- **Controls bar (top-right of canvas):**
-  - Color-by: `[PU probability▾]` (default), SHAP top feature, TDL, Tissue expression, Master-regulator flag.
-  - Zoom to: positives cluster / top-20 / full universe.
-  - `[export SVG]`.
-
-Population animation: when Phase 1 completes, genes enter the scatter in batches of 500, animating in from `opacity: 0, scale: 0.3` to their final position over 800 ms total. The seeded positives render last with a pronounced pop.
+A top-of-page banner makes the module relationship explicit:
 
 ```
-        Gene Universe — pancreatic cancer   · 19,990 genes
-  ─────────────────────────────────────────────────────────────
-  PU   1.0 │                                          ⬡ KRAS
-  Prob     │                                  ●●●  ⬡ TP53
-       0.8 │                              ●●●●●●● ⬡ SMAD4
-           │                          ●●●●●●●●●●●
-       0.6 │  ·                  ●●●●●●●●●●●●●●
-           │       ·  ·  ·  ●●●●●●●●●●●●●
-       0.4 │       ·  ·  ·  ●●●●●●●●●
-           │     ·  ·  ·  ·  ●●
-       0.2 │   ·  ·  ·  ·  ·
-           │  ·  ·  ·
-       0.0 └────────────────────────────────────── UMAP 2
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│  ℹ  E2E mode chains all 9 modules in sequence. Results from each phase are      │
+│     accessible the moment that phase completes — you don't wait for the run to  │
+│     finish. Each module output is also available as a standalone artifact.       │
+└─────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-#### Tab B — Feature Heatmap (View 3 — SHAP Drawer context)
+The form below the banner is the full New Run Configurator:
 
-Top-20 target rows × all feature columns (512 Node2Vec dims collapsed to top-10 PCs + named omics features).
+```
+┌──────────────────────────────────────────────────────────────────────────────────┐
+│  ⬡ RxDis — New E2E Run                                                           │
+│                                                                                  │
+│  ┌─────────────────────────────────────────────────────────────────────────┐    │
+│  │  DISEASE TARGET                                                         │    │
+│  │  ┌───────────────────────────────────────┐  ← typeahead (Open Targets) │    │
+│  │  │  Pancreatic cancer               [×]  │                             │    │
+│  │  └───────────────────────────────────────┘                             │    │
+│  │  EFO auto-resolved: EFO_0002618 · pancreatic carcinoma  [override ▾]  │    │
+│  └─────────────────────────────────────────────────────────────────────────┘    │
+│                                                                                  │
+│  ╔════════════════════════════════════════════════════════════════════════════╗  │
+│  ║  KNOWN VALIDATED TARGETS                                                  ║  │
+│  ║                                                                          ║  │
+│  ║  ┌──────────────────────────────────┐  ┌───────────────────────────┐    ║  │
+│  ║  │ GENE UNIVERSE SEARCH             │  │ POSITIVE SET  (5 / ≥5 ✓) │    ║  │
+│  ║  │  [Search gene symbol...]         │  │                           │    ║  │
+│  ║  │                                  │  │  ● KRAS   Tclin  [×]     │    ║  │
+│  ║  │  EGFR   Tclin  [+ add →]         │  │  ● TP53   Tclin  [×]     │    ║  │
+│  ║  │  ERBB2  Tclin  [+ add →]         │  │  ● SMAD4  Tchem  [×]     │    ║  │
+│  ║  │  MYC    Tbio   [+ add →]         │  │  ● CDKN2A Tclin  [×]     │    ║  │
+│  ║  │  ...                             │  │  ● BRCA2  Tclin  [×]     │    ║  │
+│  ║  └──────────────────────────────────┘  └───────────────────────────┘    ║  │
+│  ║  Drag genes left → right, or click [+ add →]                            ║  │
+│  ╚════════════════════════════════════════════════════════════════════════════╝  │
+│                                                                                  │
+│  ┌─────────────────────────────────────────────────────────────────────────┐    │
+│  │  INTENT MODE                                                            │    │
+│  │  ◉ explore  ○ repurpose  ○ de_novo                                       │    │
+│  │  Tissue: [Pancreas  ▾]    Indication: [oncology ▾]                      │    │
+│  └─────────────────────────────────────────────────────────────────────────┘    │
+│                                                                                  │
+│  ▸ ADVANCED (collapsed)                                                          │
+│    Targets max [20] · Candidates/target [5] · Budget [$50]                       │
+│    seed_smiles · exclude_targets · exclude_drugs · selectivity_target             │
+│    P1: pu_method [bagging ▾] · string_confidence [700] · novelty_mode [off ▾]    │
+│                                                                                  │
+│  ┌─────────────────────────────────────────────────────────────────────────┐    │
+│  │  SYSTEM CHECK                                                           │    │
+│  │  ✓ STRING 9606 links (868 MB)      ✓ DepMap CRISPRGeneEffect            │    │
+│  │  ✓ GTEx TPM parquet                ✓ AlphaMissense hg38                 │    │
+│  │  ⚠ string_node2vec_512.parquet missing — will precompute (~10 min)     │    │
+│  │  ✓ decoupler + omnipath            ✗ DrugBank XML — not found           │    │
+│  │    (P4 will use ChEMBL + OT only)                                       │    │
+│  │  ● LM Studio LIVE (qwen3-4b-thinking)   ✓ NIM_API_KEY set              │    │
+│  └─────────────────────────────────────────────────────────────────────────┘    │
+│                                                                                  │
+│                         [ LAUNCH E2E RUN ▶ ]                                    │
+└──────────────────────────────────────────────────────────────────────────────────┘
+```
 
-- Color scale: diverging blue → white → amber (negative → zero → positive contribution).
-- Row labels: gene symbol + rank number.
-- Column groups: `Node2Vec` (grey background), `Essentiality` (rose), `Expression` (teal), `Constraint` (amber), `Network` (violet).
-- Clicking a cell shows the raw value + SHAP attribution for that gene × feature.
-- Sticky header row with feature labels. Sticky first column with gene symbols.
-- Sort rows by: overall score, any feature column. Sort columns by: mean SHAP magnitude.
+**Known Positives Dual-List:**
+- Left: filterable table of all ~20K genes. Columns: symbol, TDL badge, 1-line description.
+- Right: positive set chips with `×` to remove. Min-5 gate bar fills teal as you add; turns amber if below 5 at launch.
+- Drag between panels or click `[+ add →]`. Shift-click bulk-add.
+- Unresolvable gene symbols → chip turns red with `!` tooltip: "not found in HGNC universe."
 
-#### Tab C — Network Graph
+---
 
-STRING PPI subgraph centered on top-20 targets.
+## 8. V3 — Run Canvas
 
-- Rendered via D3 force-directed layout. Nodes = genes (size ∝ PU probability). Edges = STRING confidence (thickness ∝ score, only ≥ 700 shown).
-- Color: top-20 colored by phase color `--col-p1`, known positives as hexagons, other interactors as small grey dots.
+The active view for both E2E runs and module runs. Layout adapts by run type.
+
+### 8.1 E2E Mode (three-panel)
+
+```
+┌──────────────────────────────────────────────────────────────────────────────────────┐
+│  TOPBAR — P1 complete, P2 running, P3–P9 queued (see §4.2)                          │
+├────────────────────────┬───────────────────────────────────────────┬─────────────────┤
+│  TARGET LIST (340 px)  │  PHASE CANVAS (flex)                       │  AI RAIL (320px) │
+│                        │                                            │  [slide-in]      │
+│  PHASE 1 RESULTS       │  Renders the active phase detail view      │                  │
+│  ───────────────       │  (V4–V12). Tab strip appears if            │  AI DECISION     │
+│  1 KRAS    0.94 ★      │  multiple phases running simultaneously.   │  RAIL            │
+│  2 SMAD4   0.88 ★      │                                            │  (see §12)       │
+│  3 MUC16   0.81        │  When multiple phases active:              │                  │
+│  4 TGFB1   0.79        │  ┌─────────────────────────────────────┐  │                  │
+│  5 KPNA2   0.77        │  │ T1 (P5) │ T3 (P2) │ OVERVIEW  │    │  │                  │
+│  ...                   │  └─────────────────────────────────────┘  │                  │
+│  20 LRRK2  0.54        │                                            │                  │
+│                        │                                            │                  │
+│  LEGEND                │                                            │                  │
+│  ★ seeded              │                                            │                  │
+│  ⚗ running             │                                            │                  │
+│  ✓ P8 passed           │                                            │                  │
+│  ✗ dropped             │                                            │ [expand rail ▸]  │
+└────────────────────────┴───────────────────────────────────────────┴─────────────────┘
+```
+
+**Target List behaviors:**
+- Sorted by PU probability (P1 score). Updates in-place as P2 validation scores arrive.
+- Row: `rank · symbol · score · status icon · phase branch pills`.
+- Branch pills: small colored dots showing which phases have run/are running for this target.
+- Clicking a row focuses the canvas on that target's detail view.
+- Seeded targets (★) always visible regardless of rank.
+- Dropped targets: strikethrough + faded. Tooltip shows failure reason.
+
+### 8.2 Module Mode (single-panel)
+
+No target list. Topbar shows single phase pill. Canvas is full-width.
+
+```
+┌──────────────────────────────────────────────────────────────────────────────────┐
+│  TOPBAR — P5 running, epoch 12/50 (see §4.3)                                    │
+├──────────────────────────────────────────────────────────────────────────────────┤
+│  PHASE CANVAS — full width                                                       │
+│  Renders V9 (Phase 5 detail). AI Rail accessible via [AI Rail ▸], collapsed.   │
+└──────────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 9. V4 — Phase 1: Target Identification
+
+Three sub-tabs: Gene Universe Scatter · Feature Heatmap · Network Graph.
+
+### 9.1 Gene Universe Scatter (default tab)
+
+Full-canvas interactive scatter. Every dot is a gene.
+
+- **X:** PU probability (0 → 1). **Y:** Node2Vec UMAP dim 2.
+- **Dot color:** `--col-base-400` (low) → `--col-p1` teal (high). Opacity encodes density.
+- **Known positives:** ⬡ hexagon markers in `--col-seeded` indigo. Pulse at 2 Hz (scale 1.0 → 1.15).
+- **Hover:** tooltip — symbol, probability, TDL badge, top 2 SHAP features.
+- **Click:** opens SHAP Drawer (§9.4).
+- **Lasso select:** drag to select cluster → aggregate SHAP for selection, list with checkboxes to add to positives for next run.
+
+Controls top-right: color-by dropdown (`PU probability` / SHAP top feature / TDL / Tissue expression / Master-regulator flag) · zoom shortcuts · `[export SVG]`.
+
+**Population animation:** On P1 complete, genes enter in batches of 500, animating from `opacity 0, scale 0.3` over 800 ms total. Seeded positives render last with a pronounced pop.
+
+### 9.2 Feature Heatmap (tab B)
+
+Top-20 target rows × all feature columns.
+
+- Color: diverging blue → white → amber (negative → zero → positive SHAP).
+- Column groups: `Node2Vec` (grey bg) · `Essentiality` (rose) · `Expression` (teal) · `Constraint` (amber) · `Network` (violet).
+- Clicking a cell: raw value + SHAP attribution for that gene × feature.
+- Sticky row header + sticky first column.
+- Sort rows by: overall score, any column. Sort columns by: mean SHAP magnitude.
+
+### 9.3 Network Graph (tab C)
+
+STRING PPI subgraph of top-20 targets.
+
+- D3 force-directed. Node size ∝ PU probability. Edge thickness ∝ STRING confidence (≥700 only).
+- Top-20 colored `--col-p1`. Known positives as hexagons. Other interactors: small grey dots.
 - Master-regulator TFs: diamond shape.
 - Hover node: highlight 1-hop neighborhood, fade rest.
-- Click node: jumps to Phase 2 validation card for that target.
-- `[show TF regulon]` toggle: overlays arrows from TF nodes to their DoRothEA targets (within the visible subgraph).
+- Click node: jump to P2 validation card for that target.
+- `[show TF regulon]` toggle: overlay DoRothEA arrows.
 
-#### View 3 — SHAP Drawer (slide-in panel, ~480 px, from right)
-
-Opens on clicking any gene in the scatter or heatmap.
+### 9.4 SHAP Drawer (480 px, slide-in from right)
 
 ```
 ┌───────────────────────────────────────────────────┐
@@ -375,7 +582,7 @@ Opens on clicking any gene in the scatter or heatmap.
 │  PU probability: 0.9401 · percentile: 99.9th       │
 │  DoRothEA activity: 2.1  · master-reg: no          │
 ├───────────────────────────────────────────────────┤
-│  SHAP ATTRIBUTIONS  (pushes score from base 0.42) │
+│  SHAP ATTRIBUTIONS  (base: 0.42)                  │
 │                                                   │
 │  node2vec_dim_137  ███████████████  +0.091        │
 │  gtex_pancreas     ██████████       +0.063        │
@@ -384,7 +591,7 @@ Opens on clicking any gene in the scatter or heatmap.
 │  am_high_path      ████             +0.025        │
 │  node2vec_dim_044  ██               +0.013        │
 │  gtex_liver        ▌                −0.008        │
-│  ────────────────────────────────────────────     │
+├───────────────────────────────────────────────────┤
 │  Open Targets tractability: 1.0                   │
 │  Genetic score (GWAS/OMIM): 0.0                   │
 │  PPI eigenvector centrality: 0.99                 │
@@ -392,812 +599,658 @@ Opens on clicking any gene in the scatter or heatmap.
 │  OMICS MINI-PANELS                                │
 │  DepMap: median Chronos −0.71 · selective in      │
 │          [PANCREAS, COAD] (12/14 lines essential) │
-│  GTEx: Pancreas 142 TPM · tissue-selective (TSI   │
-│        0.22 — broadly expressed)                  │
-│  AlphaMissense: 12 high-confidence missense        │
-│                 variants in ClinVar                │
+│  GTEx: Pancreas 142 TPM · TSI 0.22 (broad)       │
+│  AlphaMissense: 12 high-confidence variants       │
 ├───────────────────────────────────────────────────┤
-│  [ → Open Full Target Card in Phase 2 ]           │
+│  [ → Open Full P2 Validation Card ]               │
 └───────────────────────────────────────────────────┘
 ```
 
-SHAP bars: animated entry — each bar grows left-to-right over 200 ms, staggered 30 ms apart. Positive contributions are teal, negative are rose. The base score line is a vertical dashed line at the left; the final predicted value is marked at the right.
+SHAP bars animate left-to-right (200 ms per bar, staggered 30 ms). Positive = teal · Negative = rose.
 
 ---
 
-### V3 — Phase 2: Target Validation
+## 10. V5 — Phase 2: Target Validation
 
-Per-target view. The left panel shows the target list; the canvas is divided into four quadrants.
+Per-target four-quadrant view.
 
 ```
-┌──────────────────────────────────────────────────────────────────────────────────────┐
-│  TGFB1  ·  validation score: 0.79  ·  primary: AB  ·  secondary: peptide            │
-│  [◀ prev target]  [▶ next target]              [override: force pass / force drop]   │
-├──────────────────────┬───────────────────────────────────────────────────────────────┤
-│  QUADRANT A          │  QUADRANT B                                                   │
-│  3D STRUCTURE        │  DRUGGABILITY                                                 │
-│  (Mol* viewer)       │  SHAP + radar                                                 │
-│                      │                                                               │
-│  [AFDB · pLDDT 88]   │                                                               │
-│                      │                                                               │
-│  wire-frame of       │  Druggability    0.71  ████████░░                            │
-│  TGFB1 protein       │  Essentiality   −0.20  ████░░░░░░  (low dependency)          │
-│  pocket P1 glowing   │  Variant load    0.14  ██░░░░░░░░                            │
-│  amber               │  Network cent.   0.81  █████████░                            │
-│                      │  Safety          0.61  ██████░░░░                            │
-│  Pocket P1           │  Tractability    0.70  ███████░░░                            │
-│  Drugg. 0.71         │                                                               │
-│  [interface]         │  Radar chart ──────────────────────                          │
-│                      │        Potency                                                │
-│  controls:           │          ●                                                   │
-│  [rotate] [zoom]     │  Safety●───────●Selectivity                                  │
-│  [show pocket]       │        ●                                                     │
-│  [show ECD]          │       ADMET                                                   │
-│  [download PDB]      │                                                               │
-├──────────────────────┼───────────────────────────────────────────────────────────────┤
-│  QUADRANT C          │  QUADRANT D                                                   │
-│  ESSENTIALITY +      │  TISSUE EXPRESSION                                            │
-│  SAFETY              │                                                               │
-│                      │  Tissue heatmap — GTEx + HPA                                 │
-│  DepMap Chronos:     │                                                               │
-│  −0.20 (not ess.)    │  Pancreas   ████████░  142 TPM  [tissue_of_interest ★]       │
-│  Core-essential: NO  │  Liver      ██████░░░  98 TPM                                │
-│  LOEUF: 0.42         │  Heart      ████░░░░░  71 TPM   ⚠ critical tissue            │
-│                      │  Brain      ████░░░░░  67 TPM   ⚠ critical tissue            │
-│  Critical-tissue     │  Kidney     ███░░░░░░  54 TPM                                │
-│  flag: NO            │  ... (all 54 GTEx tissues, scrollable)                       │
-│  Selectivity         │                                                               │
-│  strategy: n/a       │  HPA: Secreted protein · Extracellular                       │
-│                      │  Protein atlas subcell: Extracellular matrix                  │
-└──────────────────────┴───────────────────────────────────────────────────────────────┘
-│  VALIDATION SCORE SHAP  — what drove 0.79                                           │
-│  druggability +0.18 ██████████  ·  eigenvector +0.14 ███████  ·  gwas +0.12 ██████  │
-│  evidence summary: [AI] "TGFB1 is an extracellular ligand with a well-defined..."   │
-└──────────────────────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│  TGFB1  ·  validation score: 0.79  ·  primary: AB  ·  secondary: peptide       │
+│  [◀ prev]  [▶ next]                   [force pass]  [force drop]                │
+├───────────────────────┬─────────────────────────────────────────────────────────┤
+│  QUADRANT A           │  QUADRANT B                                             │
+│  3D STRUCTURE         │  DRUGGABILITY                                           │
+│  Mol* viewer          │                                                         │
+│                       │  Druggability    0.71  ████████░░                      │
+│  AFDB · pLDDT 88      │  Essentiality   −0.20  ████░░░░░░  (low dep.)          │
+│  pocket P1 glowing    │  Variant load    0.14  ██░░░░░░░░                      │
+│  amber                │  Network cent.   0.81  █████████░                      │
+│                       │  Safety          0.61  ██████░░░░                      │
+│  Pocket P1            │  Tractability    0.70  ███████░░░                      │
+│  Drugg. 0.71          │                                                         │
+│                       │  Radar: Potency · Safety · Selectivity · ADMET         │
+│  [rotate] [pocket]    │                                                         │
+│  [ECD]  [↓ PDB]       │                                                         │
+├───────────────────────┼─────────────────────────────────────────────────────────┤
+│  QUADRANT C           │  QUADRANT D                                             │
+│  ESSENTIALITY +       │  TISSUE EXPRESSION                                      │
+│  SAFETY               │                                                         │
+│                       │  Pancreas  ████████░  142 TPM  [★ tissue of interest]  │
+│  DepMap Chronos:      │  Liver     ██████░░░   98 TPM                           │
+│  −0.20 (not ess.)     │  Heart     ████░░░░░   71 TPM  ⚠ critical tissue       │
+│  Core-essential: NO   │  Brain     ████░░░░░   67 TPM  ⚠ critical tissue       │
+│  LOEUF: 0.42          │  ...all 54 GTEx tissues, scrollable                    │
+│                       │                                                         │
+│  Critical tissue: NO  │  HPA: Secreted · Extracellular matrix                  │
+├───────────────────────┴─────────────────────────────────────────────────────────┤
+│  VALIDATION SCORE SHAP                                                          │
+│  druggability +0.18 ██████████  ·  eigenvector +0.14 ███████  ·  gwas +0.12 ██ │
+│  evidence summary: [AI] "TGFB1 is an extracellular ligand with a well-defined  │
+│  receptor-binding interface. P1 pocket volume 480 Å³ with 6 mutation hotspots."│
+└─────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-**Mol* Viewer (Quadrant A):**
-- Embedded using the Mol* WebAssembly build via an `<iframe>` or the React plugin.
-- Default representation: cartoon backbone in `--col-base-400`, pocket residues in surface representation colored `--col-p5` (amber), and the ligand (if present from PDB) as ball-and-stick in `--col-p1` (teal).
-- Pocket P1 glows softly (ambient occlusion shader overlay).
-- Structure source badge top-right: `PDB` / `AFDB` / `ESMFold` / `NIM` — colored by confidence level.
-- Controls: reset view, toggle labels, show/hide pocket, isolate ECD (for membrane targets), download PDB.
-- If pLDDT < 70 throughout → a banner over the viewer: "⚠ Low confidence structure — disordered. See subroutine 2.6."
+**Mol* Viewer:** Default = cartoon backbone in `--col-base-400`, pocket residues surface in `--col-p5` amber, ligand ball-and-stick in `--col-p1`. Pocket glows (ambient occlusion overlay). Structure source badge: `PDB` / `AFDB` / `ESMFold` / `NIM`. pLDDT < 70 → banner: "⚠ Low confidence structure. See subroutine 2.6."
 
-**Target Card Flip (alternative layout):**
-
-On narrow viewports or in the target list panel, each target collapses to a **flip card**:
-- Front: symbol + validation score radial gauge + primary modality badge + pass/fail chip.
-- Back (on flip): pocket druggability, essentiality, tissue flag, top SHAP feature.
-- Flip animation: 3D CSS `rotateY(180deg)`, 400 ms `--ease-smooth`.
+**Validation score gauge:** Circular radial gauge (0–1), animated fill on mount. Color: red < 0.5 · amber 0.5–0.7 · teal > 0.7.
 
 ---
 
-### V4 — Phase 3: Modality Routing
+## 11. V6 — Phase 3: Modality Routing
 
-A **Sankey diagram** is the primary visualization. Targets flow left-to-right into modality branches.
+Sankey diagram. Targets flow left → modality branches → downstream phase labels.
 
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
 │  PHASE 3: MODALITY SELECTION          intent_mode: explore           │
 ├──────────────────────────────────────────────────────────────────────┤
 │                                                                      │
-│                      ┌─────────────────────────────────┐            │
-│  TARGETS             │  MODALITY BRANCHES              │            │
-│                      │                                 │            │
-│  KRAS  ──────────────┤──▶ P4 Repurposing   ───────────▶ (GREEN)     │
-│                      │──▶ P5 Small Molecule ──────────▶ (AMBER)     │
-│                      │                                 │            │
-│  TGFB1 ─────────────▶│──▶ P4 Repurposing   ───────────▶ (GREEN)     │
-│                      │──▶ P6 Biologic       ──────────▶ (FUCHSIA)   │
-│                      │                                 │            │
-│  LRRK2 ─────────────▶│──▶ P4 Repurposing   ───────────▶ (GREEN)     │
-│                      │──▶ P5 Small Molecule ──────────▶ (AMBER)     │
-│                      │   (PROTAC secondary)            │            │
-│                      │                                 │            │
-│  MUC16 ─────────────▶│──▶ P6 Biologic       ──────────▶ (FUCHSIA)   │
-│          [AI] grey-  │   [AI: gain-of-func → PROTAC]  │            │
-│           zone note  │──▶ P5 PROTAC         ──────────▶ (AMBER-2)   │
-│                      └─────────────────────────────────┘            │
+│  KRAS  ──────────────────▶  P4 Repurposing   ──▶  (EMERALD)         │
+│                           ▶  P5 Small Molecule ──▶  (AMBER)          │
+│                                                                      │
+│  TGFB1 ─────────────────▶  P4 Repurposing   ──▶  (EMERALD)         │
+│                           ▶  P6 Biologic      ──▶  (FUCHSIA)         │
+│                                                                      │
+│  LRRK2 ─────────────────▶  P4 Repurposing   ──▶  (EMERALD)         │
+│               [AI]        ▶  P5 SM (PROTAC 2°) ─▶  (AMBER)          │
+│                                                                      │
+│  MUC16 ─────────────────▶  P6 Biologic      ──▶  (FUCHSIA)         │
+│               [AI]        ▶  P5 PROTAC       ──▶  (AMBER-2)         │
 │                                                                      │
 │  SUMMARY TABLE                                                       │
-│  ─────────────────────────────────────────────────────────────────  │
-│  Target   Primary  Secondary  Repurposing Priority  Branches        │
-│  KRAS     SM       PROTAC     HIGH                  P4 + P5         │
-│  TGFB1    AB       peptide    HIGH                  P4 + P6         │
-│  LRRK2    SM       PROTAC     HIGH                  P4 + P5         │
-│  MUC16    AB       PROTAC     MEDIUM                P4 + P6 + P5    │
-│  KPNA2    SM       –          LOW                   P4 + P5         │
+│  ─────────────────────────────────────────────────────────────────   │
+│  Target   Primary  Secondary   Repurposing    Branches               │
+│  KRAS     SM       PROTAC      HIGH           P4 + P5                │
+│  TGFB1    AB       peptide     HIGH           P4 + P6                │
+│  LRRK2    SM       PROTAC      HIGH           P4 + P5                │
+│  MUC16    AB       PROTAC      MEDIUM         P4 + P6 + P5           │
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
-- Sankey flow width proportional to modality score.
-- AI-gate decisions are shown inline as a small `[AI]` violet badge on the flow edge. Clicking it opens the full AI decision card in the Decision Rail.
+- Sankey flow width ∝ modality score.
+- `[AI]` violet badge on each flow edge → opens full decision card in AI Rail.
 - `repurposing_priority` badges: `HIGH` emerald · `MEDIUM` amber · `LOW_CLINICAL` blue · `LOW` grey.
-- Branch connections animate on page load: Sankey flows draw themselves left-to-right over 600 ms via `stroke-dashoffset` animation.
+- Flows draw left-to-right on page load (600 ms `stroke-dashoffset` animation).
 
 ---
 
-### V5 — Phase 4: Drug Repurposing
+## 12. V7 — Phase 4: Drug Repurposing
 
-Three-panel view per target.
+Three-panel per target: Triangulation bubble chart · Docking view · LINCS heatmap.
 
 ```
-┌──────────────────────────────────────────────────────────────────────────────────┐
-│  PHASE 4: REPURPOSING — KRAS                    top 5 candidates shown           │
-├───────────────────────────┬──────────────────────────┬───────────────────────────┤
-│  PANEL A: TRIANGULATION   │  PANEL B: DOCKING VIEW   │  PANEL C: LINCS HEATMAP   │
-│  bubble chart             │  (per selected candidate) │                           │
-│                           │                           │                           │
-│  LINCS τ                  │  ┌─────────────────────┐  │  Perturbagen τ correlation │
-│  reversal                 │  │  Mol* viewer:       │  │                           │
-│    ●                      │  │  KRAS + niclosamide │  │  niclosamide   ████ −95   │
-│  −90│    ●niclosamide      │  │  docked pose        │  │  AMG-510       ███  −91   │
-│     │  ●                  │  │  amber ligand       │  │  adagrasib     ███  −88   │
-│  −70│                     │  │  pocket surface     │  │  sotorasib     ██   −82   │
-│     │         ●           │  └─────────────────────┘  │  erlotinib     ██   −71   │
-│  −50│                     │                           │                           │
-│     └───────────────────  │  niclosamide              │  ← τ < −90 threshold line │
-│       0.3  0.5  0.7  0.9  │  Vina: −9.5 kcal/mol     │                           │
-│       docking score       │  Boltz-2: 0.30 log-µM    │                           │
-│                           │  Prior clinical:          │                           │
-│  bubble size = repurposing │  antifibrotic lit         │                           │
-│  score                    │                           │                           │
-│  color = LINCS τ          │  Repurposing score: 0.72  │                           │
-└───────────────────────────┴──────────────────────────┴───────────────────────────┘
-│  CANDIDATE TABLE (all N per target)                                              │
-│  Drug                Vina    Boltz-2  LINCS-τ  Clinical          Score  Narrative │
-│  niclosamide        −9.5    0.30     −95       antifibrotic      0.72   [view]    │
-│  AMG-510 (soto.)    −11.2   −0.1     −91       approved KRAS-G12C 0.91  [view]    │
-│  adagrasib          −10.8   0.05     −88       approved KRAS-G12C 0.88  [view]    │
-└──────────────────────────────────────────────────────────────────────────────────┘
+┌────────────────────────┬────────────────────────┬────────────────────────────┐
+│  PANEL A               │  PANEL B               │  PANEL C                   │
+│  TRIANGULATION         │  DOCKING VIEW          │  LINCS HEATMAP             │
+│  bubble chart          │  (selected candidate)   │                            │
+│                        │                        │  niclosamide  ████ −95     │
+│  LINCS τ               │  Mol* viewer:          │  AMG-510      ███  −91     │
+│  −90│  ●niclosamide    │  KRAS + niclosamide    │  adagrasib    ███  −88     │
+│     │●                 │  docked pose           │  sotorasib    ██   −82     │
+│  −70│        ●         │  amber ligand          │  erlotinib    ██   −71     │
+│     └──────────────    │  pocket surface        │                            │
+│      0.3  0.7  1.0     │                        │  ← τ < −90 threshold line  │
+│      docking score     │  Vina: −9.5 kcal/mol   │                            │
+│                        │  Boltz-2: 0.30 log-µM  │                            │
+│  bubble = repurp score │  Repurp score: 0.72    │                            │
+└────────────────────────┴────────────────────────┴────────────────────────────┘
+│  CANDIDATE TABLE                                                              │
+│  Drug           Vina    Boltz-2  LINCS-τ  Clinical            Score  Brief   │
+│  niclosamide   −9.5    0.30     −95       antifibrotic        0.72   [view]  │
+│  sotorasib     −11.2   −0.1     −91       approved KRAS-G12C  0.91   [view]  │
+│  ✓ benchmark — approved KRAS drugs appear in top 3 (sotorasib, adagrasib)    │
+└────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-- The bubble chart is interactive: clicking a bubble selects that candidate and updates Panel B with its docked pose.
-- `[view]` narrative opens the AI-generated 4-sentence repurposing brief in a tooltip/modal.
-- Known approved KRAS drugs (like sotorasib, adagrasib) serve as positive controls — they should appear near the top, and their presence there is surfaced as a "benchmark signal" badge: `✓ known approved pair`.
+- Clicking a bubble updates Panel B.
+- `[view]` brief → AI-generated 4-sentence repurposing summary in tooltip.
+- Known approved pairs surface as `✓ known approved pair` benchmark badge.
 
 ---
 
-### V6 — Phase 5: De Novo Small Molecule Design
+## 13. V8 — Phase 5: De Novo Small Molecule Design
 
-Two sub-views: **Chemical Space** and **Candidate Table**.
+Three sub-tabs: Chemical Space · Candidate Table · Generation Log.
 
-#### Sub-view A — Chemical Space Explorer
+### Chemical Space
 
-```
-┌────────────────────────────────────────────────────────────────────────┐
-│  PHASE 5: DE NOVO SM — LRRK2                                           │
-│  Generated: 7,832 SMILES → filtered: 412 → ADMET-passed: 89 → top: 20 │
-│  [ Chemical Space ] [ Candidate Table ] [ Generation Log ]             │
-├────────────────────────────────────────────────────────────────────────┤
-│                                                                        │
-│  t-SNE / UMAP of all 412 filtered molecules                            │
-│                                                                        │
-│  ·· ·  ·    ·                           color scale: QED               │
-│  ···  ·  ●●  ···  ·                     0.0 ──── 0.5 ──── 1.0          │
-│   ·  ●●●●●●●● ·   ·  ·                  grey     mid     teal          │
-│     ●●●●●●★●●●   · ·                                                   │
-│      ●★●●●● · · · ·                     ★ = Pareto front              │
-│       ● ·   ·                           ● = ADMET-passed              │
-│    ChEMBL-approved ◆ ◆                  ◆ = ChEMBL ref scaffold        │
-│       cluster                                                           │
-│                                                                        │
-│  controls: [color by: QED▾] [size by: Vina▾] [show Pareto] [3D mode]  │
-└────────────────────────────────────────────────────────────────────────┘
-```
+t-SNE/UMAP of all filtered molecules. Color ∝ QED. ★ = Pareto-optimal. ● = ADMET-passed. ◆ = ChEMBL reference scaffold.
 
-- Hovering a dot shows: ID, SMILES snippet, QED, Vina, Boltz-2, ADMET summary.
-- Clicking a dot opens a side panel with the **2D structure drawing** (RDKit SVG), full ADMET accordion, docking score, and a `[→ send to Phase 7]` button.
-- Pareto front rendered as a connecting line through the ★ points, glowing `--glow-teal`.
-- ChEMBL reference scaffolds (for Tanimoto novelty comparison) appear as distinct ◆ markers in grey.
+- Hover: ID, SMILES snippet, QED, Vina, Boltz-2, ADMET summary.
+- Click: side panel with 2D RDKit SVG, full ADMET accordion, `[→ send to P7]` button.
+- Pareto front: connecting line through ★ points, glowing `--glow-teal`.
+- Controls: color-by (QED / Vina / SA / ADMET) · size-by · `[show Pareto]` · `[3D mode]`.
 
-#### Sub-view B — Candidate Table
+### Candidate Table
 
 ```
   ID        SMILES (trunc.)     Vina   Boltz-2  QED   SA   ADMET  Score
   DNSM_001  CC(=O)Nc1cc…        −10.1   0.20   0.74  2.9   ✓     0.81
-  DNSM_002  Clc1ccc(NC…         −9.8    0.35   0.71  3.1   ✓     0.78
   DNSM_003  O=C(Nc1cnc…         −9.6    0.42   0.68  3.4   ⚠     0.71  (hERG flag)
-  ...
 ```
 
-- Each row expandable → shows full ADMET breakdown (119 endpoints, grouped: absorption, distribution, metabolism, excretion, toxicity). Color-coded: green pass · amber warn · red fail.
-- ADMET accordion row: each endpoint is a chip. Red chips have a tooltip with the specific concern.
-- `[view 3D pose]` → opens an inline Mol* viewer in the row (accordion-style expansion).
-- Sorting: any column. Filtering: QED >, Vina <, ADMET gate (all-pass only).
+- Row expand → full ADMET breakdown (119 endpoints, grouped). Red chips have specific concern tooltip.
+- `[view 3D pose]` → inline Mol* viewer in accordion expansion.
+- Sort + filter on all columns. ADMET gate filter: all-pass only.
 
-#### Sub-view C — Generation Log
+### Generation Log
 
-A live-updating terminal-style log showing REINVENT4 epoch progress:
+Live-updating terminal. IBM Plex Mono 12 px on `--col-base-800`.
 
 ```
-  Epoch 1/50  loss: 2.41  valid_smiles: 87%  mean_QED: 0.61  mean_Vina: −7.2
-  Epoch 2/50  loss: 2.18  valid_smiles: 89%  mean_QED: 0.64  mean_Vina: −7.8
-  ...
-  [GPU load: 5.8 GB / 6 GB ⚠ ] [batch_size: 200, reduced from 500]
+  Epoch 1/50  loss: 2.41  valid_smiles: 87%  mean_QED: 0.61
+  Epoch 2/50  loss: 2.18  valid_smiles: 89%  mean_QED: 0.64
+  ⚠ OOM at batch 500 → reducing to 200 → routing to GenMol NIM
 ```
-
-If REINVENT4 hits OOM, the log shows: `⚠ OOM at batch 500 → reducing to 200 → routing remaining to GenMol NIM`.
 
 ---
 
-### V7 — Phase 6: De Novo Biologic Design
+## 14. V9 — Phase 6: Biologic Design
 
-Per-target binder design canvas.
+Three sub-tabs: Backbone Gallery · Sequence Heatmap · Developability Scorecard.
+
+### Backbone Gallery
 
 ```
-┌──────────────────────────────────────────────────────────────────────────────────┐
-│  PHASE 6: BIOLOGIC — TGFB1                                                       │
-│  [ Backbone Gallery ] [ Sequence Heatmap ] [ Developability Scorecard ]           │
-├──────────────────────────────────────────────────────────────────────────────────┤
+  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐  ← scrollable row
+  │ PEP_001 │  │ PEP_002 │  │ PEP_003 │  │ PEP_004 │
+  │ ipTM    │  │ ipTM    │  │ ipTM    │  │ ipTM    │
+  │  0.82   │  │  0.78   │  │  0.71   │  │  0.69   │
+  │ pAE 7.3 │  │ pAE 8.1 │  │ pAE 9.5 │  │ pAE 9.8 │
+  │  ✓ PASS │  │  ✓ PASS │  │  ✓ PASS │  │  ⚠ AI?  │
+  │ 16 aa   │  │ 18 aa   │  │ 14 aa   │  │ 12 aa   │
+  │ cyclic  │  │ linear  │  │ cyclic  │  │ cyclic  │
+  └─────────┘  └─────────┘  └─────────┘  └─────────┘
+```
+
+Cards with `⚠ AI?` (borderline ipTM 0.65–0.75) show a violet border. Clicking opens the AI triage decision in the AI Rail.
+
+### Sequence Heatmap
+
+Tracks below the residue sequence: `pLDDT` · `MHC-I / MHC-II` · `Aggregation` · `CamSol solubility`. Each is a color-coded bar (green = good, amber = borderline, red = concern). Click any residue column for a per-position tooltip.
+
+---
+
+## 15. V10 — Phase 7: MPO Lab
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│  PHASE 7: MPO LAB — LRRK2                                                       │
+│  Iterations: 3/5  ·  Hypervolume: 0.61 → 0.69 → 0.71  ·  Δ +0.02 (plateau?)  │
+│  [ Pareto Nebula (3D) ]  [ Objective Pairs ]  [ Iteration History ]             │
+├─────────────────────────────────────────────────────────────────────────────────┤
 │                                                                                  │
-│  BACKBONE GALLERY (50 generated, 12 passed ipTM gate)                           │
+│  Three.js 3D scatter. Axes: [Potency ▾]  [ADMET ▾]  [SA score ▾]              │
 │                                                                                  │
-│  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐  ← scrollable row          │
-│  │ PEP_001 │  │ PEP_002 │  │ PEP_003 │  │ PEP_004 │                            │
-│  │ ipTM    │  │ ipTM    │  │ ipTM    │  │ ipTM    │                            │
-│  │  0.82   │  │  0.78   │  │  0.71   │  │  0.69   │                            │
-│  │ pAE 7.3 │  │ pAE 8.1 │  │ pAE 9.5 │  │ pAE 9.8 │  ← borderline (AI triage) │
-│  │  ✓ PASS │  │  ✓ PASS │  │  ✓ PASS │  │  ⚠ AI?  │                            │
-│  │ 16 aa   │  │ 18 aa   │  │ 14 aa   │  │ 12 aa   │                            │
-│  │ cyclic  │  │ linear  │  │ cyclic  │  │ cyclic  │                            │
-│  └─────────┘  └─────────┘  └─────────┘  └─────────┘                            │
+│  ★ = Pareto-optimal (glow-teal)   ● = evaluated, dominated                     │
+│  Cohort color: Gen 1 blue → Gen 2 green → Gen 3 teal                           │
 │                                                                                  │
-│  ipTM threshold ────────────── 0.70 (gate)                                       │
+│  Pareto front = translucent mesh connecting ★ points                            │
+│  Axis widget: drag to swap which 3 of 6 objectives shown                        │
+│  Click sphere → full candidate scorecard + 2D structure below                   │
+│                                                                                  │
+│  ITERATION HISTORY                                                               │
 │  ─────────────────────────────────────────────────────────────────────────────  │
+│  Iter  Evaluated  Pareto N  HV       Improvement   AI review                    │
+│  1     20         3         0.61     –             [view]                        │
+│  2     20         7         0.69     +12.5%        [view]                        │
+│  3     20         9         0.71     +2.3%  ← plateau amber                     │
 │                                                                                  │
-│  SEQUENCE HEATMAP — PEP_001  (selected)                                          │
-│  ─────────────────────────────────────────────────────────────────────────────  │
-│                                                                                  │
-│  position:  1   2   3   4   5   6   7   8   9  10  11  12  13  14  15  16       │
-│  residue:   C   X   X   X   X   X   X   X   X   X   X   X   X   X   X   C       │
-│             │   │                                                   │   │        │
-│  pLDDT:  ██████████████████████████████████████████████████████████████████     │
-│  MHC-I:  ░░░░░░░░░░░░████░░░░░░░░░░░░░░░░░░░░░░░░░░░░████░░░░░░░░░░░░░░░░     │
-│  Aggr.:  ░░░░░░░░░░░░░░░░░░░░░░░░░████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░     │
-│  CamSol: ████████████████████████████████████████████████████████████████░░     │
-│                                                                                  │
-│  Track legend: green=good · amber=borderline · red=concern                       │
-└──────────────────────────────────────────────────────────────────────────────────┘
+│  [stop early — pass current front to P8]   [run 2 more iterations]              │
+└─────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-**Sequence Heatmap tracks:**
-- Render as color-coded tracks below the sequence row (similar to genome browser tracks).
-- `pLDDT`: green → amber → red by value.
-- `MHC-I / MHC-II`: red peaks = strong binders (>500 nM threshold). Tooltip: allele + affinity.
-- `Aggregation`: NetMHCpan / TANGO / Aggrescan3D output — red patch = hotspot.
-- `CamSol solubility`: green = soluble, grey = borderline.
-- Clicking any residue column → tooltip showing all four scores for that position.
-
-**Backbone card `⚠ AI?`** (borderline ipTM 0.65–0.75):
-- A violet border around the card. Clicking opens the AI triage decision card in the Decision Rail: the LLM has ranked this design by contacts/pAE and either promoted or dropped it.
+**Axis swap animation:** Points morph to new positions over 400 ms `--ease-smooth`.  
+**Stop early:** Confirmation dialog shows: "Phase 8 will receive N Pareto-optimal candidates. This cannot be undone."
 
 ---
 
-### V8 — Phase 7: Multi-Parameter Optimization (MPO Lab)
-
-The most visually ambitious view in the platform.
+## 16. V11 — Phase 8: Validation Gate
 
 ```
-┌──────────────────────────────────────────────────────────────────────────────────┐
-│  PHASE 7: MPO LAB — LRRK2                                                        │
-│  Iterations: 3 / 5  ·  Hypervolume: 0.61 → 0.69 → 0.71  ·  Δ +0.02 (plateau?)  │
-│  Budget consumed: $8.40 / $50                                                    │
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│  PHASE 8: VALIDATION GATE                                                       │
+│  Running: LRRK2-DNSM_047  MD 10ns · 3.2 ns elapsed · ~14h remain  [RTX 3050]  │
+│  Queued: KRAS-niclosamide · TGFB1-PEP_001 · LRRK2-DNSM_003                    │
+├─────────────────────────────────────────────────────────────────────────────────┤
 │                                                                                  │
-│  [ Pareto Nebula (3D) ] [ Objective Pairs ] [ Iteration History ]                │
-├──────────────────────────────────────────────────────────────────────────────────┤
+│  LRRK2-DNSM_047  [selected]                                                     │
 │                                                                                  │
-│   PARETO NEBULA — 3D scatter (Three.js)                                          │
+│  MD PULSE — RMSD vs time (live, streaming from GROMACS)                         │
+│  ──────────────────────────────────────────────────────                         │
+│  RMSD │                                                                         │
+│  (Å)  │                                                                         │
+│  3.0  │ - - - - - - ⚠ threshold - - - - - - - - - - - -                        │
+│  2.0  │         ·····    ·····       ·····                                      │
+│  1.0  │  ·  ···       ···                                                       │
+│  0.0  └──────────────────────────────────── time (ns)                          │
+│         0         1         2         3  (live)                                 │
 │                                                                                  │
-│   axes: [Potency (Boltz-2) ▾]  [ADMET score ▾]  [SA score ▾]                   │
+│  Rolling mean: 1.4 Å ✓  ·  H-bond to Asp1994 (hinge): 89% of frames ✓         │
 │                                                                                  │
-│   ╔═══════════════════════════════════════════════════════════════════╗          │
-│   ║  ↑ ADMET                                                         ║          │
-│   ║  │                    ★ ★★                                      ║          │
-│   ║  │                  ★★★★                                        ║          │
-│   ║  │             ●● ★★★                     ← Pareto front (glow)║          │
-│   ║  │          ●●●●●                                               ║          │
-│   ║  │       ●●●●●●                                                 ║          │
-│   ║  │    ●●●●●                                                      ║          │
-│   ║  └─────────────────────────────────────────── Potency →         ║          │
-│   ║  (depth axis = SA score; drag to rotate; scroll to zoom)         ║          │
-│   ╚═══════════════════════════════════════════════════════════════════╝          │
+│  FREE ENERGY                                                                    │
+│  MM-GBSA:     ΔG = −10.2 kcal/mol ✓  (gate: < −8)                             │
+│  PMX FEP:     ΔΔG vs parent = −1.8 kcal/mol ✓                                 │
+│  Boltz-ABFE:  ΔG = −9.8 kcal/mol ✓                                            │
 │                                                                                  │
-│   ★ = Pareto-optimal  ● = evaluated, dominated                                   │
-│   Generation 1 ○  Gen 2 ●  Gen 3 ★  (colored by iteration)                     │
+│  FINAL SCORECARD                                                                │
+│  binding_affinity   0.30 × 0.95 = 0.285  ███████████████████████████████░      │
+│  pose_stability     0.20 × 0.86 = 0.172  ████████████████████░                 │
+│  admet              0.20 × 0.82 = 0.164  ████████████████░                     │
+│  selectivity        0.15 × 0.90 = 0.135  █████████████░                        │
+│  novelty            0.10 × 0.31 = 0.031  ███░                                  │
+│  modality_align     0.05 × 0.90 = 0.045  ████░                                 │
+│  ──────────────────────────────────────────────────────                         │
+│  combined_score: 0.832  ✓                  [AI BRIEF ▸]                        │
 │                                                                                  │
-│   ITERATION HISTORY                                                              │
-│   ─────────────────────────────────────────────────────────────────────────     │
-│   Iter  Evaluated  Pareto N  HV       Improvement   AI review                   │
-│   1     20         3         0.61     –             [view]                       │
-│   2     20         7         0.69     +12.5%        [view]                       │
-│   3     20         9         0.71     +2.3%         [view] ← near plateau        │
-│   [stop early]  [run 2 more]                                                     │
-└──────────────────────────────────────────────────────────────────────────────────┘
+│  PASSED: niclosamide 0.84 ✓ · DNSM_047 0.83 ✓ · PEP_001 0.78 ✓                │
+│  FAILED: DNSM_002 0.65 ✗ (MD unstable) · DNSM_005 0.61 ✗ (ΔG −6.8)           │
+└─────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-**Pareto Nebula behavior:**
+**MD Pulse behavior:** Updates every 30s (polling) or via websocket. Waveform draws right as data arrives. If rolling mean exceeds 3 Å for >30% of frames: waveform turns rose, banner fires "⚠ MD instability — candidate may be dropped," AI gate triggers automatically.
 
-- Three.js scene. Candidates are spheres (radius ∝ novelty score), Pareto-optimal candidates glow with `--glow-teal`. Dominated candidates are semi-transparent grey spheres.
-- Iteration cohorts use a sequential color palette (blues → greens → teals across iterations).
-- The Pareto front is a translucent surface mesh connecting the optimal points.
-- **Draggable objective axes:** a small axial widget in the corner lets the user swap which 3 of the 6 objectives are shown on X/Y/Z. Swapping triggers a smooth re-layout animation (morphs existing points to new positions over 400 ms).
-- Clicking a sphere → bottom panel shows that candidate's full scorecard + structure 2D.
-- `[stop early]` button: stops the Bayesian loop after the current evaluation batch, passes current Pareto front forward. Asks for confirmation with a consequence warning: "Phase 8 will receive N Pareto-optimal candidates."
-
-**Hypervolume chart (Iteration History sub-view):**
-
-- Line chart of hypervolume vs. iteration. A horizontal dashed line at `HV + 1% improvement` shows the plateau gate. When the improvement drops below this (like iteration 3), the bar is highlighted amber.
-- The `[run 2 more]` button is always available. The AI iteration review card for the latest iteration is surfaced inline (violet border, collapsible).
+**AI Brief (bottom sheet):** Slides up full-width. Contains P8 candidate brief: title, verdict, evidence bullets, risks, recommended next wet-lab experiment. Rendered via react-markdown. Includes `[export PDF]`.
 
 ---
 
-### V9 — Phase 8: Validation Gate (MD + FEP)
+## 17. V12 — Phase 9: Output Packaging
 
-The most compute-heavy phase. The UI must convey long-running progress without abandoning the user.
-
-```
-┌──────────────────────────────────────────────────────────────────────────────────┐
-│  PHASE 8: VALIDATION GATE                                                        │
-│  Running: LRRK2-DNSM_047 MD 10ns  [RTX 3050 · 3.2 ns elapsed · ~14h remain]    │
-│  Queued: KRAS-niclosamide, TGFB1-PEP_001, LRRK2-DNSM_003                       │
-├────────────────────────────────────────────────────────────────────────────────  │
-│                                                                                  │
-│  LRRK2-DNSM_047  [selected]                                                      │
-│                                                                                  │
-│  MD PULSE — RMSD vs time                                                         │
-│  ─────────────────────────────────────────────────────────────────────           │
-│  RMSD                                                                            │
-│  (Å)                                                                             │
-│  4.0 │                                                                           │
-│  3.0 │⚠ threshold                   ·· ·· · ·                                  │
-│  2.0 │                ·····   ·····       ·····                                 │
-│  1.0 │  ·  ···  ····           ···                                              │
-│  0.0 └──────────────────────────────────────────── time (ns)                    │
-│        0    1    2    3   (live — streaming from GROMACS)                        │
-│                                                                                  │
-│  Rolling mean RMSD: 1.4 Å ✓ (stable below 3 Å gate)                            │
-│  H-bond to Asp1994 (hinge): present 89% of frames ✓                            │
-│                                                                                  │
-│  FREE ENERGY                                                                     │
-│  ──────────────────────────────────────────────────────────────────────────     │
-│  MM-GBSA (gmx_MMPBSA):  ΔG = −10.2 kcal/mol ✓   (gate: < −8)                  │
-│  PMX relative FEP:      ΔΔG vs parent = −1.8 kcal/mol ✓                        │
-│  Boltz-ABFE:            ΔG = −9.8 kcal/mol ✓                                  │
-│                                                                                  │
-│  FINAL SCORECARD                                                                 │
-│  ──────────────────────────────────────────────────────────────────────────     │
-│  binding_affinity   0.30 × 0.95 = 0.285  ██████████████████████████████░        │
-│  pose_stability     0.20 × 0.86 = 0.172  ████████████████████░                  │
-│  admet              0.20 × 0.82 = 0.164  ████████████████░                      │
-│  selectivity        0.15 × 0.90 = 0.135  █████████████░                         │
-│  novelty            0.10 × 0.31 = 0.031  ███░                                   │
-│  modality_align     0.05 × 0.90 = 0.045  ████░                                  │
-│  ───────────────────────────────────────────────────────                         │
-│  combined_score: 0.832  ✓  [AI BRIEF ▸]                                         │
-│                                                                                  │
-│  PASSED CANDIDATES: 4 / 8                                                        │
-│  niclosamide 0.84 ✓ · DNSM_047 0.83 ✓ · PEP_001 0.78 ✓ · DNSM_003 0.71 ✓      │
-│  DNSM_002 0.65 ✗ (MD unstable) · DNSM_005 0.61 ✗ (ΔG −6.8) · ...              │
-└──────────────────────────────────────────────────────────────────────────────────┘
-```
-
-**MD Pulse chart behavior:**
-
-- Updates every 30 seconds (polling trajectory output file) or via websocket if GROMACS runs via the Celery `gpu` worker.
-- The waveform draws itself left-to-right as data arrives — a live heartbeat.
-- The 3 Å threshold is a horizontal red dashed line. If the rolling mean crosses it and stays above for >30% of elapsed frames, an alarm state triggers: the waveform turns rose, a banner appears "⚠ MD instability detected — candidate may be dropped," and the AI Interpretation gate fires automatically.
-- For candidates running on RunPod A100 (burst), a badge shows `RunPod A100 · ~1h · $1.40`.
-
-**AI Brief modal (from `[AI BRIEF ▸]`):**
-
-Full-width card that slides up from the bottom (like a bottom sheet). Contains the `8.3_candidate_brief` output: a medicinal-chemist-style summary with title, verdict, evidence bullet list, risks, and the recommended next wet-lab experiment. Formatted in DM Sans with bold headers; rendered via `react-markdown`. Includes an `[export PDF]` button.
-
----
-
-### V10 — Phase 9: Output Packaging
-
-A two-panel view: file tree left, preview right, with a self-audit terminal running on first load.
+Two-panel: file tree left, preview right. Self-audit terminal on load.
 
 ```
-┌──────────────────────────────────────────────────────────────────────────────────┐
-│  PHASE 9: PACKAGING — pancreatic_cancer_01                                       │
-│  Status: packaging…   Cost: $42.50 / $50    Runtime: 4d 7h 22m                  │
-├────────────────────────────────────────────────────────────────────────────────  │
-│                                                                                  │
-│  SELF-AUDIT  [running — AI]                                                      │
-│  ─────────────────────────────────────────────────────────────────────────────  │
-│                                                                                  │
-│  ╔═══════════════════════════════════════════════════════════════════════════╗   │
-│  ║  > Auditing pancreatic_cancer_01…                                        ║   │
-│  ║  > Checking attrition: 20 targets → 12 validated → 9 designed → 4 final ║   │
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│  PHASE 9: PACKAGING — pancreatic_cancer_01                                      │
+│  Cost: $42.50 / $50    Runtime: 4d 7h 22m    Status: packaging…               │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│  SELF-AUDIT  [AI — running]                                                    │
+│  ╔══════════════════════════════════════════════════════════════════════════╗   │
+│  ║  > Auditing pancreatic_cancer_01…                                       ║   │
+│  ║  > Attrition: 20 targets → 12 validated → 9 designed → 4 final         ║   │
 │  ║  > Attrition rates: 40% validation, 56% MD gate — within expected range ║   │
-│  ║  > Checking cost: $42.50 — reasonable for explore + 3 target branches   ║   │
-│  ║  > Checking Tdark targets: KPNA2 (rank 4) — flagged as speculative      ║   │
-│  ║  > Checking exclude_drugs: none of {—} found in final candidates ✓      ║   │
-│  ║  > Checking reproducibility keys: all version pins present ✓             ║   │
+│  ║  > Tdark targets: KPNA2 (rank 4) — flagged as speculative               ║   │
+│  ║  > Reproducibility keys: all version pins present ✓                     ║   │
 │  ║  ────────────────────────────────────────────────────────────────────   ║   │
-│  ║  AUDIT RESULT: PASSED  ·  2 caveats attached to report                  ║   │
-│  ║  ● Tdark target KPNA2 — speculative (flagged)                           ║   │
-│  ║  ● LINCS τ for niclosamide: −88 (just below −90 threshold; 2-signal)   ║   │
-│  ╚═══════════════════════════════════════════════════════════════════════════╝   │
-│                                                                                  │
-├───────────────────────┬──────────────────────────────────────────────────────   │
-│  OUTPUT TREE          │  PREVIEW PANE                                           │
-│  ─────────────────    │  ─────────────────────────────────────────────────      │
-│  📁 pancreatic_c…_01  │  README.md — Executive Summary                         │
-│   ├ 📄 run_metadata   │                                                         │
-│   ├ 📄 ranked_tgts    │  # pancreatic_cancer_01                                 │
-│   ├ 📁 targets/       │  Disease: Pancreatic carcinoma (EFO_0002618)            │
-│   │  ├ 📁 KRAS/       │  Run completed: 2026-05-31                              │
-│   │  │  ├ 📄 val.json  │  Total runtime: 4d 7h 22m · Cost: $42.50              │
-│   │  │  ├ 🧬 struc.pdb │                                                         │
-│   │  │  ├ 📄 repurp.   │  ## Top Candidates                                     │
-│   │  │  ├ 📄 sm.json   │  1. sotorasib (repurposing) — KRAS G12C               │
-│   │  │  └ 📁 poses/    │     Score: 0.91 · Approved · benchmark confirmed       │
-│   │  └ 📁 TGFB1/       │  2. niclosamide (repurposing) — KRAS                  │
-│   ├ 📄 citations.bib   │     Score: 0.84 · antifibrotic mechanism               │
-│   ├ 📄 compute_log     │  3. DNSM_047 (de novo SM) — LRRK2                     │
-│   ├ 📄 decisions.json  │     Score: 0.83 · ΔG −10.2 · novel scaffold           │
-│   └ 📄 README.md       │  4. PEP_001 (cyclic peptide) — TGFB1                  │
-│                        │     Score: 0.78 · ipTM 0.82 · developable              │
-│  [📦 Download .zip]    │                                                         │
-│  [☁ Upload Supabase]   │  ## Caveats                                            │
-│                        │  - KPNA2 (rank 4) is Tdark; evidence is speculative.   │
-│                        │  - niclosamide LINCS τ: −88 (just below threshold).   │
-│                        │                                                         │
-│                        │  [edit README]  [export PDF]                           │
-└───────────────────────┴──────────────────────────────────────────────────────   │
-│  REPRODUCIBILITY PINS                                                           │
-│  OT: 24.03 · ChEMBL: 34 · AFDB: v4 · Boltz-2: commit a3f9c2d                  │
-│  REINVENT4: 4.1.2 · LM Studio model: qwen3-4b-thinking-2507                     │
-│  [📋 copy all pins]  [🐳 export Dockerfile]  [🐍 export environment.yml]        │
-└──────────────────────────────────────────────────────────────────────────────────┘
+│  ║  AUDIT RESULT: PASSED  ·  2 caveats attached                            ║   │
+│  ║  ● KPNA2 Tdark — speculative (flagged in report)                        ║   │
+│  ║  ● niclosamide LINCS τ −88 (just below −90; 2-signal caveat)           ║   │
+│  ╚══════════════════════════════════════════════════════════════════════════╝   │
+├───────────────────────┬─────────────────────────────────────────────────────   │
+│  OUTPUT TREE          │  PREVIEW                                               │
+│  ──────────────       │  ────────────────────────────────────────────────      │
+│  📁 pancreatic_c…_01  │  README.md — Executive Summary                        │
+│   ├ 📄 run_metadata   │                                                        │
+│   ├ 📄 ranked_tgts    │  # pancreatic_cancer_01                                │
+│   ├ 📁 targets/       │  Disease: Pancreatic carcinoma (EFO_0002618)           │
+│   │  ├ 📁 KRAS/       │  Completed: 2026-05-31  ·  Cost: $42.50               │
+│   │  ├ 📁 TGFB1/      │                                                        │
+│   ├ 📄 decisions.json │  Top Candidates                                        │
+│   ├ 📄 citations.bib  │  1. sotorasib (repurposing, KRAS) — score 0.91        │
+│   ├ 📄 compute_log    │  2. niclosamide (repurposing, KRAS) — score 0.84      │
+│   └ 📄 README.md      │  3. DNSM_047 (de novo SM, LRRK2) — score 0.83        │
+│                        │  4. PEP_001 (cyclic peptide, TGFB1) — score 0.78     │
+│  [📦 Download .zip]    │                                                        │
+│  [☁ Upload Supabase]   │  Caveats                                              │
+│                        │  - KPNA2 is Tdark; evidence is speculative.           │
+│                        │  - niclosamide LINCS τ: −88 (just below threshold).  │
+│                        │                                                        │
+│                        │  [edit README]  [export PDF]                          │
+└───────────────────────┴─────────────────────────────────────────────────────   │
+│  REPRODUCIBILITY PINS                                                          │
+│  OT: 24.03 · ChEMBL: 34 · AFDB: v4 · Boltz-2: commit a3f9c2d                 │
+│  REINVENT4: 4.1.2 · LM Studio: qwen3-4b-thinking-2507                         │
+│  [📋 copy pins]  [🐳 export Dockerfile]  [🐍 export environment.yml]          │
+└─────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-**Self-Audit Terminal:**
+**Self-Audit Terminal:** Types character-by-character (30 ms/char, IBM Plex Mono 12 px on `--col-base-800`). `AUDIT RESULT` line pauses 800 ms then renders. If PASSED → text glows green 1s. If FAILED → glows red, modal with full concern list and `[rerun from P7]` CTA.
 
-- Types itself out in real time as the `9_self_audit` LLM gate runs.
-- IBM Plex Mono, 12 px, on `--col-base-800` background (dark terminal feel).
-- Each line appears with a brief 30 ms delay per character (fast typing simulation).
-- The `AUDIT RESULT` line appears last, with a brief pause before it renders. If PASSED → the text glows green for 1 second. If FAILED / RERUN RECOMMENDED → glows red, and a modal appears with the full concern list and a `[rerun from P7]` CTA.
-
-**File tree:**
-- Click any `.json` → syntax-highlighted JSON preview in right pane.
-- Click any `.pdb` → inline Mol* viewer in right pane.
-- Click `README.md` → markdown preview (as shown).
-- `[edit README]` → toggles the preview into an inline markdown editor (CodeMirror instance) with `[save]` / `[cancel]`.
+**File tree:** `.json` → syntax-highlighted preview · `.pdb` → inline Mol* viewer · `.md` → markdown preview with `[edit]` toggle (CodeMirror + `[save]` / `[cancel]`).
 
 ---
 
-## 4. Key Components
+## 18. Key Components
 
-### 4.1 Phase Status Pill
+### 18.1 Phase Status Pill
 
-States: `idle` (ghost) / `queued` (animated dash border) / `running` (outline + spin + %) / `complete` (filled) / `error` (red `!`) / `skipped` (strikethrough).
+States: `idle` (ghost outline) · `queued` (animated dash border) · `running` (outline + spinner + %) · `complete` (filled) · `error` (red `!`) · `skipped` (strikethrough grey).
 
 ```jsx
-<PhasePill phase={1} label="Target ID" status="running" progress={72} color="var(--col-p1)" />
+<PhasePill phase={5} label="SM Design" status="running" progress={72} />
 ```
 
-### 4.2 Compute Queue Status Badge
+Phase pill in topbar is also a navigation target: clicking any `complete` pill jumps to that phase's result view immediately.
 
-A horizontal bar showing CPU / GPU / Hosted utilization + task count. Click → popover with full task queue, estimated completion, cancel-all-queued option.
+### 18.2 AI Decision Card
 
-### 4.3 Validation Score Radial Gauge
-
-A circular gauge (0–1) per target in Phase 2. Animated fill on mount. Color: red below 0.5, amber 0.5–0.7, teal above 0.7. The needle is a thin line; the track is `--col-base-600`.
-
-### 4.4 Budget Burn Gauge
-
-Circular arc gauge showing `cost_actual / budget_hosted_usd`. Two color zones: safe (teal) → warn at 80% (amber) → critical at 95% (rose). The number in the center ticks up in real time (count-up animation, 1 decimal place, updates every 10 seconds or on cost event).
-
-### 4.5 AI Decision Card
-
-Used in the Decision Rail for every LLM gate. Template:
+Used in AI Rail for every LLM gate.
 
 ```
-╔══════════════════════════════════════════════════════╗
-║  [AI] 2.3 POCKET SELECTION          ✓ resolved      ║  ← violet left border
-╠══════════════════════════════════════════════════════╣
-║  Gate fired: Phase 2, target TGFB1                  ║
-║  Decision: P1 interface pocket selected over P2     ║
-║  Confidence: 0.87                                   ║
-║                                                     ║
-║  Reasoning:                                         ║
-║  "P1 is at the receptor-binding interface with      ║
-║   6 known mutation sites (AM > 0.8); P2 is         ║
-║   allosteric but smaller (Vol. 320 Å³ vs 480 Å³)." ║
-╠══════════════════════════════════════════════════════╣
-║  [▶ view full prompt] [▶ view full response]        ║
-║  [✎ override] — reason required                     ║
-╚══════════════════════════════════════════════════════╝
+╔════════════════════════════════════════════════════╗
+║  [AI] 2.3 POCKET SELECTION          ✓ resolved    ║  ← violet left border
+╠════════════════════════════════════════════════════╣
+║  Gate: Phase 2 · TGFB1                            ║
+║  Decision: P1 interface pocket selected over P2   ║
+║  Confidence: 0.87                                 ║
+║                                                   ║
+║  Reasoning:                                       ║
+║  "P1 is at the receptor-binding interface with    ║
+║  6 known mutation sites (AM > 0.8); P2 allosteric ║
+║  but smaller (Vol. 320 Å³ vs 480 Å³)."           ║
+╠════════════════════════════════════════════════════╣
+║  [▶ full prompt]  [▶ full response]               ║
+║  [✎ override]  — reason required                  ║
+╚════════════════════════════════════════════════════╝
 ```
 
-Override flow: clicking `[✎ override]` opens an inline text field for the reason, then a `[confirm override]` button. Overrides are written to `decisions.json` with the human-provided reason and are surfaced in the Phase 9 audit.
+Override flow: inline text field → `[confirm override]` → written to `decisions.json` with human reason + timestamp. Surfaced in P9 audit.
 
-### 4.6 LLM Off Mode Banner
+### 18.3 LLM Off Mode Banner
 
-When LM Studio is offline (`rules mode`), a slim amber banner appears below each AI Decision Card placeholder: "LLM gate 2.3_pocket_selection — deterministic fallback used: top-volume pocket selected." This ensures the user always knows which decisions were AI-assisted vs. rule-based.
+When LM Studio offline, slim amber banner below each AI Decision Card placeholder:
 
-### 4.7 Target Drop Alert
+> "LLM gate 2.3_pocket_selection — deterministic fallback used: top-volume pocket selected."
 
-When a target is dropped (validation score < threshold, MD instability, etc.), a toast notification appears bottom-right:
+### 18.4 Data Provenance Tooltip
 
-```
-  ╔═══════════════════════════════════════╗
-  ║  ⚠ Target dropped: EGFR              ║
-  ║  Reason: validation_score 0.31        ║
-  ║  (threshold was 0.3 — borderline)     ║
-  ║  [undo / force-include] [dismiss]     ║
-  ╚═══════════════════════════════════════╝
-```
-
-The `[force-include]` option flags the target as `seeded=true` and re-queues it, with a confirmation warning.
-
-### 4.8 Data Source Provenance Tooltip
-
-Every major number in the platform shows a provenance tooltip on hover:
+Every major numeric value shows provenance on hover:
 
 ```
-  validation_score: 0.79
-  ─────────────────────────
-  Computed by: phase2/scoring.py:61
-  Inputs: druggability (fpocket+PockDrug), eigenvector_centrality (STRING), 
-          gwas_score (local OMIM+GWAS), essentiality (DepMap CRISPRGeneEffect.csv),
-          tissue_tsi (GTEx gene_tpm.parquet)
-  Method: XGBoost (AUROC ~0.93 ref) + GradientSHAP
-  Run at: 2026-05-31T14:32:11Z
+validation_score: 0.79
+─────────────────────────────────────────────
+Computed: phase2/scoring.py:61
+Inputs: druggability (fpocket+PockDrug),
+        eigenvector_centrality (STRING),
+        gwas_score (OMIM+GWAS),
+        essentiality (DepMap CRISPRGeneEffect.csv),
+        tissue_tsi (GTEx gene_tpm.parquet)
+Method: XGBoost (AUROC ~0.93) + GradientSHAP
+Run at: 2026-05-31T14:32:11Z
 ```
 
-Accessible via keyboard (focus + Enter on any numeric value).
+### 18.5 Artifact Picker
 
-### 4.9 SMILES Chip
-
-Any SMILES string in the UI renders as a chip:
+Used in Module Launcher for all artifact inputs. Three modes toggled by radio:
 
 ```
-  [CC(=O)Nc1cc... ↗] [copy] [2D structure ▸]
+◉ Upload file    [drag .json here or browse]
+○ From past run  [dropdown: kras_molecules (P5) · brca_explore_003 (E2E P5)]
+○ Type manually  [gene symbol field / SMILES field]
 ```
 
-Clicking `[2D structure ▸]` opens a popover with the RDKit SVG of the molecule. Clicking `↗` opens it in an external SMILES editor (configurable: ChemDraw, Ketcher, or JSME).
+"From past run" dropdown only shows runs that produced the correct artifact type (see §3.3).
 
-### 4.10 Protein Sequence Chip
-
-Any peptide/protein sequence renders as a scrollable horizontal chip with residue index + one-letter codes. Clicking a residue jumps to that position in the Sequence Heatmap (V7).
-
-### 4.11 Phase Completion Celebration
-
-When a phase completes successfully, a brief ambient animation plays:
-- The phase pill in the topbar fills with a radial sweep (500 ms).
-- A glow pulse emanates from the pill (`--glow-teal`, scale 1 → 1.5 → 1, opacity 1 → 0, 800 ms).
-- The center canvas briefly flashes the phase color in the background (subtle, 200 ms, opacity 0.08).
-- No confetti. No modal. Just a felt micro-moment.
-
-When a phase errors: the pill turns red, shakes briefly (3× horizontal oscillation, 300 ms), and the Compute Status Strip shows the error message.
-
-### 4.12 Budget Burn Modal
-
-Triggered by clicking the budget area in the topbar:
+### 18.6 SMILES Chip
 
 ```
-┌─────────────────────────────────────────────────────┐
-│  COMPUTE COST BREAKDOWN — pancreatic_cancer_01       │
-├───────────────────────────┬─────────────────────────┤
-│  Service                  │  Cost                   │
-│  DiffDock NIM (P4+P5)     │  $1.20                  │
-│  Boltz-2 Neurosnap (P5)   │  $2.40                  │
-│  RunPod A100 MD (P8)      │  $4.20                  │
-│  Modal PMX FEP (P8)       │  $6.40                  │
-│  BoltzGen / AF2 NIM (P6)  │  $3.80                  │
-│  ADMETlab API (P5)        │  $0.30                  │
-│  ProteomeLM Modal (P2)    │  $0.80                  │
-│  Total hosted             │  $19.10                 │
-│  ─────────────────────────┴─────────────────────────│
-│  Local compute (CPU/GPU)  │  $0 (no billing)        │
-│  Running total            │  $42.50 / $50            │
-│  Remaining budget         │  $7.50                  │
-├─────────────────────────────────────────────────────┤
-│  Projected final cost: ~$46 (P9 packaging is cheap)  │
-│  [update budget limit]  [pause before next hosted]   │
-└─────────────────────────────────────────────────────┘
+[CC(=O)Nc1cc... ↗]  [copy]  [2D structure ▸]
 ```
 
-`[pause before next hosted]` enables a mode where the run pauses before each hosted API call and asks for confirmation — useful if the user wants fine-grained cost control.
+`[2D structure ▸]` → popover with RDKit SVG. `↗` → external editor (ChemDraw / Ketcher / JSME, configurable).
+
+### 18.7 Target Drop Alert (toast)
+
+```
+╔══════════════════════════════════════════╗
+║  ⚠ Target dropped: EGFR                 ║
+║  Reason: validation_score 0.31           ║
+║  (threshold 0.3 — borderline)            ║
+║  [force-include]  [dismiss]              ║
+╚══════════════════════════════════════════╝
+```
+
+`[force-include]` → flags `seeded=true`, re-queues with confirmation warning.
+
+### 18.8 Budget Burn Modal
+
+Clicked from budget display in topbar.
+
+```
+┌──────────────────────────────────────────────────┐
+│  COMPUTE COST — pancreatic_cancer_01             │
+├─────────────────────────────┬────────────────────┤
+│  Service                    │  Cost              │
+│  DiffDock NIM (P4+P5)       │  $1.20             │
+│  Boltz-2 Neurosnap (P5)     │  $2.40             │
+│  RunPod A100 MD (P8)        │  $4.20             │
+│  Modal PMX FEP (P8)         │  $6.40             │
+│  BoltzGen NIM (P6)          │  $3.80             │
+│  ADMETlab API (P5)          │  $0.30             │
+│  Total hosted               │  $18.30            │
+│  Local compute              │  $0 (no billing)   │
+│  Running total              │  $42.50 / $50      │
+│  Remaining                  │  $7.50             │
+├─────────────────────────────┴────────────────────┤
+│  Projected final: ~$46                           │
+│  [update budget limit]  [pause before hosted]    │
+└──────────────────────────────────────────────────┘
+```
+
+### 18.9 Phase Completion Micro-Animation
+
+When a phase completes:
+- Phase pill fills with radial sweep (500 ms).
+- Glow pulse from pill: `--glow-teal`, scale 1 → 1.5 → 1, opacity 1 → 0, 800 ms.
+- Canvas background flashes phase color: opacity 0.08, 200 ms.
+- No confetti. No modal. A felt micro-moment.
+
+When a phase errors: pill turns red, shakes 3× horizontally (300 ms), compute strip shows error detail.
 
 ---
 
-## 5. LLM Decision Console (Global)
+## 19. AI Decision Rail (Global)
 
-The Decision Rail is a 320 px right panel accessible from any view via `[AI Rail ▸]` button. It shows all LLM gate decisions for the current run in chronological order.
+320 px right panel. Accessible from any view via `[AI Rail ▸]`.
 
 ```
-┌────────────────────────────────────────────────────────┐
-│  AI DECISION RAIL                          [collapse ×] │
-│  Run: pancreatic_cancer_01                              │
-│  LM Studio: ● LIVE  ·  qwen3-4b-thinking               │
-│  Gates fired: 12  ·  Overridden: 1                     │
-├────────────────────────────────────────────────────────┤
-│                                                        │
-│  [AI] 1.1_efo_disambiguation  ✓ resolved   Phase 1     │
-│  EFO_0002618 selected (pancreatic carcinoma)           │
-│  Confidence: 0.94                              [▸]     │
-│                                                        │
-│  [AI] 2.2_plddt_domains — KRAS             ✓  Phase 2  │
-│  Residues 1–166 (G-domain) ordered; SoS domain disor. │
-│                                                [▸]     │
-│                                                        │
-│  [AI] 2.3_pocket_selection — TGFB1         ✓  Phase 2  │
-│  P1 (interface) selected over P2 (allosteric)         │
-│                                                [▸]     │
-│                                                        │
-│  [AI] 3_modality_greyzone — MUC16    ✎ OVERRIDDEN      │
-│  AI: PROTAC primary. Human: AB primary (budget)       │
-│  Override reason: "PROTAC synthesis OOS this quarter" │
-│                                                [▸]     │
-│                                                        │
-│  [AI] 5.3_pains_override — DNSM_003        ✓  Phase 5  │
-│  Decision: keep-flagged (exceptional docking −10.8)   │
-│                                                [▸]     │
-│                                                        │
-│  ─── more below (scroll) ───                          │
-└────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────┐
+│  AI DECISION RAIL                  [collapse ×] │
+│  LM Studio: ● LIVE · qwen3-4b-thinking         │
+│  Gates fired: 12  ·  Overridden: 1             │
+├────────────────────────────────────────────────┤
+│  [AI] 1.1_efo_disambiguation  ✓  Phase 1        │
+│  EFO_0002618 selected (pancreatic carcinoma)   │
+│  Confidence: 0.94                      [▸]     │
+│                                                │
+│  [AI] 2.3_pocket_selection  ✓  Phase 2 · TGFB1 │
+│  P1 (interface) selected over P2 (allosteric)  │
+│                                        [▸]     │
+│                                                │
+│  [AI] 3_modality_greyzone  ✎ OVERRIDDEN        │
+│  AI: PROTAC primary → Human: AB primary        │
+│  Reason: "PROTAC synthesis OOS this quarter"   │
+│                                        [▸]     │
+│                                                │
+│  Filter: [All ▾]  [Overridden]  [Phase N ▾]   │
+│          [Low confidence < 0.7]                │
+└────────────────────────────────────────────────┘
 ```
 
-- Filter buttons: `All` / `Overridden` / `Phase N` / `Low confidence (< 0.7)`.
-- `[▸]` expands each card in-rail to the full AI Decision Card component (§4.5).
-- Overridden cards have a human-icon badge and a different border color (`--col-warn`).
-- The override reason is always visible (not hidden behind a click).
-- `decisions.json` is updated in real time as gates fire and as overrides are applied.
+- `[▸]` expands to full AI Decision Card (§18.2) inline in the rail.
+- Overridden cards: `--col-warn` border, human icon badge, reason always visible.
+- `decisions.json` updated in real time.
 
 ---
 
-## 6. Interaction Patterns
+## 20. Interaction Patterns
 
-### 6.1 Keyboard Navigation
+### 20.1 Keyboard Shortcuts
 
 | Shortcut | Action |
 |---|---|
-| `1`–`9` | Jump to phase view |
+| `H` | Go to Home Dashboard |
+| `1`–`9` | Jump to phase view (in active run) |
 | `T` | Focus target list, `↑↓` to navigate |
 | `C` | Focus candidate list |
 | `A` | Toggle AI Decision Rail |
 | `B` | Open Budget Burn modal |
-| `?` | Open keyboard shortcut reference |
-| `Cmd+K` | Global command palette (search targets, candidates, phases, gates) |
+| `M` | Go to Module Launcher (prompts phase selection) |
+| `?` | Keyboard shortcut reference |
+| `Cmd+K` | Global command palette |
 | `Escape` | Close active panel / drawer |
 
-### 6.2 Command Palette (`Cmd+K`)
+### 20.2 Command Palette (Cmd+K)
 
-Spotlight-style. Fuzzy search over:
-- Target symbols ("KRAS" → jump to KRAS Phase 2 card)
-- Candidate IDs ("DNSM_047")
-- Phase names ("validation gate")
-- AI gate IDs ("2.3_pocket")
-- Settings ("API keys", "LM Studio")
-- Actions ("rerun phase 5 for LRRK2", "export package")
+Spotlight-style fuzzy search over: target symbols · candidate IDs · phase names · AI gate IDs · module run names · E2E run names · settings pages · actions ("rerun P5 for LRRK2", "export package").
 
-### 6.3 Drag-and-Drop Targets
+### 20.3 Inline Override Controls
 
-In the target list (V1 left panel), targets can be dragged into a `[pin]` zone at the top to force them to the top of the display. This does not affect scoring — it's a display preference for the session.
-
-### 6.4 Inline Override Controls
-
-Any scored value in the platform has an optional `[✎]` icon on hover that opens an inline override field. Overrides are always: require a reason, logged in decisions.json, visually marked with a human badge, and reversible.
+Any scored value shows `[✎]` on hover → inline override field. All overrides: require a reason, log to `decisions.json`, mark with human badge, reversible.
 
 ---
 
-## 7. Motion System
+## 21. Motion System
 
-### 7.1 Page / Phase Transitions
-
-- Navigation between phases: left-to-right slide (entering phase) or right-to-left (going back). Duration: 300 ms `--ease-smooth`.
-- Not a full-page slide — only the center canvas slides; sidebar and topbar are fixed.
-
-### 7.2 Data Arrival Animations
+### 21.1 Data Arrival Animations
 
 | Event | Animation |
 |---|---|
 | Gene scatter populates | Dots fade+scale in, batched 200/frame |
-| SHAP bars render | Left-to-right fill, staggered 30 ms |
-| Network graph builds | Force-directed sim runs for 800 ms then settles |
-| Pareto nebula builds | Spheres fall into position from above, 600 ms |
-| MD RMSD point added | Waveform extends rightward, smooth interpolation |
-| Self-audit terminal | Character-by-character typing, 30 ms/char |
-| Phase completes | Pill sweep + glow pulse |
+| SHAP bars render | Left-to-right fill, staggered 30 ms/bar |
+| Network graph builds | Force sim runs 800 ms then settles |
+| Pareto nebula builds | Spheres fall from above, 600 ms |
+| MD RMSD point added | Waveform extends right, smooth interpolation |
+| Self-audit terminal | 30 ms/character typing |
+| Phase completes | Pill radial sweep + glow pulse |
+| Module card hover | Border glow in, 150 ms `--ease-smooth` |
 
-### 7.3 Alert / Error States
+### 21.2 Alert States
 
-- Hard threshold breached (RMSD, ΔG): affected element pulses rose 3×, then holds rose color.
-- Budget 80%+: budget gauge border turns amber; the cost number weight increases to 700.
-- Budget 95%+: rose treatment; modal appears asking to pause or increase.
+- Hard threshold breach (RMSD, ΔG): element pulses rose 3×, holds rose.
+- Budget 80%+: budget border → amber, number weight 700.
+- Budget 95%+: rose; modal fires.
+
+### 21.3 Reduced Motion
+
+`prefers-reduced-motion`: all fly-in/scroll animations → instant. RMSD waveform still draws (data, not decoration). Pareto nebula → 2D static projection.
 
 ---
 
-## 8. Accessibility
+## 22. Empty States
+
+| Context | Message |
+|---|---|
+| Home — no runs yet | "No runs yet. Pick a module or [Launch E2E Pipeline ▶]." Centered, animated helix illustration. |
+| Module Launcher — no past runs for artifact picker | "No completed runs with this artifact type yet. Upload a file instead." |
+| P4 — no repurposing candidates | "No approved drugs meet docking (< −8.0) and LINCS (τ < −90) thresholds for this target. Branch closed — see P5/P6 for de novo." |
+| P1 — <5 known positives | "Running with 3 positives (below recommended 5). AUROC may be reduced." |
+| P8 — all candidates fail | "No candidates passed the MD gate. Looping back to P5/P6 with relaxed thresholds (max 2 outer iterations)." |
+| P2 — pLDDT <70 everywhere | "No confidently folded domain found. Running disordered-protein subroutine 2.6." |
+
+---
+
+## 23. Run Settings Side Sheet
+
+`[⚙]` in topbar (both E2E and module runs). Right side sheet (not modal).
+
+- `budget_hosted_usd` — effective immediately.
+- `pause_before_hosted` toggle — gate before each hosted API call.
+- LM Studio model selection — takes effect on next gate.
+- `target_count_max` — if P2 not yet complete (E2E only).
+- `dorothea_confidence` levels.
+- `md_length_ns` — if P8 not yet started.
+
+Locked fields (phase already complete): greyed with `[locked — P1 complete]` chip.
+
+---
+
+## 24. System Pages
+
+### 24.1 Database Management (sidebar → Databases)
+
+Table: expected path · actual path · file size · last modified · status (✓ / ✗ / ⚠ stale / ⟳ building).
+
+- `[locate]` → OS file picker.
+- `[download]` → opens source URL in browser.
+- `string_node2vec_512.parquet` row: status + estimated precompute time + `[precompute now]`.
+
+### 24.2 API Keys (sidebar → API Keys)
+
+Table: service · key name · masked value · last used · cost-to-date. `[test]` button fires a minimal API call and shows success/failure + latency.
+
+---
+
+## 25. Accessibility
 
 | Requirement | Implementation |
 |---|---|
-| Color alone never conveys state | All status chips have icon + text + color |
-| Contrast ≥ 4.5:1 | All text on `--col-base-700` and darker passes AA |
-| Keyboard full access | Every interactive element reachable via Tab; see §6.1 |
-| Focus ring | 2 px `--col-p1` outline, not default browser ring |
-| Screen reader | ARIA live regions on phase status, compute strip updates |
-| Motion reduce | `prefers-reduced-motion`: all scroll/fly-in animations → instant; RMSD still draws (data, not decoration); Pareto nebula → 2D static projection |
-| Mol* viewer alt text | ARIA label with "Protein structure: {symbol}, source: {source}, pLDDT: {score}" |
-| Number formatting | Large numbers formatted with locale separators; scientific units always spelled out in ARIA labels |
+| Color alone never conveys state | All chips: icon + text + color |
+| Contrast ≥ 4.5:1 | All text on `--col-base-700`+ passes AA |
+| Keyboard full access | Every element reachable via Tab; see §20.1 |
+| Focus ring | 2 px `--col-p1` outline |
+| Screen reader | ARIA live regions on phase status, compute strip |
+| Motion reduce | See §21.3 |
+| Mol* viewer | ARIA label: "Protein structure: {symbol}, source: {source}, pLDDT: {score}" |
+| Number formatting | Locale separators; scientific units spelled out in ARIA labels |
 
 ---
 
-## 9. Database / Status Indicator Pages
+## 26. Responsive Behaviour (1024 px breakpoint)
 
-### 9.1 Database Management Page (sidebar → Databases)
+At 1024 px:
+- Sidebar collapses to icon-only.
+- AI Rail becomes a full-height slide-over overlay.
+- Target list in E2E Run Canvas collapses to dropdown.
+- Module card grid: 3-up instead of 5-up.
+- 3D Pareto Nebula → 2D projection with `[3D — open wide view]`.
 
-A table of all required local files with:
-- Expected path, actual path (if set), file size, last modified date.
-- Status: ✓ found / ✗ missing / ⚠ stale (older than 6 months) / ⟳ building (precompute running).
-- `[locate]` button → OS file picker. `[download]` button → opens the source URL in the system browser (for files requiring registration, shows instructions).
-- A special `string_node2vec_512.parquet` row shows: status + estimated precompute time (based on CPU core count) + `[precompute now]` button.
-
-### 9.2 API Keys Page (sidebar → API Keys)
-
-A table: service name, key name, masked value (`sk-...abc`), last used, cost-to-date. `[test]` button fires a minimal API call and shows success/failure + latency.
+Below 768 px: unsupported. Full-screen banner: "RxDis requires ≥ 1024 px. Please use a desktop or external monitor."
 
 ---
 
-## 10. Empty States
+## Appendix A — Run State Machine
 
-| Context | Empty State Message |
+| Event | UI consequence |
 |---|---|
-| Phase 4: no repurposing candidates | "No approved drugs meet the docking (< −8.0) and LINCS (τ < −90) thresholds for this target. Repurposing branch closed — see Phase 5/6 for de novo." |
-| Phase 1: <5 known_positives | "PU model running with 3 positives (below recommended 5). AUROC may be reduced. Consider adding more validated targets." |
-| Phase 8: all candidates fail | "No candidates from Phase 7 passed the MD gate for this target. Looping back to Phase 5/6 with relaxed thresholds (max 2 outer iterations)." |
-| Phase 2: pLDDT <70 everywhere | "No confidently folded domain found. Running disordered-protein subroutine 2.6. Consider PROTAC or peptide branch." |
-| Run list: no runs | "No runs yet. [Launch your first run ▶]" — centered, with a subtle animated helix illustration. |
+| Module launch | Topbar → single-phase pill enters `running` |
+| Module complete | Pill fills, result view renders, artifact available in picker |
+| E2E launch | Topbar → P1–P9 pills, P1 enters `running` |
+| P1 complete | Target list populates; SHAP drawer available; P2 starts |
+| P2 complete | Validation scores in list; P3 starts |
+| P3 complete | Modality Sankey renders; branch pills on target rows; P4/P5/P6 start |
+| P4/P5/P6 complete (per target) | Candidate table for that target; P7 queued |
+| P7 complete | Pareto nebula renders; P8 queued |
+| P8 complete (per candidate) | Final scorecard; pass/fail chips |
+| P9 complete | File tree populates; audit terminal finishes; download available |
+
+## Appendix B — Artifact Flow Diagram
+
+```
+P1 ──(target_list)──────────────────────────────▶ P2
+P2 ──(validated_targets)──────────────────────▶  P3
+P3 ──(modality_map)───────────────────────────▶  P4, P5, P6
+P4 ──(repurposing_hits)───────────────────────▶  P7
+P5 ──(sm_candidates)──────────────────────────▶  P7
+P6 ──(bio_candidates)─────────────────────────▶  P7
+P7 ──(mpo_pareto)─────────────────────────────▶  P8
+P8 ──(validated_candidates)───────────────────▶  P9
+
+Module standalone: any phase can consume its inputs directly
+                   (uploaded file or picked from any past run)
+```
 
 ---
 
-## 11. Run Settings Side Sheet (edit-during-run)
-
-Accessible via `[⚙]` button in the topbar. A right-side sheet (not modal) that allows changing:
-- `budget_hosted_usd` (immediate effect — next hosted call uses new limit).
-- `target_count_max` (if Phase 2 not yet complete).
-- `pause_before_hosted` toggle.
-- LM Studio model selection (takes effect on next gate).
-- `dorothea_confidence` levels.
-
-Fields that can no longer be changed (locked because the relevant phase is done) appear greyed with a `[locked — phase 1 complete]` chip.
-
----
-
-## Appendix A — Run State Machine (UI Consequence Map)
-
-| Phase | UI unlock |
-|---|---|
-| Phase 0 go | Topbar appears, Phase 1 pill enters `running` |
-| Phase 1 complete | Target list populates; SHAP drawer available; Phase 2 `running` per target |
-| Phase 2 complete | Validation scores in list; Phase 3 `running` |
-| Phase 3 complete | Modality router Sankey renders; branch pills on target rows; Phase 4/5/6 start |
-| Phase 4/5/6 complete (per target) | Candidate table populates for that target; Phase 7 `queued` |
-| Phase 7 complete | Pareto nebula renders; Phase 8 `queued` |
-| Phase 8 complete (per candidate) | Final scorecard appears; passed/failed chips on candidates |
-| Phase 9 complete | File tree populates; self-audit terminal finishes; download available |
-
----
-
-## Appendix B — Responsive Behaviour (1024 px breakpoint)
-
-At 1024 px (laptop without external monitor):
-- Sidebar collapses to icon-only by default.
-- Decision Rail becomes a slide-over (full-height, 100% width overlay) instead of a persistent panel.
-- Left target list in V1 collapses to a dropdown at the top of the canvas.
-- 3D Pareto Nebula switches to a 2D scatter projection with a `[3D — open in wide view]` button.
-- Mol* viewer maintains minimum 320 px height; protein structure remains usable.
-
-Below 768 px: not supported. A full-screen banner: "RxDis requires a display ≥ 1024 px. Please use a desktop or external monitor."
-
----
-
-*DESIGN.md end — v0.1 · 2026-05-31*
-*Next: DESIGN_COMPONENTS.md (Storybook specs) + DESIGN_MOTION.md (Framer Motion playbook)
+*DESIGN.md v0.2 · 2026-06-01 · RxDis Platform*  
+*Next: DESIGN_COMPONENTS.md (Storybook specs) · DESIGN_MOTION.md (Framer Motion playbook) · DESIGN_MODULES.md (per-phase input/output schemas)*

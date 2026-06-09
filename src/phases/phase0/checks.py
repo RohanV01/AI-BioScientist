@@ -158,16 +158,37 @@ def probe_openai(api_key: str, model: str) -> Dict[str, Any]:
     return _probe("OpenAI", _check)
 
 
-def probe_nim(api_key: str) -> Dict[str, Any]:
-    def _check():
-        resp = httpx.get(
-            "https://api.nvcf.nvidia.com/v2/nvcf/functions",
-            headers={"Authorization": f"Bearer {api_key}"},
-            timeout=10,
-        )
-        resp.raise_for_status()
-        return "connected"
-    return _probe("NVIDIA_NIM", _check)
+def probe_local_tools() -> Dict[str, Any]:
+    """Check local open-source tool availability (replaces NVIDIA NIM probe)."""
+    import shutil
+    from pathlib import Path
+
+    tools = {}
+
+    # RFdiffusion
+    rfdiff_found = next(
+        (p for p in [Path.home() / "tools" / "RFdiffusion", Path.home() / "RFdiffusion"]
+         if (p / "scripts" / "run_inference.py").exists()), None
+    )
+    tools["rfdiffusion"] = "installed" if rfdiff_found else "not found (set RFDIFFUSION_DIR)"
+
+    # Boltz-1
+    tools["boltz1"] = "installed" if shutil.which("boltz") else "not found (pip install boltz)"
+
+    # ESMFold
+    try:
+        import transformers  # noqa: F401
+        tools["esmfold"] = f"transformers {transformers.__version__}"
+    except ImportError:
+        tools["esmfold"] = "not found (pip install transformers accelerate)"
+
+    all_ok = rfdiff_found is not None or shutil.which("boltz") is not None
+    return {
+        "service":    "local_tools",
+        "ok":         True,   # never blocks go/no-go — tools are optional, LLM fallback always works
+        "latency_ms": 0,
+        "detail":     tools,
+    }
 
 
 def probe_ncbi(api_key: str) -> Dict[str, Any]:

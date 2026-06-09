@@ -1,88 +1,77 @@
-import { useEffect, type ReactNode } from "react";
-import { SlidersHorizontal, TerminalSquare, Table2, FlaskConical } from "lucide-react";
-import { useStore } from "./store";
-import { cx } from "./lib/ui";
-import type { ViewKey } from "./types";
-import Sidebar from "./components/Sidebar";
-import EngineRoom from "./views/EngineRoom";
-import MatrixView from "./views/MatrixView";
-import Scorecard from "./views/Scorecard";
-import MoleculeStudio from "./views/MoleculeStudio";
+import { lazy, Suspense } from 'react';
+import Layout from './components/Layout';
+import Sidebar from './components/Sidebar';
+import { useAppStore } from './store';
+import NewExperiment from './views/NewExperiment';
+import Home from './views/Home';
+const RunMonitor = lazy(() => import('./views/RunMonitor'));
 
-const TABS: { key: ViewKey; label: string; icon: ReactNode }[] = [
-  { key: "engine", label: "Engine Room", icon: <SlidersHorizontal size={15} /> },
-  { key: "matrix", label: "The Matrix", icon: <TerminalSquare size={15} /> },
-  { key: "scorecard", label: "Target Scorecard", icon: <Table2 size={15} /> },
-  { key: "studio", label: "Molecule Studio", icon: <FlaskConical size={15} /> },
-];
+const Phase1TargetID    = lazy(() => import('./views/Phase1TargetID'));
+const Phase2Validation  = lazy(() => import('./views/Phase2Validation'));
+const Phase3Routing     = lazy(() => import('./views/Phase3Routing'));
+const Phase4Repurposing = lazy(() => import('./views/Phase4Repurposing'));
+const Phase5DeNovoSM   = lazy(() => import('./views/Phase5DeNovoSM'));
+const Phase6Biologics  = lazy(() => import('./views/Phase6Biologics'));
+const Phase7MPO        = lazy(() => import('./views/Phase7MPO'));
+const Phase9Packaging  = lazy(() => import('./views/Phase9Packaging'));
 
-const RUN_PILL: Record<string, string> = {
-  idle: "bg-zinc-800 text-zinc-400 ring-zinc-700",
-  running: "bg-amber-500/15 text-amber-300 ring-amber-500/30",
-  completed: "bg-emerald-500/15 text-emerald-300 ring-emerald-500/30",
-  failed: "bg-rose-500/15 text-rose-300 ring-rose-500/30",
+const PHASE_VIEWS: Record<number, React.ComponentType> = {
+  1: Phase1TargetID,
+  2: Phase2Validation,
+  3: Phase3Routing,
+  4: Phase4Repurposing,
+  5: Phase5DeNovoSM,
+  6: Phase6Biologics,
+  7: Phase7MPO,
+  8: Phase9Packaging,
 };
 
-export default function App() {
-  const view = useStore((s) => s.view);
-  const setView = useStore((s) => s.setView);
-  const loadRuns = useStore((s) => s.loadRuns);
-  const startTelemetryPoll = useStore((s) => s.startTelemetryPoll);
-  const runState = useStore((s) => s.runState);
-  const activeDisease = useStore((s) => s.activeDisease);
-
-  useEffect(() => {
-    loadRuns();
-    const stop = startTelemetryPoll();
-    return stop;
-  }, [loadRuns, startTelemetryPoll]);
-
+function PhaseLoader() {
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-zinc-950 text-zinc-200">
-      <Sidebar />
-      <main className="flex min-w-0 flex-1 flex-col">
-        {/* Top tab bar */}
-        <header className="flex items-center gap-1 border-b border-zinc-800 bg-zinc-900/40 px-3">
-          {TABS.map((t) => (
-            <button
-              key={t.key}
-              onClick={() => setView(t.key)}
-              className={cx(
-                "flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-colors",
-                view === t.key
-                  ? "border-emerald-500 text-zinc-100"
-                  : "border-transparent text-zinc-500 hover:text-zinc-300"
-              )}
-            >
-              {t.icon}
-              {t.label}
-            </button>
-          ))}
-          <div className="ml-auto flex items-center gap-3 pr-2">
-            {activeDisease && (
-              <span className="text-xs text-zinc-400 capitalize hidden md:block">
-                {activeDisease}
-              </span>
-            )}
-            <span
-              className={cx(
-                "rounded-full px-2.5 py-1 text-[11px] font-medium capitalize ring-1",
-                RUN_PILL[runState]
-              )}
-            >
-              {runState}
-            </span>
-          </div>
-        </header>
-
-        {/* Active view */}
-        <div className="min-h-0 flex-1 overflow-hidden">
-          {view === "engine" && <EngineRoom />}
-          {view === "matrix" && <MatrixView />}
-          {view === "scorecard" && <Scorecard />}
-          {view === "studio" && <MoleculeStudio />}
-        </div>
-      </main>
+    <div className="flex items-center justify-center h-64">
+      <span className="material-symbols-outlined text-4xl text-[var(--color-outline)] animate-spin">
+        progress_activity
+      </span>
     </div>
+  );
+}
+
+export default function App() {
+  const { activeRunId, activePhase, homeTab } = useAppStore();
+
+  // Scene 1 — no active run → home or new-experiment
+  if (!activeRunId) {
+    return (
+      <div className="flex h-dvh w-full relative overflow-hidden">
+        <Sidebar />
+        <div
+          className="flex flex-col flex-1 overflow-hidden h-full"
+          style={{ marginLeft: 'var(--spacing-sidebar)' }}
+        >
+          {homeTab === 'dashboard' ? <Home /> : <NewExperiment />}
+        </div>
+      </div>
+    );
+  }
+
+  // Scene 2 — run exists but no phase selected → mission control
+  if (activePhase === 0) {
+    return (
+      <Layout>
+        <Suspense fallback={<PhaseLoader />}>
+          <RunMonitor />
+        </Suspense>
+      </Layout>
+    );
+  }
+
+  // Scene 3 — phase selected → phase results view
+  const View = PHASE_VIEWS[activePhase] ?? Phase1TargetID;
+  return (
+    <Layout>
+      <Suspense fallback={<PhaseLoader />}>
+        <View />
+      </Suspense>
+    </Layout>
   );
 }

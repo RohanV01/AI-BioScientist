@@ -245,15 +245,13 @@ GPU VRAM → **system RAM** (Pandas matrix). New hard rule: merged matrix + tran
 **well under 10 GB** on the 16 GB box (float32/category dtypes, chunked IO, in-place merges,
 parquet caches, `pecanpy` for Node2Vec walks). See `bottlenecks/phase1.md`.
 
-### Downstream impact (Phase 2/3 — verified by reading the code)
-Near-zero. Phase 2 re-derives biology from the gene **symbol** and reads only three
-`evidence_trail` keys from Phase 1 — `tractability`, `genetic`, `ppi_eigenvector` — plus the
-B12 `targets`-upsert fix (`unique(run_id, symbol)`). Phase 3 reads **nothing** from Phase 1
-(only Phase 2 output). The new Phase 1 keeps those three keys populated → Phase 2/3 need no
-logic change. `tdl`/`modality_hint`/`clinical_stage` are not read anywhere downstream.
+### Downstream impact (Phase 2/3 — not yet built)
+Phase 2 and Phase 3 are NOT implemented. Phase 1 emits `tractability`, `genetic`,
+`ppi_eigenvector` keys in evidence_trail (0.0 default) so Phase 2 can consume them when built.
+`tdl`/`modality_hint`/`clinical_stage` are not consumed anywhere downstream currently.
 
 ### Docs updated for this pivot
 - `docs/PRD_phase1_target_id.md` — full rewrite (new data flow; literature/map-reduce removed).
 - `bottlenecks/phase1.md` — new RAM-centric bottleneck profile (this architecture).
 - `MEMORY.md` — this log.
-- `phases/phase1_summary.md` — now describes the *retired* design; refresh when code is rebuilt.
+- `phases/phase1_summary.md` — describes the current tabular PU design (up to date).

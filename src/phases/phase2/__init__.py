@@ -1,1 +1,1 @@
-"""Phase 2 — Target Validation (in silico)."""
+# Phase 2: Target Validation

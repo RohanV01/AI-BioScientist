@@ -49,7 +49,7 @@ class LLMConfig(BaseModel):
 class RunConfig(BaseModel):
     # Disease
     disease_name: str
-    disease_efo_id: Optional[str] = None
+    disease_efo_id: str
     disease_mondo_id: Optional[str] = None
     disease_doid_id: Optional[str] = None
     icd10: Optional[str] = None

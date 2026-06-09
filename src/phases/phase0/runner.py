@@ -13,7 +13,7 @@ from .checks import (
     check_all_databases,
     probe_supabase, probe_redis,
     probe_lmstudio, probe_anthropic, probe_openai,
-    probe_nim, probe_ncbi, probe_omim, probe_open_targets,
+    probe_ncbi, probe_omim, probe_open_targets,
     probe_gpu,
 )
 
@@ -44,6 +44,19 @@ def run_phase0(run_id: str, config: RunConfig, db=None) -> Dict[str, Any]:
         run_state.mark_phase_running(db, run_id, phase=0)
 
     log.info("[Phase 0] Starting health checks for run %s", run_id)
+    try:
+        return _run_phase0_body(run_id, config, db, run_state)
+    except Exception as exc:
+        log.exception("[Phase 0] Failed for run %s", run_id)
+        if db:
+            try:
+                run_state.mark_phase_failed(db, run_id, phase=0, error=f"{type(exc).__name__}: {exc}")
+            except Exception:
+                pass
+        raise
+
+
+def _run_phase0_body(run_id: str, config: RunConfig, db, run_state) -> Dict[str, Any]:
 
     # ── 0.1 Validate RunConfig ───────────────────────────────────────────────
     # Already validated by Pydantic at this point.
@@ -80,8 +93,6 @@ def run_phase0(run_id: str, config: RunConfig, db=None) -> Dict[str, Any]:
 
     # Optional / phase-gated APIs
     from src.config import settings
-    if settings.NIM_API_KEY:
-        credentials.append(probe_nim(settings.NIM_API_KEY))
     if settings.NCBI_API_KEY:
         credentials.append(probe_ncbi(settings.NCBI_API_KEY))
     if settings.OMIM_API_KEY:

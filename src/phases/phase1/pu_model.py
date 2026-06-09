@@ -32,12 +32,12 @@ _DEFAULT_LGB_PARAMS: Dict = {
     "metric": "auc",
     "n_estimators": 300,
     "learning_rate": 0.05,
-    "num_leaves": 31,
-    "min_child_samples": 5,
+    "num_leaves": 15,        # shallower trees — 16 features, ~5 positives
+    "min_child_samples": 3,  # allow splits with few samples
     "subsample": 0.8,
-    "colsample_bytree": 0.6,
-    "reg_alpha": 0.1,
-    "reg_lambda": 1.0,
+    "colsample_bytree": 0.8, # use 80% of 16 features per tree (~13 features)
+    "reg_alpha": 0.5,        # stronger L1 for sparse biological signals
+    "reg_lambda": 2.0,       # stronger L2
     "verbose": -1,
     "n_jobs": -1,
 }
@@ -161,15 +161,14 @@ def _loo_auroc(X, pos_idx, unl_idx, params, rng, n_bags_per_fold):
 
 def _get_shap(model: lgb.LGBMClassifier, X: np.ndarray, feature_names: List[str]) -> Dict:
     """
-    Return per-gene top-10 SHAP contributions using LightGBM's pred_contrib.
-    pred_contrib returns shape (n_samples, n_features + 1); last col is bias.
+    Return per-gene SHAP contributions using LightGBM's pred_contrib.
+    All 16 features are individually interpretable — return top-8 by |value|.
+    pred_contrib shape: (n_samples, n_features + 1); last col is bias.
     """
     try:
         contribs = model.booster_.predict(X, pred_contrib=True)
-        # Drop bias column.
         contribs = contribs[:, :-1].astype(np.float32)
-        # Top-10 features by absolute contribution per gene.
-        top_k = 10
+        top_k = min(8, len(feature_names))
         top_idx = np.argsort(np.abs(contribs), axis=1)[:, -top_k:][:, ::-1]
         shap_map: Dict[str, list] = {}
         for i, row_idx in enumerate(top_idx):

@@ -32,17 +32,23 @@ _DISEASES_DIR = Path("Databases/diseases_jensen")
 # Public API
 # ═══════════════════════════════════════════════════════════════════════════════
 
-def get_gwas_evidence(efo_id: str, disease_name: str) -> Dict[str, Dict]:
+def get_gwas_evidence(
+    efo_id: str,
+    disease_name: str,
+    mondo_ids: List[str] = None,
+) -> Dict[str, Dict]:
     """
     Pull GWAS associations for the disease.
     Tries the local year-split TSV files first; falls back to the REST API.
+    mondo_ids — MONDO cross-refs from OT (e.g. ["MONDO:0005192"]) used to search
+    MAPPED_TRAIT_URI alongside the EFO ID (GWAS Catalog uses MONDO for many cancers).
     Returns {gene_symbol: {genetic_score, gwas_p, gwas_effect, force_include}}.
     """
     assoc_files = sorted(settings.DB_GWAS.glob("*associations*.tsv"))
     if assoc_files:
         merged: Dict[str, Dict] = {}
         for f in assoc_files:
-            partial = _parse_gwas_local(f, efo_id, disease_name)
+            partial = _parse_gwas_local(f, efo_id, disease_name, mondo_ids=mondo_ids)
             for gene, data in partial.items():
                 if data.get("genetic_score", 0) > merged.get(gene, {}).get("genetic_score", 0):
                     merged[gene] = data
@@ -62,13 +68,33 @@ def get_omim_evidence(gene_symbols: List[str]) -> Dict[str, float]:
     return result
 
 
+
+# Generic disease words that appear in many disease names — never use these alone as
+# a match key because they would match far too broadly in the DISEASES database.
+_GENERIC_DISEASE_WORDS = frozenset({
+    "cancer", "disease", "syndrome", "disorder", "carcinoma", "tumor", "tumour",
+    "neoplasm", "neoplasia", "malignancy", "malignant", "condition", "injury",
+})
+
+
+def _disease_specific_words(disease_name: str) -> frozenset:
+    """Return words from disease_name that are specific enough to use as match keys."""
+    return frozenset(
+        w for w in disease_name.lower().split()
+        if len(w) > 4 and w not in _GENERIC_DISEASE_WORDS
+    )
+
+
 def get_diseases_evidence(disease_name: str, doid_ids: List[str] = None) -> Dict[str, float]:
     """
     Jensen Lab DISEASES — query all three local TSV files.
 
-    Match strategy (broadest to narrowest, all combined):
-      1. Exact disease-name substring match in col 4 (disease name column)
-      2. DOID ID match in col 3 (if doid_ids provided from OT cross-refs)
+    Match strategy:
+      1. Exact disease-name substring: disease_key in dis_name
+      2. Disease-specific word match: any specific word (>4 chars, not generic)
+         from disease_name appears in dis_name — prevents short generic terms like
+         "cancer" from matching entries for "pancreatic cancer".
+      3. DOID ID match in col 3 (if doid_ids provided from OT cross-refs)
 
     Score conversion: DISEASES uses 1–5 stars.
       knowledge (curated): star × 0.20   → 0.20–1.00 (highest weight)
@@ -79,6 +105,7 @@ def get_diseases_evidence(disease_name: str, doid_ids: List[str] = None) -> Dict
     """
     doid_set = set(doid_ids or [])
     disease_key = disease_name.lower().strip()
+    specific_words = _disease_specific_words(disease_key)
 
     all_scores: Dict[str, float] = {}
 
@@ -105,8 +132,14 @@ def get_diseases_evidence(disease_name: str, doid_ids: List[str] = None) -> Dict
                     doid     = parts[2].strip()          # col 3: DOID
                     dis_name = parts[3].strip().lower()  # col 4: disease name
 
-                    # Match by disease name OR DOID
-                    name_match = disease_key in dis_name or dis_name in disease_key
+                    # Match by exact phrase OR disease-specific word OR DOID.
+                    # IMPORTANT: do NOT use dis_name in disease_key — that matches
+                    # any short generic term (e.g. "cancer") inside the disease name
+                    # and pulls in tens of thousands of unrelated entries.
+                    name_match = (
+                        disease_key in dis_name
+                        or (bool(specific_words) and any(w in dis_name for w in specific_words))
+                    )
                     doid_match = bool(doid_set) and doid in doid_set
                     if not (name_match or doid_match):
                         continue
@@ -120,10 +153,8 @@ def get_diseases_evidence(disease_name: str, doid_ids: List[str] = None) -> Dict
                         continue
 
                     if score_type == "stars":
-                        # 1–5 star confidence; multiply by tier weight
                         score = min(1.0, raw_score * weight)
                     else:
-                        # text-mining z-score; normalise and cap at 0.60
                         score = min(0.60, raw_score / 10.0)
 
                     if score > all_scores.get(gene_sym, 0.0):
@@ -175,10 +206,21 @@ def merge_genetic_evidence(
 # GWAS internals
 # ═══════════════════════════════════════════════════════════════════════════════
 
-def _parse_gwas_local(path: Path, efo_id: str, disease_name: str) -> Dict[str, Dict]:
+def _parse_gwas_local(
+    path: Path,
+    efo_id: str,
+    disease_name: str,
+    mondo_ids: List[str] = None,
+) -> Dict[str, Dict]:
     results: Dict[str, Dict] = {}
     efo_suffix = efo_id.split("_")[-1]
-    disease_prefix = disease_name[:20].lower()
+    # GWAS Catalog uses MONDO IDs in MAPPED_TRAIT_URI for most cancer entries
+    # (e.g. MONDO_0005192 for pancreatic cancer) rather than EFO IDs.
+    # Convert "MONDO:0005192" → "MONDO_0005192" for URI search.
+    mondo_suffixes = [m.replace(":", "_").split("_")[-1] for m in (mondo_ids or [])]
+    # Core disease keyword for DISEASE/TRAIT column (contains, not startswith)
+    specific_words = _disease_specific_words(disease_name)
+    disease_keyword = next(iter(specific_words), disease_name.lower().split()[0])
     try:
         chunks = pd.read_csv(path, sep="\t", chunksize=50_000, low_memory=False)
         for chunk in chunks:
@@ -188,8 +230,16 @@ def _parse_gwas_local(path: Path, efo_id: str, disease_name: str) -> Dict[str, D
                 mask |= uris.str.contains(efo_id, case=False, regex=False)
                 if len(efo_suffix) >= 5:
                     mask |= uris.str.contains(efo_suffix, case=False, regex=False)
+                # Also search MONDO IDs (GWAS Catalog uses these for many traits)
+                for msuffix in mondo_suffixes:
+                    if len(msuffix) >= 5:
+                        mask |= uris.str.contains(msuffix, case=False, regex=False)
             if "DISEASE/TRAIT" in chunk.columns:
-                mask |= chunk["DISEASE/TRAIT"].fillna("").str.lower().str.startswith(disease_prefix)
+                # Use contains with the disease-specific keyword (not startswith)
+                # so "pancreatic cancer" matches "pancreatic carcinoma" etc.
+                mask |= chunk["DISEASE/TRAIT"].fillna("").str.lower().str.contains(
+                    disease_keyword, case=False, regex=False
+                )
             sub = chunk[mask]
             for _, row in sub.iterrows():
                 mapped  = str(row.get("MAPPED_GENE", "")).strip()
@@ -280,7 +330,9 @@ def _omim_local(gene_symbols: List[str]) -> Dict[str, float]:
                 if len(parts) < 4:
                     continue
                 if parts[1].strip() == "gene" and parts[3].strip() in gene_set:
-                    results[parts[3].strip()] = 0.4
+                    # 0.1: mim2gene.txt confirms Mendelian gene but is disease-agnostic.
+                    # Kept low so disease-specific GWAS/DISEASES scores always dominate.
+                    results[parts[3].strip()] = 0.1
         log.info("[1.6] OMIM local: %d genes with evidence", len(results))
     except Exception as exc:
         log.warning("[1.6] OMIM local parse failed: %s", exc)

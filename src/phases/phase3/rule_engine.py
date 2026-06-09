@@ -1,181 +1,168 @@
 """
-Phase 3 rule engine — modality routing per validated target.
+Phase 3, Step 3.1: Deterministic rule-engine for modality scoring and routing.
 
-Consumes Phase 2 modality scores (already biophysics-grounded with an LLM edge
-gate) and applies:
-  3.2 intent_mode routing      → which de-novo / repurposing branches are eligible
-  3.3 config overrides         → modality_preference bias, seed_smiles → SM opt-only
-  3.4 repurposing priority     → from ChEMBL max clinical phase (proxy for the PRD's
-                                  Phase-1 `clinical_stage`, which this build does not
-                                  yet emit per target)
-
-The grey-zone LLM gate (3_modality_greyzone) is invoked only when the top two
-modality scores are within 0.1, druggability is borderline, or a gain-of-function
-signal conflicts with the rule-engine pick.
+Logic faithfully implements the PRD pseudocode.  No I/O — pure functions only.
 """
 from __future__ import annotations
-import logging
-from typing import Dict, List, Optional, Tuple
 
-from src.llm.provider import LLMProvider
-from src.db.run_state import log_decision
-from .schemas import ModalityGreyzone
+import logging
+from typing import Dict, List, Optional
 
 log = logging.getLogger(__name__)
 
-_GREYZONE_DELTA = 0.1
-_SECONDARY_CUTOFF = 0.5
+_SECONDARY_THRESHOLD = 0.50
 
-# Modality → de-novo design phase.
-_DENOVO_PHASE = {
-    "SM": "P5_small_molecule",
-    "PROTAC": "P5_small_molecule",
-    "peptide": "P6_biologic",
-    "AB": "P6_biologic",
-    "oligo": "P6_biologic",
-}
+
+def score_modalities(target: Dict) -> Dict[str, float]:
+    """
+    Re-score modalities at Phase 3 resolution using Phase 2 evidence.
+
+    Phase 2 tractability.py already produced per-modality scores; Phase 3
+    refines them with repurposing context and safety adjustments.
+    """
+    modality = target.get("modality", {})
+    safety = target.get("safety", {})
+    max_drugg: float = target.get("max_druggability", 0.0)
+
+    scores: Dict[str, float] = {}
+
+    for key in ("SM", "AB", "PROTAC", "peptide", "oligo"):
+        v = float(modality.get(key, 0.0))
+        if v > 0:
+            scores[key] = v
+
+    if not scores:
+        scores["AB"] = 0.75 if max_drugg < 0.3 else max(0.3, max_drugg * 0.8)
+
+    # Safety: broad critical-tissue expression slightly penalises SM
+    if safety.get("critical_tissue_flag") and "SM" in scores:
+        scores["SM"] = round(scores["SM"] * 0.88, 3)
+
+    return {k: round(v, 3) for k, v in scores.items() if v > 0}
+
+
+def compute_repurposing_priority(target: Dict, evidence_trail: Dict) -> str:
+    """
+    Assign repurposing priority from OT tractability (proxy for clinical stage).
+
+      ≥ 0.90  → HIGH          (approved drug exists)
+      ≥ 0.70  → MEDIUM        (Phase 2/3 clinical candidate)
+      ≥ 0.50  → LOW_CLINICAL  (Phase 1 candidate)
+      < 0.50  → LOW
+    """
+    ot_tractability = float(evidence_trail.get("tractability", 0.0))
+    clinical_stage = str(evidence_trail.get("clinical_stage", "")).lower()
+
+    if clinical_stage == "approved" or ot_tractability >= 0.90:
+        return "HIGH"
+    if clinical_stage in {"clinical_ph2", "clinical_ph3"} or ot_tractability >= 0.70:
+        return "MEDIUM"
+    if clinical_stage == "clinical_ph1" or ot_tractability >= 0.50:
+        return "LOW_CLINICAL"
+    return "LOW"
+
+
+def apply_intent_routing(
+    *,
+    primary: str,
+    secondary: Optional[str],
+    repurposing_priority: str,
+    intent_mode: str,
+    budget_allows_secondary: bool = True,
+) -> List[str]:
+    """
+    Translate modality + intent_mode into downstream phase branches.
+
+    Branch rules (PRD §3.2):
+      repurpose  → P4 only; no de novo branches
+      de_novo    → skip P4; P5 if SM/PROTAC primary; P6 if AB/peptide primary
+      explore    → always P4; plus primary de novo branch; secondary if budget
+    """
+    branches: List[str] = []
+    _sm_like  = {"SM", "PROTAC"}
+    _bio_like = {"AB", "peptide"}
+
+    if intent_mode in {"explore", "repurpose"}:
+        branches.append("P4_repurpose")
+
+    if intent_mode in {"explore", "de_novo"}:
+        if primary in _sm_like:
+            branches.append("P5_small_molecule")
+        elif primary in _bio_like:
+            branches.append("P6_biologic")
+
+        if secondary and budget_allows_secondary:
+            if secondary in _sm_like and "P5_small_molecule" not in branches:
+                branches.append("P5_small_molecule")
+            elif secondary in _bio_like and "P6_biologic" not in branches:
+                branches.append("P6_biologic")
+
+    return branches
 
 
 def route_target(
     *,
     target: Dict,
     intent_mode: str,
-    modality_preference: str,
-    seed_smiles_present: bool,
-    novelty_mode: bool,
-    provider: Optional[LLMProvider] = None,
+    modality_preference: str = "any",
+    seed_smiles_present: bool = False,
+    novelty_mode: bool = False,
+    provider=None,
     db=None,
     run_id: str = "",
 ) -> Dict:
-    """Return the routing record for one validated target."""
-    symbol = target["symbol"]
-    scores: Dict[str, float] = dict(target.get("modality", {}).get("scores", {}))
+    """
+    Orchestrate Phase 3 routing for a single validated target.
+
+    Wires together score_modalities → compute_repurposing_priority →
+    apply_intent_routing into one result dict. The runner imports this.
+    """
+    modality_data = target.get("modality", {})
+    safety = target.get("safety", {})
+    max_drugg = float(target.get("max_druggability", 0.0))
+    evidence_trail = target.get("evidence_trail", {})
+
+    # score_modalities expects {modality: {SM:…}, safety: {…}, max_druggability:…}
+    modality_scores_raw = modality_data.get("scores", modality_data)
+    scores = score_modalities({
+        "modality": modality_scores_raw,
+        "safety": safety,
+        "max_druggability": max_drugg,
+    })
+
+    # Fall back to Phase 2 primary/secondary if scorer produces nothing
     if not scores:
-        scores = {"SM": 0.0, "PROTAC": 0.0, "peptide": 0.0, "AB": 0.0, "oligo": 0.0}
+        primary_raw = modality_data.get("primary") or "SM"
+        scores = {primary_raw: 0.6}
 
-    is_seed = target.get("seeded", False)
-    chembl = target.get("chembl", {})
-    gof_hint = target.get("variants", {}).get("high_path_missense", 0) >= 10
+    # Apply hard modality preference override
+    if modality_preference != "any":
+        pref_map = {"small_molecule": "SM", "biologic": "AB", "peptide": "peptide"}
+        pref_key = pref_map.get(modality_preference)
+        if pref_key and pref_key not in scores:
+            scores[pref_key] = 0.50
 
-    # ── 3.3 modality_preference bias ──────────────────────────────────────────
-    pref_map = {"small_molecule": "SM", "biologic": "AB", "peptide": "peptide"}
-    if modality_preference in pref_map:
-        scores[pref_map[modality_preference]] = min(1.0, scores.get(pref_map[modality_preference], 0.0) + 0.15)
+    sorted_scores = sorted(scores.items(), key=lambda x: x[1], reverse=True)
+    primary = sorted_scores[0][0]
+    secondary: Optional[str] = None
+    if len(sorted_scores) > 1 and sorted_scores[1][1] >= _SECONDARY_THRESHOLD:
+        secondary = sorted_scores[1][0]
 
-    primary, secondary = _rank(scores)
+    repurposing_priority = compute_repurposing_priority(target, evidence_trail)
 
-    # ── grey-zone resolution ──────────────────────────────────────────────────
-    greyzone = _is_greyzone(scores, target, gof_hint)
-    concerns: List[str] = []
-    if greyzone and provider is not None:
-        decision = _llm_greyzone(symbol, scores, target, gof_hint, provider, db, run_id)
-        if decision:
-            if decision["decision"] in scores:
-                primary = decision["decision"]
-                _, secondary = _rank({k: v for k, v in scores.items() if k != primary})
-            concerns = decision.get("concerns", [])
-
-    # ── 3.4 repurposing priority (ChEMBL max_phase proxy) ─────────────────────
-    repurposing_priority = _repurposing_priority(chembl.get("max_phase", 0))
-
-    # ── 3.2 intent_mode → branches ────────────────────────────────────────────
-    branches = _branches(intent_mode, primary, secondary, repurposing_priority,
-                         novelty_mode)
-
-    # ── 3.3 seed_smiles → force SM optimization-only ──────────────────────────
-    seed_smiles_opt = False
-    if seed_smiles_present and is_seed:
-        primary = "SM"
-        seed_smiles_opt = True
-        if "P5_small_molecule" not in branches:
-            branches.append("P5_small_molecule")
+    branches = apply_intent_routing(
+        primary=primary,
+        secondary=secondary,
+        repurposing_priority=repurposing_priority,
+        intent_mode=intent_mode,
+        budget_allows_secondary=not novelty_mode,
+    )
 
     return {
-        "symbol": symbol,
+        "symbol": target.get("symbol", ""),
         "primary": primary,
         "secondary": secondary,
         "branches": branches,
-        "modality_scores": {k: round(v, 3) for k, v in scores.items()},
         "repurposing_priority": repurposing_priority,
-        "seed_smiles_opt": seed_smiles_opt,
-        "greyzone_resolved": greyzone,
-        "concerns": concerns,
+        "modality_scores": scores,
     }
-
-
-def _rank(scores: Dict[str, float]) -> Tuple[str, Optional[str]]:
-    ranked = sorted(scores.items(), key=lambda kv: kv[1], reverse=True)
-    primary = ranked[0][0] if ranked and ranked[0][1] > 0 else "none"
-    secondary = ranked[1][0] if len(ranked) > 1 and ranked[1][1] > _SECONDARY_CUTOFF else None
-    return primary, secondary
-
-
-def _is_greyzone(scores: Dict[str, float], target: Dict, gof_hint: bool) -> bool:
-    ordered = sorted(scores.values(), reverse=True)
-    close = len(ordered) >= 2 and ordered[0] > 0 and (ordered[0] - ordered[1]) < _GREYZONE_DELTA
-    drug = target.get("max_druggability", 0.0)
-    borderline = 0.45 <= drug <= 0.55
-    return bool(close or borderline or gof_hint)
-
-
-def _llm_greyzone(symbol, scores, target, gof_hint, provider, db, run_id) -> Optional[Dict]:
-    loc = target.get("localization", {})
-    prompt = (
-        f"Choose the single best drug modality for target {symbol}. Borderline case.\n\n"
-        f"Modality scores: {scores}\n"
-        f"Localization: {loc.get('compartment')} "
-        f"(membrane={loc.get('is_membrane')}, secreted={loc.get('is_secreted')})\n"
-        f"Max druggability: {target.get('max_druggability')}\n"
-        f"Gain-of-function hint: {gof_hint}\n"
-        f"ChEMBL potent compounds: {target.get('chembl', {}).get('n_potent')}\n\n"
-        "Options: SM, PROTAC, AB, peptide, oligo. A gain-of-function intracellular "
-        "target with a weak pocket usually favours PROTAC degradation over inhibition. "
-        "Return your decision, a confidence 0-1, and any concerns."
-    )
-    try:
-        result = provider.complete(prompt, schema=ModalityGreyzone, temperature=0.1)
-    except Exception as exc:
-        log.warning("[3] %s greyzone gate failed: %s", symbol, exc)
-        return None
-    if not result.parsed:
-        return None
-    if db:
-        log_decision(db, run_id=run_id, phase=3, gate="3_modality_greyzone",
-                     provider=provider.name, model=provider.model,
-                     prompt=prompt, raw_response=result.text, decision_json=result.parsed)
-    return result.parsed
-
-
-def _repurposing_priority(max_phase: int) -> str:
-    if max_phase >= 4:
-        return "HIGH"
-    if max_phase in (2, 3):
-        return "MEDIUM"
-    if max_phase == 1:
-        return "LOW_CLINICAL"
-    return "LOW"
-
-
-def _branches(intent_mode: str, primary: str, secondary: Optional[str],
-              repurposing_priority: str, novelty_mode: bool) -> List[str]:
-    branches: List[str] = []
-    denovo_primary = _DENOVO_PHASE.get(primary)
-
-    if intent_mode == "repurpose":
-        # Phase 4 only, no de-novo branch.
-        return ["P4_repurpose"]
-
-    if intent_mode == "de_novo":
-        if denovo_primary:
-            branches.append(denovo_primary)
-        return branches
-
-    # explore: Phase 4 always + primary de-novo branch.
-    branches.append("P4_repurpose")
-    if denovo_primary:
-        branches.append(denovo_primary)
-    if secondary:
-        sec = _DENOVO_PHASE.get(secondary)
-        if sec and sec not in branches:
-            branches.append(sec)
-    return branches

@@ -1,6 +1,8 @@
 # Environment & secrets
 .env
 *.env.local
+/bottlenecks
+/Scientific Protocol
 
 # Python
 __pycache__/

@@ -12,6 +12,7 @@ from typing import Any, Dict, List
 from src.config.run_config import RunConfig
 from src.llm.factory import make_provider
 from src.db import run_state
+from src.phases.base_runner import PhaseGuard
 
 from .rule_engine import route_target
 
@@ -19,11 +20,17 @@ log = logging.getLogger(__name__)
 
 
 def run_phase3(run_id: str, config: RunConfig, db, phase2_output: Dict) -> Dict[str, Any]:
-    validated = phase2_output.get("validated_targets", [])
-    if not validated:
-        raise RuntimeError("Phase 3 requires Phase 2 validated_targets; none found.")
+    with PhaseGuard(db, run_id, phase=3, config=config) as guard:
+        guard.check_budget()
+        guard.validate_input(phase2_output, ["validated_targets"], source_phase=2)
+        validated = phase2_output.get("validated_targets", [])
+        if not validated:
+            raise RuntimeError("Phase 3 requires Phase 2 validated_targets; none found.")
+        return _run_phase3_body(run_id, config, db, phase2_output)
 
-    run_state.mark_phase_running(db, run_id, phase=3)
+
+def _run_phase3_body(run_id: str, config: RunConfig, db, phase2_output: Dict) -> Dict[str, Any]:
+    validated = phase2_output.get("validated_targets", [])
     t_start = time.monotonic()
     provider = make_provider(config.llm)
 
@@ -53,6 +60,8 @@ def run_phase3(run_id: str, config: RunConfig, db, phase2_output: Dict) -> Dict[
                 db, run_id=run_id, symbol=record["symbol"],
                 modality_primary=record["primary"],
                 modality_secondary=record["secondary"],
+                branches=record.get("branches"),
+                repurposing_priority=record.get("repurposing_priority"),
             )
         except Exception as exc:
             log.warning("[Phase 3] DB update failed for %s: %s", record["symbol"], exc)

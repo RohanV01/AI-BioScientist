@@ -25,6 +25,7 @@
 # Web / API / UI layer
 # ----------------------------------------------------------------------------
 fastapi>=0.115
+slowapi>=0.1.9              # API rate limiting
 uvicorn[standard]>=0.32
 pydantic>=2.9
 pydantic-settings>=2.6
