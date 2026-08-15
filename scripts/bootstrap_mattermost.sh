@@ -173,6 +173,27 @@ else
   echo "    skipped (bot token was already created in a prior run and not re-displayed -- re-run with a fresh bot to re-verify posting)."
 fi
 
+echo "==> Ensuring #grounding-log channel exists (FR-10 audit surface)..."
+GLOG_RESP=$(api_call GET "/teams/$TEAM_ID/channels/name/grounding-log" "$AUTH_HEADER" 3>/tmp/mm_status_$$)
+GLOG_STATUS=$(cat /tmp/mm_status_$$); rm -f /tmp/mm_status_$$
+if ok "$GLOG_STATUS"; then
+  GROUNDING_LOG_CHANNEL_ID=$(echo "$GLOG_RESP" | jq -r '.id')
+  echo "    already exists."
+else
+  GLOG_RESP=$(api_call POST "/channels" "$AUTH_HEADER" \
+    "{\"team_id\":\"$TEAM_ID\",\"name\":\"grounding-log\",\"display_name\":\"Grounding Log\",\"purpose\":\"Audit trail: every response the agent posts, with the tool calls and citations that grounded it (FR-10).\",\"type\":\"O\"}" \
+    3>/tmp/mm_status_$$)
+  GLOG_STATUS=$(cat /tmp/mm_status_$$); rm -f /tmp/mm_status_$$
+  if ! ok "$GLOG_STATUS"; then
+    echo "    could not create #grounding-log channel (HTTP $GLOG_STATUS): $GLOG_RESP" >&2
+    exit 1
+  fi
+  GROUNDING_LOG_CHANNEL_ID=$(echo "$GLOG_RESP" | jq -r '.id')
+  echo "    created #grounding-log."
+fi
+api_call POST "/channels/$GROUNDING_LOG_CHANNEL_ID/members" "$AUTH_HEADER" \
+  "{\"user_id\":\"$BOT_USER_ID\"}" 3>/dev/null > /dev/null || true
+
 echo "==> Ensuring Outgoing Webhook exists (Orchestrator callback)..."
 CALLBACK_URL="http://orchestrator:8000/webhooks/mattermost"
 HOOKS_RESP=$(api_call GET "/hooks/outgoing?team_id=$TEAM_ID" "$AUTH_HEADER" 3>/tmp/mm_status_$$)
@@ -209,5 +230,5 @@ echo "    wrote MATTERMOST_WEBHOOK_SECRET to .env -- restart the orchestrator co
 echo "    docker compose up -d --force-recreate orchestrator"
 
 echo ""
-echo "Done. Team '$MM_TEAM_NAME' at $MM_URL, admin '$MM_ADMIN_USERNAME', bot 'echo-bot' confirmed working, Outgoing Webhook wired to the orchestrator."
-echo "Next: seed dev data (orchestrator/scripts/seed_dev_data.py --team-id $TEAM_ID --bot-user-id $BOT_USER_ID), restart the orchestrator, then message '@orchestrator hello' in #town-square."
+echo "Done. Team '$MM_TEAM_NAME' at $MM_URL, admin '$MM_ADMIN_USERNAME', bot 'echo-bot' confirmed working, Outgoing Webhook wired to the orchestrator, #grounding-log channel ready."
+echo "Next: seed dev data (orchestrator/scripts/seed_dev_data.py --team-id $TEAM_ID --bot-user-id $BOT_USER_ID --grounding-log-channel-id $GROUNDING_LOG_CHANNEL_ID), restart the orchestrator, then message '@orchestrator hello' in #town-square."

@@ -21,7 +21,7 @@ from app.config import settings
 from app.db import async_session, get_db
 from app.grounding import Citation, create_response
 from app.mattermost_client import MattermostClient
-from app.models import Agent, Task, ToolCall
+from app.models import Agent, Org, Task, ToolCall
 from app.tool_roster import build_tool_roster
 from app.vault import decrypt
 
@@ -154,6 +154,27 @@ async def _run_agent_and_respond(task_id, agent_id: str, channel_id: str, user_m
             )
             posted = await mm.post_message(channel_id, result.body, attachments=attachments)
             response.mattermost_message_id = posted.get("id")
+
+            # FR-10, docs/10-build-plan.md Phase 4: the human-facing surface
+            # of the TOOL_CALL table -- every response also gets a compact
+            # audit summary in #grounding-log, if the org has one configured.
+            org = await db.get(Org, agent.org_id)
+            if org is not None and org.grounding_log_channel_id:
+                tool_names_used = sorted(
+                    {
+                        roster.tool_source_by_mcp_name[tc.mcp_server_name].name
+                        for tc in result.tool_calls
+                        if roster.tool_source_by_mcp_name.get(tc.mcp_server_name) is not None
+                    }
+                )
+                audit_lines = [
+                    f"**Task** `{task_id}` -- provenance: `{final_provenance}`"
+                    + (" -- ⚠️ requires expert review" if requires_review else ""),
+                    f"Tool sources used: {', '.join(tool_names_used) or 'none'}",
+                    f"Citations ({len(citations)}): {', '.join(c.record_ref for c in citations) or 'none'}",
+                ]
+                await mm.post_message(org.grounding_log_channel_id, "\n".join(audit_lines))
+
             if task is not None:
                 task.status = "completed"
                 task.completed_at = datetime.now(timezone.utc)

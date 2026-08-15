@@ -60,16 +60,25 @@ KNOWN_TOOL_SOURCES = {
 }
 
 
-async def main(team_id: str, bot_user_id: str, bot_token: str, name: str, tool_names: list[str]) -> None:
+async def main(
+    team_id: str, bot_user_id: str, bot_token: str, name: str, tool_names: list[str],
+    grounding_log_channel_id: str = "",
+) -> None:
     async with async_session() as db:
         result = await db.execute(select(Org).where(Org.mattermost_team_id == team_id))
         org = result.scalar_one_or_none()
         if org is None:
-            org = Org(name="AI Scientist (dev)", mattermost_team_id=team_id)
+            org = Org(
+                name="AI Scientist (dev)", mattermost_team_id=team_id,
+                grounding_log_channel_id=grounding_log_channel_id or None,
+            )
             db.add(org)
             await db.flush()
             print(f"created org {org.id}")
         else:
+            if grounding_log_channel_id and org.grounding_log_channel_id != grounding_log_channel_id:
+                org.grounding_log_channel_id = grounding_log_channel_id
+                print(f"  updated org.grounding_log_channel_id -> {grounding_log_channel_id}")
             print(f"org already exists: {org.id}")
 
         result = await db.execute(
@@ -142,7 +151,14 @@ if __name__ == "__main__":
     parser.add_argument("--bot-token", default="", help="Mattermost personal access token for this bot")
     parser.add_argument("--name", default="AI Scientist")
     parser.add_argument("--tools", default="pubmed", help="Comma-separated tool source names to bind")
+    parser.add_argument(
+        "--grounding-log-channel-id", default="",
+        help="Mattermost channel ID for the #grounding-log audit channel (FR-10)",
+    )
     args = parser.parse_args()
     asyncio.run(
-        main(args.team_id, args.bot_user_id, args.bot_token, args.name, args.tools.split(","))
+        main(
+            args.team_id, args.bot_user_id, args.bot_token, args.name, args.tools.split(","),
+            args.grounding_log_channel_id,
+        )
     )

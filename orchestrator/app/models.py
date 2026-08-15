@@ -22,6 +22,10 @@ class Org(Base):
     id: Mapped[uuid.UUID] = _uuid_pk()
     name: Mapped[str] = mapped_column(String, nullable=False)
     mattermost_team_id: Mapped[str] = mapped_column(String, nullable=False)
+    # docs/10-build-plan.md Phase 4, FR-10: the human-facing surface of the
+    # TOOL_CALL table -- every response's grounding summary is also posted
+    # here, for audit visibility separate from the conversational channel.
+    grounding_log_channel_id: Mapped[str | None] = mapped_column(String, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     agents: Mapped[list["Agent"]] = relationship(back_populates="org")
