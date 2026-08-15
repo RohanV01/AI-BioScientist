@@ -93,6 +93,12 @@ RxDis keeps running as its own FastAPI service against its own Supabase instance
 ### Live MCPs and BYO-credentialed sources
 No change from how they work today (ChEMBL/Open Targets/PubMed already live) — the Orchestrator's Claude Code/Codex Runner simply includes them in an agent's MCP config. BYO-credentialed sources (Section 8) are the same MCP-call pattern, with the Vault injecting the credential at call time instead of the call being anonymous/public.
 
+### Compute layer (Gap 7) — check Hugging Face before buying anything
+
+The research report's Section 8 named NVIDIA Platform (BioNeMo/NIM) and general cloud GPU compute as the "buy" path for Gap 7 (no compute/sandbox layer). Section 10 of the same report separately flagged that **Hugging Face is already a connected MCP and was never factored into that compute decision** — it hosts lighter-weight bio models (ESM, ProtBert, DNABERT, ChemBERTa-class) that may cover a real fraction of the Structural Biology and Drug Discovery cluster's Tier-3 "needs compute" experiments (structure/sequence embedding, lightweight property prediction) without any new procurement at all. **Rule for Phase 5 (`10-build-plan.md`): before wiring NVIDIA Platform or provisioning cloud GPU for a given compute-blocked experiment, check whether a Hugging Face-hosted inference endpoint already answers it.** Reserve NVIDIA/cloud GPU for the genuinely heavy workloads Hugging Face's hosted inference can't cover — full AlphaFold-class structure prediction at scale, docking, MD simulation.
+
+**AlphaFold Server compliance trap:** Google DeepMind's free hosted folding tool (distinct from the AlphaFold DB precomputed-model lookup wired in Phase 4) has a **non-commercial-only terms of service**. The Structural Biology Agent (Phase 4) must not route a commercial-tier org's request to AlphaFold Server even though it's free and would otherwise look like the obvious lightweight option — this needs to be an explicit check in the agent's tool-selection logic (gated on the requesting `ORG`'s tier, same table already tracking BYO-credential scope in `06-data-model.md`), not a documentation footnote that gets missed at implementation time.
+
 ## Deployment topology (MVP)
 
 Single machine or single org server, `docker-compose`-orchestrated (matching RxDis's own prior pattern, kept consistent): Mattermost container + its Postgres, Orchestrator Service container + its Postgres (or shared instance/separate schema — see `02-prd.md` open question), RxDis's existing service (already docker-composed in its own reference setup), and the local data-serving process for `data/`. No Kubernetes, no multi-node design — that's explicitly premature for a single-org MVP (see Non-Goals in `01-project-goals.md`).
@@ -105,4 +111,4 @@ Single machine or single org server, `docker-compose`-orchestrated (matching RxD
 
 ## Related documents
 
-`06-data-model.md` · `05-ux-behavior.md` · `10-build-plan.md`
+`06-data-model.md` · `05-ux-behavior.md` · `10-build-plan.md` · `11-backlog-traceability.md` (full status of every gap/tool/flagship this architecture touches)

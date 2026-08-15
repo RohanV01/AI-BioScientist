@@ -28,6 +28,7 @@ This is the build-out of the [Researcher's Lab report](../Daily%20Learning/Vault
 8. `docs/08-cross-feature-journeys.md` — end-to-end scenarios
 9. `docs/09-test-strategy-acceptance-criteria.md` — how we know it works
 10. `docs/10-build-plan.md` — the phased roadmap (start here for "what's next")
+11. `docs/11-backlog-traceability.md` — full status of every experiment/flagship/gap/paid-tool from the research report against these phases (read this before assuming anything from the report is "handled" just because it's referenced elsewhere)
 
 ## Stack (see `docs/07-system-architecture.md` for the full rationale)
 

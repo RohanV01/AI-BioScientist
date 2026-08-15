@@ -4,6 +4,13 @@ All notable changes to this project are logged here. Format loosely follows [Kee
 
 ## [Unreleased]
 
+### Added — 2026-08-15 (traceability pass)
+- `docs/11-backlog-traceability.md` — full status index mapping all 105 experiments, 8 flagships, 10 gaps, 13 paid integrations, and Section 10's overlooked-resource findings from the Researcher's Lab report against actual Build Plan phases. Added after an audit found the original `docs/` suite covered its own MVP scope in real detail but only referenced (not tracked) most of the report's breadth — see "Changed" below for what got fixed as a result.
+
+### Changed — 2026-08-15 (traceability pass)
+- `docs/07-system-architecture.md` — added a Compute Layer subsection: check Hugging Face (already connected, previously unused anywhere in these docs) before defaulting to NVIDIA Platform/cloud GPU for Gap 7; added the AlphaFold Server non-commercial-ToS trap as an explicit tool-selection check for the Structural Biology Agent, gated on org tier.
+- `docs/10-build-plan.md` — Phase 0 gained an explicit Gap 9 (sci-hub full-text compliance) scoping task, promoted from implicit to concrete now that `data/scihub.sql`'s MD5/Filesize fields make full-text access technically possible, not just metadata; Phase 4's Genomics Agent step now also covers wiring the Ontologies domain (previously absent entirely); Phase 5 expanded with Section 7's actual 3-phase wrapping rationale instead of a bare cross-reference; phase headers tagged with Tier ratings from the report's Section 9.
+
 ### Added — 2026-08-15
 - Full planning document suite in `docs/`: project goals, PRD, user personas, information architecture, UX behavior, data model, system architecture, cross-feature journeys, test strategy + acceptance criteria, and a phased build plan.
 - `README.md` rewritten for the new project direction (Mattermost-based multi-agent messaging platform, superseding the prior single-purpose RxDis README at that path).
