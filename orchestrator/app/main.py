@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-from app.routers import mattermost_webhook
+from app.routers import mattermost_webhook, reports
 
 app = FastAPI(
     title="AI Scientist Orchestrator",
@@ -9,6 +9,7 @@ app = FastAPI(
 )
 
 app.include_router(mattermost_webhook.router)
+app.include_router(reports.router)
 
 
 @app.get("/health")

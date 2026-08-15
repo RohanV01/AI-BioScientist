@@ -26,6 +26,12 @@ class Settings(BaseSettings):
     scihub_doi_index_path: str = (
         "../data/Databases/scihub/sci-hub-doi-2022-02-12.txt"
     )
+    # Base URL for links the Orchestrator posts into Mattermost that a
+    # human clicks from their own browser (docs/05-ux-behavior.md Section 3's
+    # full-report link-out) -- NOT the same as mattermost_url, which is
+    # how the Orchestrator itself reaches Mattermost's API. Defaults to
+    # localhost since local dev browses from the host, not a container.
+    orchestrator_public_url: str = "http://localhost:8000"
 
 
 settings = Settings()

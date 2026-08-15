@@ -22,6 +22,7 @@ from app.db import async_session, get_db
 from app.grounding import Citation, create_response
 from app.mattermost_client import MattermostClient
 from app.models import Agent, Org, Task, ToolCall
+from app.output_rendering import build_response_attachment
 from app.tool_roster import build_tool_roster
 from app.vault import decrypt
 
@@ -147,12 +148,17 @@ async def _run_agent_and_respond(task_id, agent_id: str, channel_id: str, user_m
                 citations=citations or None,
                 requires_expert_review=requires_review,
             )
-            attachments = (
-                [{"color": EXPERT_REVIEW_COLOR, "pretext": "⚠️ **Requires expert review**"}]
-                if requires_review
-                else None
+            # docs/05-ux-behavior.md Section 3: short output renders in
+            # full inline; a large table gets a summary + a link to the
+            # full report (app/routers/reports.py) instead of a long raw
+            # markdown table dumped into chat.
+            report_url = f"{settings.orchestrator_public_url}/reports/{response.id}"
+            attachment = build_response_attachment(
+                result.body, report_url, color=EXPERT_REVIEW_COLOR if requires_review else None
             )
-            posted = await mm.post_message(channel_id, result.body, attachments=attachments)
+            if requires_review:
+                attachment["pretext"] = "⚠️ **Requires expert review**"
+            posted = await mm.post_message(channel_id, "", attachments=[attachment])
             response.mattermost_message_id = posted.get("id")
 
             # FR-10, docs/10-build-plan.md Phase 4: the human-facing surface
