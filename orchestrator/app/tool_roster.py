@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import Agent, ToolBinding, ToolSource
 from app.tools.chembl import build_chembl_mcp_server
+from app.tools.clinvar import build_clinvar_mcp_server
 from app.tools.ensembl import build_ensembl_mcp_server
 from app.tools.literature_discovery import build_literature_discovery_mcp_server
 from app.tools.open_targets import build_open_targets_mcp_server
@@ -39,6 +40,7 @@ TOOL_BUILDERS = {
     ),
     "ensembl": ("ensembl", build_ensembl_mcp_server, ["mcp__ensembl__search_gene"]),
     "uniprot": ("uniprot", build_uniprot_mcp_server, ["mcp__uniprot__search_protein"]),
+    "clinvar": ("clinvar", build_clinvar_mcp_server, ["mcp__clinvar__search_variants"]),
 }
 
 

@@ -37,6 +37,7 @@ KNOWN_TOOL_SOURCES = {
     "literature_discovery": ("literature", "free_public", "in-process:app.tools.literature_discovery"),
     "ensembl": ("genomics", "free_public", "in-process:app.tools.ensembl"),
     "uniprot": ("genomics", "free_public", "in-process:app.tools.uniprot"),
+    "clinvar": ("genomics", "free_public", "in-process:app.tools.clinvar"),
 }
 
 
