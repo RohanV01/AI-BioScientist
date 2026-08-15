@@ -1,5 +1,7 @@
 # Project Goals
 
+**Architecture pivot (2026-08-15):** references below to "domain agents" (a Literature Agent, a Drug Discovery Agent, etc.) describe the pre-pivot design. The actual model is **one master agent** with the full tool roster, which plans a methodology per query and executes across whatever tools it needs — see `07-system-architecture.md`'s pivot note. The goals themselves are unaffected; only the "how many bots" framing changed.
+
 ## What this is
 
 **AI Scientist** is a local-first research platform: a Mattermost-based messaging workspace where a researcher delegates tasks to specialized domain agents (genomics, drug discovery, literature, structural biology, systems biology, clinical/commercial ops, microbiome/immunology) instead of manually stitching together a dozen databases and tools by hand. Every agent runs on Claude Code/Codex, calling real MCP-wired tools and data sources, and every response carries a traceable link back to the tool call, record, or citation that produced it.

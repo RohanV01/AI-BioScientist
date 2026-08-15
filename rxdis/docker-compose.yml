@@ -1,0 +1,98 @@
+# Docker Compose for local development
+# Services: FastAPI, Redis, Celery workers (cpu/llm/gpu/hosted), Flower
+#
+# Usage:
+#   docker compose up -d redis flower
+#   docker compose up api
+#   docker compose up worker-cpu worker-llm
+#
+# GPU workers require nvidia-container-toolkit installed on the host.
+
+version: "3.9"
+
+x-common: &common
+  build:
+    context: .
+    dockerfile: Dockerfile
+  env_file: .env
+  volumes:
+    - ./Databases:/app/Databases:ro
+    - ./output:/app/output
+  depends_on:
+    - redis
+
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --maxmemory 2gb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    <<: *common
+    command: uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --workers 2
+    ports:
+      - "8000:8000"
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+
+  worker-cpu:
+    <<: *common
+    command: >
+      celery -A src.workers.celery_app worker
+      -Q cpu -c 4 -n cpu@%h
+      --loglevel=info
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+
+  worker-llm:
+    <<: *common
+    command: >
+      celery -A src.workers.celery_app worker
+      -Q llm -c 2 -n llm@%h
+      --loglevel=info
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+
+  worker-gpu:
+    <<: *common
+    command: >
+      celery -A src.workers.celery_app worker
+      -Q gpu -c 1 -n gpu@%h
+      --loglevel=info
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  worker-hosted:
+    <<: *common
+    command: >
+      celery -A src.workers.celery_app worker
+      -Q hosted -c 4 -n hosted@%h
+      --loglevel=info
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+
+  flower:
+    image: mher/flower:2.0
+    command: celery flower --broker=redis://redis:6379/0 --port=5555
+    ports:
+      - "5555:5555"
+    depends_on:
+      - redis
+
+volumes:
+  redis_data:

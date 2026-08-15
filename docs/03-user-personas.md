@@ -1,5 +1,7 @@
 # User Personas
 
+**Architecture pivot (2026-08-15):** persona descriptions below reference "the Literature Agent" / "the Drug Discovery Agent" as if they were separate bots. They're not — see `07-system-architecture.md`'s pivot note. Read those as "the capability area" a persona cares about within the one master agent's tool roster, not a bot they specifically talk to.
+
 Four personas, matched to the academic/commercial split the research report uses throughout Section 4, plus the operator role the platform itself needs.
 
 ---

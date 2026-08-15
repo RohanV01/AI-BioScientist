@@ -1,5 +1,7 @@
 # Test Strategy & Acceptance Criteria
 
+**Architecture pivot (2026-08-15):** acceptance criteria below were written for separate domain agents; read "the agent"/"an agent" throughout as the one master agent. AC-9/AC-10's "which agent" framing is superseded by "which tool source contributed the grounding" — see `07-system-architecture.md`'s pivot note. The criteria themselves (grounding correctness, progress updates, credential handling) are unaffected.
+
 ## Test strategy
 
 ### Layers

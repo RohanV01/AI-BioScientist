@@ -1,5 +1,7 @@
 # Cross-Feature Journeys
 
+**Architecture pivot (2026-08-15):** journeys below reference "the Literature Agent," "the Drug Discovery Agent," and multi-*agent* hand-off (Journey 6) as separate bots coordinating. That's superseded — see `07-system-architecture.md`'s pivot note. There's one agent; what Journey 6 described as cross-agent coordination is now just the one agent's multi-tool execution within a single plan. Journeys 1-5 still hold as scenarios (the tool calls and grounding behavior are unchanged); read "Agent" as "the one agent" throughout, and Journey 4's "which agent" framing as moot.
+
 End-to-end walkthroughs, each exercising multiple components (`04`–`07`) together rather than one feature in isolation. Mapped to research-report flagships where applicable so the journey has a concrete, already-specified target behavior.
 
 ---

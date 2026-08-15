@@ -1,5 +1,9 @@
 # Data Model
 
+## Architecture pivot (2026-08-15)
+
+The schema below is unchanged structurally — it already supported "one `AGENT` row, many `TOOL_BINDING` rows" — but its *meaning* changed: this project no longer has one `AGENT` row per research-report domain cluster with a bot to route to. There is **one master `AGENT` per org**, and its `TOOL_BINDING` rows span the *entire* wired tool roster (PubMed, ChEMBL, RxDis, everything Section 7 adds over time), not a domain subset. See `07-system-architecture.md`'s pivot note for the full picture. Two fields below are annotated with what changed.
+
 ## Scope
 
 This covers the **Orchestrator Service's own schema** — the tables the new code owns. Mattermost owns its own schema (Postgres, its own migrations, not modified by this project — see `07-system-architecture.md` for why Mattermost is treated as a dependency, not a fork). RxDis owns its own Supabase schema (kept as-is at MVP; see Open Question in `02-prd.md`). The bulk data assets (`data/scihub.sql`, `data/Databases/`) are treated as read-only source data that tool wrappers query, not data this schema duplicates wholesale.
@@ -24,7 +28,7 @@ erDiagram
     RESPONSE ||--o{ GROUNDING_LINK : "cites"
     GROUNDING_LINK }o--|| TOOL_CALL : "traces to"
 
-    TASK ||--o| TASK : "delegates to (multi-agent hand-off)"
+    TASK ||--o| TASK : "optional sub-step of (single agent, multi-step plan)"
 
     ORG {
         uuid id PK
@@ -105,7 +109,9 @@ erDiagram
 
 ## Key design decisions
 
-**`TASK.parent_task_id` (self-referential)** — models multi-agent flagship-pipeline delegation (UX Behavior §5) as a tree: a parent task in `#flagship-pipelines` spawns child tasks per contributing agent, each with its own `TOOL_CALL`/`RESPONSE` records, and the parent's final response aggregates them. This directly supports the "partial-dossier presentation" requirement — if a child task fails, the parent can report exactly which sub-agent's contribution is missing.
+**`TASK.parent_task_id` (self-referential) — repurposed by the pivot.** Originally modeled multi-*agent* hand-off (a parent task spawning child tasks per contributing bot). There's one agent now, so this instead (optionally) models multi-*step* tracking within one agent's own plan — e.g. a child `TASK` row per major step of a stated methodology, if the Runner chooses to record it that granularly. Not required for every run (a simple single-tool query doesn't need child tasks), but available for the same reason it always was: if one step of a multi-step plan fails, the failure should be attributable to that specific step, not the run as a whole (UX Behavior §1's failure-behavior rule).
+
+**`AGENT.cluster` — vestigial after the pivot.** Originally distinguished which domain a bot covered ("literature", "drug_discovery", etc.), used for routing. With one master agent, this field has no routing role; it's informational only (or could be repurposed later if the platform ever legitimately needs more than one agent — e.g. a second org-specific master agent — but that's speculative, not a current plan). Don't add routing logic keyed on this field.
 
 **`RESPONSE.provenance_type`** — enum: `grounded` (has ≥1 `GROUNDING_LINK`), `synthesis` (model reasoning over grounded facts, labeled as such per UX Behavior §2), `ungroundable` (agent explicitly says it can't source this — FR-5). This field exists specifically so the "never present an ungrounded claim as fact" rule (Section 11 of the research report) is enforced structurally: a response can't be rendered without declaring which of these three it is.
 

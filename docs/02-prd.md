@@ -2,6 +2,8 @@
 
 Status: Draft v0.1 · Owner: Rohan · Source of truth for scope decisions until superseded
 
+**Architecture pivot (2026-08-15):** this document still describes "agents" in the plural, per-domain sense (a Literature Agent, a Drug Discovery Agent). That model is superseded — see `07-system-architecture.md`'s pivot note. Read every "agent" below as "the one master agent's capability in that area," and every "which agent handles this" question as already answered: the one agent, via its own planning step. Scope and requirements are otherwise still accurate; a full rewrite is pending, but `10-build-plan.md` is the current source of truth for what's actually being built next.
+
 ## 1. Problem statement
 
 A researcher today — academic or commercial — who wants to run a cross-domain research task (e.g. "find the literature-grounded rationale for target X, then check its chemical tractability, then screen known actives for safety liabilities") has to manually operate five to seven separate tools, each with its own UI, auth, and output format, and manually carry context between them. There is no single place to *delegate* a research task and get back a grounded, multi-source answer.
@@ -17,7 +19,7 @@ Summarized: make the tool catalog callable via chat delegation, ground every out
 **In scope:**
 - Self-hosted Mattermost instance as the messaging layer.
 - An Orchestrator Service that registers bot accounts per agent, receives delegated tasks via Mattermost's webhook/bot API, invokes Claude Code/Codex with the relevant MCP tools, and posts grounded responses back.
-- Two working agents at MVP: a **Literature Agent** (PubMed MCP, already live) and a **Drug Discovery Agent** (wraps RxDis's existing FastAPI endpoints).
+- **One master agent** whose tool roster grows to include PubMed (already live, Phase 1) and RxDis (wrapped, Phase 3) — not two separate agents. See `10-build-plan.md` Phase 2/3.
 - A grounding/provenance layer: every agent response includes a structured citation block (source, record ID, or tool-call reference) rendered as a Mattermost message attachment.
 - A minimal BYO-credential store (single-user/single-org scope at MVP — no multi-tenant vault yet) for any paid tool an agent needs.
 - The DOI corpus join task: confirm whether `scihub.sql` + `biology_dois.txt` together resolve Gap 1 of the research report.
@@ -37,14 +39,14 @@ See `03-user-personas.md`. Primary MVP persona: the academic/commercial research
 
 | ID | Requirement | Priority |
 |---|---|---|
-| FR-1 | A user can `@mention` an agent bot in a Mattermost channel or DM and have it receive the message as a task. | P0 |
-| FR-2 | The Literature Agent can answer a literature-synthesis question using the live PubMed MCP and return a cited response (Flagship 5.1's PubMed-only mode). | P0 |
-| FR-3 | The Drug Discovery Agent can trigger an RxDis pipeline run (e.g. target identification or repurposing for a named disease) and report status/results back into the channel. | P0 |
-| FR-4 | Every agent response includes a visible grounding block: what tool/database/record produced each claim. | P0 |
-| FR-5 | An agent that cannot ground a claim says so explicitly rather than answering without a source (Section 11's hard rule). | P0 |
+| FR-1 | A user can `@mention` the agent in any Mattermost channel or DM and have it receive the message as a task — no per-domain bot to pick. | P0 |
+| FR-2 | The agent can answer a literature-synthesis question using the live PubMed tool and return a cited response (Flagship 5.1's PubMed-only mode). | P0 |
+| FR-3 | The agent can trigger an RxDis pipeline run (e.g. target identification or repurposing for a named disease) as one step of a larger plan, and report status/results back into the channel. | P0 |
+| FR-4 | Every response includes a visible grounding block: what tool/database/record produced each claim. | P0 |
+| FR-5 | The agent states its methodology (which tools, in what order) before executing, and says so explicitly when it cannot ground a claim rather than answering without a source (Section 11's hard rule). | P0 |
 | FR-6 | A user or operator can register a BYO credential for a named paid tool (e.g. a DrugBank API key), scoped to their org, without it being visible to other orgs. | P1 |
 | FR-7 | Long-running tasks (an RxDis pipeline run can take minutes) post progress updates into the thread rather than going silent. | P1 |
-| FR-8 | An operator can add a new agent (register a bot account + wire its MCP tools) without modifying the Orchestrator Service's core message-routing code. | P1 |
+| FR-8 | An operator can add a new tool source to the roster (wire its MCP config) without modifying the Orchestrator Service's core message-routing code. | P1 |
 | FR-9 | Structured output (tables, ranked lists, dossiers) renders legibly in Mattermost via message attachments, not as a wall of unformatted text. | P1 |
 | FR-10 | The system logs which tool calls backed which response, retrievable for audit (foundation for the grounding requirement, and for the eventual credential-usage audit trail from Section 8). | P2 |
 
