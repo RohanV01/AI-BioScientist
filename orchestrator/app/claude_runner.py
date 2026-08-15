@@ -92,6 +92,14 @@ RECORD_REF_PATTERNS: list[tuple[str, re.Pattern]] = [
         "DailyMed set ID {}",
         re.compile(r"\b([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\b"),
     ),
+    # A bare 4-char PDB ID (digit + 3 alphanumeric) is too ambiguous to
+    # match on its own -- it'd false-match years, taxon IDs, and other
+    # incidental digit-led tokens from every other tool's result text.
+    # Requiring the literal "PDB " immediately before it (how
+    # app/tools/pdb.py always formats its own output) scopes extraction
+    # to genuine PDB tool results without that risk.
+    ("PDB ID {}", re.compile(r"(?<=PDB )([0-9][A-Za-z0-9]{3})\b")),
+    ("AlphaFold model {}", re.compile(r"\b(AF-[A-Z0-9]+-F\d+)\b")),
 ]
 
 

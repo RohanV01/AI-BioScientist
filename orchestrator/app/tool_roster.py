@@ -15,6 +15,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import Agent, ToolBinding, ToolSource
+from app.tools.alphafold import build_alphafold_mcp_server
 from app.tools.chembl import build_chembl_mcp_server
 from app.tools.clinicaltrials import build_clinicaltrials_mcp_server
 from app.tools.clinvar import build_clinvar_mcp_server
@@ -25,6 +26,7 @@ from app.tools.kegg import build_kegg_mcp_server
 from app.tools.literature_discovery import build_literature_discovery_mcp_server
 from app.tools.ontologies import build_ontologies_mcp_server
 from app.tools.open_targets import build_open_targets_mcp_server
+from app.tools.pdb import build_pdb_mcp_server
 from app.tools.pubmed import build_pubmed_mcp_server
 from app.tools.reactome import build_reactome_mcp_server
 from app.tools.string_db import build_string_mcp_server
@@ -55,6 +57,8 @@ TOOL_BUILDERS = {
     "string": ("string", build_string_mcp_server, ["mcp__string__get_interaction_partners"]),
     "clinicaltrials": ("clinicaltrials", build_clinicaltrials_mcp_server, ["mcp__clinicaltrials__search_trials"]),
     "dailymed": ("dailymed", build_dailymed_mcp_server, ["mcp__dailymed__search_drug_labels"]),
+    "pdb": ("pdb", build_pdb_mcp_server, ["mcp__pdb__search_structures"]),
+    "alphafold": ("alphafold", build_alphafold_mcp_server, ["mcp__alphafold__get_predicted_structure"]),
 }
 
 

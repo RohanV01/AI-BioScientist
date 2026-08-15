@@ -48,6 +48,8 @@ KNOWN_TOOL_SOURCES = {
     "string": ("systems_biology", "free_public", "in-process:app.tools.string_db", False),
     "clinicaltrials": ("clinical", "free_public", "in-process:app.tools.clinicaltrials", True),
     "dailymed": ("clinical", "free_public", "in-process:app.tools.dailymed", True),
+    "pdb": ("structural_biology", "free_public", "in-process:app.tools.pdb", False),
+    "alphafold": ("structural_biology", "free_public", "in-process:app.tools.alphafold", False),
     # pharmgkb intentionally not here yet -- see docs/10-build-plan.md
     # Shortlist #6: PharmGKB rebranded to ClinPGx and its old public API
     # surface (api.pharmgkb.org/v1/data/*) no longer resolves/works;
