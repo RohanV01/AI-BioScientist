@@ -61,11 +61,24 @@ async def search_variants(args: dict[str, Any]) -> dict[str, Any]:
         conditions = ", ".join(
             t.get("trait_name", "") for t in gc.get("trait_set", []) if t.get("trait_name")
         )
+        # GRCh38 genomic coordinates, when present -- lets a caller
+        # cross-reference this variant against a coordinate-based tool
+        # (e.g. gnomAD's get_variant_frequency) without having to parse
+        # HGVS/cDNA notation itself. Not every variant type maps cleanly
+        # to a single ref/alt pair (indels especially), so this gives
+        # chr:start-stop only, not a ready-made gnomAD variant_id.
+        coord_bit = ""
+        variation_set = rec.get("variation_set") or []
+        if variation_set:
+            for loc in variation_set[0].get("variation_loc") or []:
+                if loc.get("assembly_name") == "GRCh38" and loc.get("status") == "current":
+                    coord_bit = f" -- GRCh38 chr{loc['chr']}:{loc['start']}-{loc['stop']}"
+                    break
         lines.append(
             f"- ClinVar {rec.get('accession', uid)}: {rec.get('title', '')} -- "
             f"classification: {gc.get('description', 'not classified')} "
             f"({gc.get('review_status', 'unknown review status')}); "
-            f"condition(s): {conditions or 'not specified'}"
+            f"condition(s): {conditions or 'not specified'}{coord_bit}"
         )
     return {"content": [{"type": "text", "text": "\n".join(lines)}]}
 
