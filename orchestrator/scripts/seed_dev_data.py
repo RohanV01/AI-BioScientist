@@ -34,6 +34,7 @@ KNOWN_TOOL_SOURCES = {
     "pubmed": ("literature", "free_public", "in-process:app.tools.pubmed"),
     "chembl": ("drug_discovery", "free_public", "in-process:app.tools.chembl"),
     "open_targets": ("drug_discovery", "free_public", "in-process:app.tools.open_targets"),
+    "literature_discovery": ("literature", "free_public", "in-process:app.tools.literature_discovery"),
 }
 
 

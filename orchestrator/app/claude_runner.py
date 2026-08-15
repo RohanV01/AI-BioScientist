@@ -67,6 +67,7 @@ RECORD_REF_PATTERNS: list[tuple[str, re.Pattern]] = [
     ("ChEMBL ID {}", re.compile(r"\b(CHEMBL\d+)\b")),
     ("Open Targets Ensembl ID {}", re.compile(r"\b(ENSG\d{11})\b")),
     ("Open Targets Disease ID {}", re.compile(r"\b(MONDO_\d+|EFO_\d+|Orphanet_\d+|HP_\d+)\b")),
+    ("DOI {}", re.compile(r"\b(10\.\d{4,9}/[A-Za-z0-9._;()/-]+)")),
 ]
 
 
