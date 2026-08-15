@@ -38,6 +38,10 @@ services:
       MM_SERVICESETTINGS_ENABLEBOTACCOUNTCREATION: "true"
       MM_SERVICESETTINGS_ENABLEOAUTHSERVICEPROVIDER: "true"
       MM_PLUGINSETTINGS_ENABLEUPLOADS: "true"
+      # Outgoing Webhooks call the orchestrator at its internal Docker DNS
+      # name, which Mattermost otherwise blocks as a private-network
+      # address (a real SSRF protection, not a bug) -- explicitly trust it.
+      MM_SERVICESETTINGS_ALLOWEDUNTRUSTEDINTERNALCONNECTIONS: "orchestrator"
     ports:
       - "127.0.0.1:8065:8065"
     volumes:
@@ -46,8 +50,21 @@ services:
       - mm_config:/mattermost/config
       - mm_plugins:/mattermost/plugins
 
-  # orchestrator: added once the FastAPI skeleton exists (docs/10-build-plan.md Phase 0
-  # task "scaffold the Orchestrator Service") -- see orchestrator/Dockerfile
+  orchestrator:
+    build: ./orchestrator
+    container_name: ai-scientist-orchestrator
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ORCHESTRATOR_DB_URL: "postgresql+asyncpg://aiscientist:${POSTGRES_PASSWORD:-dev_only_change_me}@postgres:5432/orchestrator"
+      MATTERMOST_URL: "http://mattermost:8065"
+      MATTERMOST_WEBHOOK_SECRET: ${MATTERMOST_WEBHOOK_SECRET:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      CREDENTIAL_VAULT_KEY: ${CREDENTIAL_VAULT_KEY:-}
+    ports:
+      - "127.0.0.1:8000:8000"
 
 volumes:
   pg_data:

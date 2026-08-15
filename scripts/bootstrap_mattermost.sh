@@ -173,5 +173,41 @@ else
   echo "    skipped (bot token was already created in a prior run and not re-displayed -- re-run with a fresh bot to re-verify posting)."
 fi
 
+echo "==> Ensuring Outgoing Webhook exists (Orchestrator callback)..."
+CALLBACK_URL="http://orchestrator:8000/webhooks/mattermost"
+HOOKS_RESP=$(api_call GET "/hooks/outgoing?team_id=$TEAM_ID" "$AUTH_HEADER" 3>/tmp/mm_status_$$)
+HOOKS_STATUS=$(cat /tmp/mm_status_$$); rm -f /tmp/mm_status_$$
+WEBHOOK_TOKEN=""
+if ok "$HOOKS_STATUS"; then
+  WEBHOOK_TOKEN=$(echo "$HOOKS_RESP" | jq -r --arg url "$CALLBACK_URL" \
+    '.[] | select(.callback_urls[0]==$url) | .token // empty')
+fi
+if [[ -z "$WEBHOOK_TOKEN" ]]; then
+  HOOK_RESP=$(api_call POST "/hooks/outgoing" "$AUTH_HEADER" \
+    "{\"team_id\":\"$TEAM_ID\",\"channel_id\":\"$CHANNEL_ID\",\"display_name\":\"Orchestrator\",\"trigger_words\":[\"@orchestrator\"],\"callback_urls\":[\"$CALLBACK_URL\"],\"content_type\":\"application/x-www-form-urlencoded\"}" \
+    3>/tmp/mm_status_$$)
+  HOOK_STATUS=$(cat /tmp/mm_status_$$); rm -f /tmp/mm_status_$$
+  if ! ok "$HOOK_STATUS"; then
+    echo "    could not create outgoing webhook (HTTP $HOOK_STATUS): $HOOK_RESP" >&2
+    exit 1
+  fi
+  WEBHOOK_TOKEN=$(echo "$HOOK_RESP" | jq -r '.token')
+  echo "    created outgoing webhook, trigger word '@orchestrator' -> $CALLBACK_URL"
+else
+  echo "    outgoing webhook already exists."
+fi
+
+# Write the Mattermost-generated token into .env's MATTERMOST_WEBHOOK_SECRET
+# (Mattermost assigns this itself -- it cannot be chosen ahead of time, see
+# .env.example's comment on this variable).
+if grep -q "^MATTERMOST_WEBHOOK_SECRET=" "$ENV_FILE"; then
+  sed -i.bak "s|^MATTERMOST_WEBHOOK_SECRET=.*|MATTERMOST_WEBHOOK_SECRET=$WEBHOOK_TOKEN|" "$ENV_FILE" && rm -f "$ENV_FILE.bak"
+else
+  echo "MATTERMOST_WEBHOOK_SECRET=$WEBHOOK_TOKEN" >> "$ENV_FILE"
+fi
+echo "    wrote MATTERMOST_WEBHOOK_SECRET to .env -- restart the orchestrator container to pick it up:"
+echo "    docker compose up -d --force-recreate orchestrator"
+
 echo ""
-echo "Done. Team '$MM_TEAM_NAME' at $MM_URL, admin '$MM_ADMIN_USERNAME', bot 'echo-bot' confirmed working."
+echo "Done. Team '$MM_TEAM_NAME' at $MM_URL, admin '$MM_ADMIN_USERNAME', bot 'echo-bot' confirmed working, Outgoing Webhook wired to the orchestrator."
+echo "Next: seed dev data (orchestrator/scripts/seed_dev_data.py --team-id $TEAM_ID --bot-user-id $BOT_USER_ID), restart the orchestrator, then message '@orchestrator hello' in #town-square."
