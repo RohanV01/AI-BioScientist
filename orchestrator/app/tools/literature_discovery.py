@@ -11,14 +11,21 @@ Two tools:
     across every field (not just biomedicine like PubMed) and returns
     genuine open-access status/URL per work -- so the open-access tier of
     the acquisition waterfall is answered by this tool alone.
-  - check_scihub_availability: given DOIs discover_papers didn't mark as
-    open access, grep the local flat Sci-Hub DOI index (one DOI per
-    line, ~88.3M lines) for an exact match. A hit means the paper is
-    archived in Sci-Hub's scimag collection and resolvable at
+  - check_scihub_availability: grep the local flat Sci-Hub DOI index (one
+    DOI per line, ~88.3M lines) for an exact match. A hit means the paper
+    is archived in Sci-Hub's scimag collection and resolvable at
     sci-hub.se/<doi> -- this is the fallback tier the user explicitly
     asked to keep in the acquisition waterfall (OA -> Sci-Hub), with the
     tier itself always disclosed alongside the link (provenance
-    labeling, not source restriction, per that decision).
+    labeling, not source restriction, per that decision). **Gap 9 /
+    Shortlist #10 compliance boundary**: this tool re-checks each DOI's
+    OpenAlex open-access status itself before ever reporting Sci-Hub
+    availability -- it doesn't just trust that the caller already ran
+    discover_papers and filtered correctly. A DOI the corpus's raw
+    Sci-Hub index would otherwise flag as "available" is reported as
+    legally open access instead whenever one actually exists, since the
+    corpus itself (the flat DOI list) carries no OA/licensing metadata
+    of its own and can't be trusted alone to decide this.
 
 Actually downloading/parsing full-text PDF bytes is a further step this
 tool doesn't do -- it resolves *which* tier a paper is available from
@@ -104,6 +111,22 @@ def _run_grep(dois: list[str], index_path: Path) -> subprocess.CompletedProcess:
     )
 
 
+async def _openalex_oa_batch(dois: list[str]) -> dict[str, dict]:
+    """DOI -> its OpenAlex open_access dict, for whichever of the given
+    DOIs OpenAlex has a record for. One batched request via OpenAlex's
+    `filter=doi:a|b|c` syntax rather than one request per DOI."""
+    if not dois:
+        return {}
+    async with httpx.AsyncClient(timeout=20.0) as client:
+        resp = await client.get(
+            OPENALEX_URL,
+            params={"filter": "doi:" + "|".join(dois), "select": "doi,open_access", "per_page": len(dois)},
+        )
+        resp.raise_for_status()
+        results = resp.json().get("results", [])
+    return {_strip_doi_prefix(r.get("doi") or ""): (r.get("open_access") or {}) for r in results}
+
+
 async def _grep_scihub_index(dois: list[str]) -> set[str]:
     index_path = Path(settings.scihub_doi_index_path)
     if not index_path.is_file():
@@ -118,25 +141,39 @@ async def _grep_scihub_index(dois: list[str]) -> set[str]:
 
 @tool(
     "check_scihub_availability",
-    "Given a list of DOIs (typically ones discover_papers marked NOT "
-    "open access), check whether each is archived in Sci-Hub's scimag "
-    "collection via a local index lookup. A hit is resolvable at "
-    "sci-hub.se/<doi> -- always label a citation sourced this way as "
-    "Sci-Hub-tier, never as open access.",
+    "Given a list of DOIs, check full-text availability. This tool "
+    "checks OpenAlex open-access status itself first -- if a DOI turns "
+    "out to be legally open access, it reports that instead of Sci-Hub, "
+    "even if you didn't already check. Only DOIs that are genuinely not "
+    "open access get checked against the local Sci-Hub index. Always "
+    "label a Sci-Hub-sourced citation as Sci-Hub-tier, never as open "
+    "access.",
     {"dois": list},
 )
 async def check_scihub_availability(args: dict[str, Any]) -> dict[str, Any]:
-    dois = [_strip_doi_prefix(d) for d in args["dois"] if d]
+    dois = [_strip_doi_prefix(d) for d in args["dois"] if d][:50]
     if not dois:
         return {"content": [{"type": "text", "text": "No DOIs given to check."}]}
 
-    found = await _grep_scihub_index(dois)
+    # Gap 9 / Shortlist #10: never let the corpus's raw Sci-Hub index --
+    # which carries no OA/licensing metadata of its own -- be the last
+    # word on a DOI that's actually legally open access.
+    oa_by_doi = await _openalex_oa_batch(dois)
+    still_unknown = [d for d in dois if not (oa_by_doi.get(d) or {}).get("is_oa")]
+    found = await _grep_scihub_index(still_unknown) if still_unknown else set()
+
     lines = []
     for doi in dois:
-        if doi in found:
+        oa = oa_by_doi.get(doi) or {}
+        if oa.get("is_oa"):
+            lines.append(
+                f"- DOI {doi}: open access ({oa.get('oa_status')}) -- {oa.get('oa_url')} "
+                "(prefer this over Sci-Hub)"
+            )
+        elif doi in found:
             lines.append(f"- DOI {doi}: available via Sci-Hub -- https://sci-hub.se/{doi}")
         else:
-            lines.append(f"- DOI {doi}: not found in the Sci-Hub archive")
+            lines.append(f"- DOI {doi}: not open access and not found in the Sci-Hub archive")
     return {"content": [{"type": "text", "text": "\n".join(lines)}]}
 
 
