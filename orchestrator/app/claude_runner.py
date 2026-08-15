@@ -65,9 +65,15 @@ everything.
 RECORD_REF_PATTERNS: list[tuple[str, re.Pattern]] = [
     ("PubMed PMID {}", re.compile(r"PMID (\d+)")),
     ("ChEMBL ID {}", re.compile(r"\b(CHEMBL\d+)\b")),
-    ("Open Targets Ensembl ID {}", re.compile(r"\b(ENSG\d{11})\b")),
+    # Shared between open_targets.py and ensembl.py -- both surface Ensembl
+    # gene IDs, so the label stays tool-agnostic rather than naming one.
+    ("Ensembl Gene ID {}", re.compile(r"\b(ENSG\d{11})\b")),
     ("Open Targets Disease ID {}", re.compile(r"\b(MONDO_\d+|EFO_\d+|Orphanet_\d+|HP_\d+)\b")),
     ("DOI {}", re.compile(r"\b(10\.\d{4,9}/[A-Za-z0-9._;()/-]+)")),
+    (
+        "UniProt ID {}",
+        re.compile(r"\b((?:[OPQ][0-9][A-Z0-9]{3}[0-9])|(?:[A-NR-Z][0-9][A-Z][A-Z0-9]{2}[0-9](?:[A-Z][A-Z0-9]{2}[0-9])?))\b"),
+    ),
 ]
 
 

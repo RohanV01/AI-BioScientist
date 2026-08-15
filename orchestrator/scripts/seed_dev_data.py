@@ -35,6 +35,8 @@ KNOWN_TOOL_SOURCES = {
     "chembl": ("drug_discovery", "free_public", "in-process:app.tools.chembl"),
     "open_targets": ("drug_discovery", "free_public", "in-process:app.tools.open_targets"),
     "literature_discovery": ("literature", "free_public", "in-process:app.tools.literature_discovery"),
+    "ensembl": ("genomics", "free_public", "in-process:app.tools.ensembl"),
+    "uniprot": ("genomics", "free_public", "in-process:app.tools.uniprot"),
 }
 
 
