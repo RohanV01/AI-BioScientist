@@ -51,7 +51,15 @@ stages are for tasks that need real lookups, not a rigid format for
 everything.
 """
 
-PMID_RE = re.compile(r"PMID (\d+)")
+# Record-ID patterns recognized in tool result text, for grounding
+# citation extraction. Add an entry here whenever a new tool source is
+# wired (docs/10-build-plan.md Phase 3+) if it returns a distinctly-
+# formatted record ID -- this is the one place citation extraction needs
+# to know about a new tool, everything else in this file is tool-agnostic.
+RECORD_REF_PATTERNS: list[tuple[str, re.Pattern]] = [
+    ("PubMed PMID {}", re.compile(r"PMID (\d+)")),
+    ("ChEMBL ID {}", re.compile(r"\b(CHEMBL\d+)\b")),
+]
 
 
 @dataclass
@@ -97,10 +105,16 @@ async def run_agent(
         mcp_servers=roster.mcp_servers,
         allowed_tools=roster.allowed_tools,
         tools=[],  # no filesystem/bash/etc -- only the wired roster
-        # CRITICAL: without this, the SDK loads the host's ~/.claude/settings.json
-        # and every personal MCP connector configured there instead of just the
-        # roster above -- found the hard way in Phase 1, see 07-system-architecture.md.
+        # CRITICAL, both of these, found the hard way (see 07-system-architecture.md):
+        # setting_sources=[] blocks ~/.claude/settings.json-configured connectors
+        # (Phase 1's leak: personal PubMed/Gmail connectors). It does NOT block
+        # account-linked connectors tied to the authenticated Claude.ai session
+        # itself (Phase 3's leak, found adding ChEMBL: the agent silently used
+        # the developer's personal claude_ai_ChEMBL connector instead of the
+        # wired tool). strict_mcp_config=True closes that second gap -- only
+        # what's explicitly in mcp_servers below is available, full stop.
         setting_sources=[],
+        strict_mcp_config=True,
         permission_mode="bypassPermissions",  # headless service, no human to prompt
         max_turns=10,
         cwd=tempfile.mkdtemp(prefix="ai-scientist-agent-"),
@@ -172,19 +186,26 @@ async def run_agent(
     plan = "\n".join(plan_text_parts).strip()
     body = "\n".join(final_text_parts).strip() or plan  # no-tool-needed replies land entirely in "plan"
 
-    # Citation extraction is PubMed-shaped today (PMID regex) because
-    # PubMed is the only wired tool -- this needs to generalize once
-    # Phase 3 adds tools with different record-ID formats (ChEMBL IDs,
-    # PDB IDs, etc.). Tracked as a known gap, not solved here.
-    pmids_in_answer = set(re.findall(r"PMID (\d+)", body))
+    # Generalized citation extraction (fixed in Phase 3 when ChEMBL was
+    # added -- Phase 2's version was PubMed-only, see the build plan).
+    # RECORD_REF_PATTERNS maps a label template to a regex whose one
+    # capture group is the bare record ID as it appears in a tool's
+    # result_text. A citation only counts if that same bare ID string
+    # also appears somewhere in the final answer (substring match, not
+    # requiring the tool's exact "label: ID" phrasing to be echoed back --
+    # the model may write "CHEMBL941" without repeating "ChEMBL ID").
     citations: list[RunnerCitation] = []
     seen: set[str] = set()
     for idx, tc in enumerate(tool_calls):
-        for pmid in PMID_RE.findall(tc.result_text):
-            if pmid in pmids_in_answer and pmid not in seen:
-                seen.add(pmid)
+        for label_template, pattern in RECORD_REF_PATTERNS:
+            for record_id in pattern.findall(tc.result_text):
+                if record_id in seen or record_id not in body:
+                    continue
+                seen.add(record_id)
                 citations.append(
-                    RunnerCitation(record_ref=pmid, label=f"PubMed PMID {pmid}", tool_call_index=idx)
+                    RunnerCitation(
+                        record_ref=record_id, label=label_template.format(record_id), tool_call_index=idx
+                    )
                 )
 
     if not body:

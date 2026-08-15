@@ -32,6 +32,7 @@ from app.vault import encrypt  # noqa: E402
 # keys -- add an entry here when you add one there.
 KNOWN_TOOL_SOURCES = {
     "pubmed": ("literature", "free_public", "in-process:app.tools.pubmed"),
+    "chembl": ("drug_discovery", "free_public", "in-process:app.tools.chembl"),
 }
 
 

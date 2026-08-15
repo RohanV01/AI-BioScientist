@@ -4,11 +4,10 @@ function -- this is what "growing the roster" (docs/10-build-plan.md
 Phase 3+) actually means in code: add a builder here and a TOOL_BINDING
 row in the DB, nothing else changes.
 
-Only PubMed is registered today. Adding ChEMBL/RxDis/etc. in Phase 3 means
-adding an entry to TOOL_BUILDERS (and, for external MCP servers rather
-than in-process SDK tools, an McpServerConfig instead of a
-create_sdk_mcp_server() call) -- the Runner and webhook handler don't
-change.
+Adding a new tool source means adding an entry to TOOL_BUILDERS (and, for
+external MCP servers rather than in-process SDK tools, an McpServerConfig
+instead of a create_sdk_mcp_server() call) -- the Runner and webhook
+handler don't change.
 """
 from dataclasses import dataclass
 
@@ -16,11 +15,16 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import Agent, ToolBinding, ToolSource
+from app.tools.chembl import build_chembl_mcp_server
 from app.tools.pubmed import build_pubmed_mcp_server
 
 # tool_source.name -> (mcp_server_name, builder_fn, list of allowed tool names)
 TOOL_BUILDERS = {
     "pubmed": ("pubmed", build_pubmed_mcp_server, ["mcp__pubmed__search_articles"]),
+    "chembl": (
+        "chembl", build_chembl_mcp_server,
+        ["mcp__chembl__compound_search", "mcp__chembl__get_bioactivity"],
+    ),
 }
 
 
