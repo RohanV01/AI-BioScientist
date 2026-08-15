@@ -42,7 +42,7 @@ This document is that place. It does not re-describe anything the report already
 
 | Gap | Status | Note |
 |---|---|---|
-| 1 — DOI corpus has no metadata | ✅ Scheduled (Phase 0) | |
+| 1 — DOI corpus has no metadata | ✅ Resolved differently than planned (Phase 0) | Original plan was bulk-enriching the 16.9M-DOI corpus via a `scihub.sql` join; superseded by on-demand retrieval (OpenAlex/PubMed live discovery per topic, no bulk enrichment needed) — see `10-build-plan.md` Phase 0 |
 | 2 — Core genomics DBs unwired | ✅ Scheduled (Phase 4, Genomics Agent) | |
 | 3 — Systems biology/pathway tools unwired | ✅ Scheduled (Phase 4, Systems Biology Agent) | |
 | 4 — Clinical/commercial regulatory sources unwired | ✅ Scheduled (Phase 4, Clinical/Commercial Agent) | |
@@ -50,7 +50,7 @@ This document is that place. It does not re-describe anything the report already
 | 6 — CrossRef/Unpaywall/Semantic Scholar/Europe PMC/bioRxiv/medRxiv/Retraction Watch not cataloged | 🔜 Partial — CrossRef/Unpaywall implied by Phase 0's join task; the rest (Semantic Scholar, Europe PMC, bioRxiv/medRxiv, Retraction Watch) are not in any phase | Retraction Watch specifically blocks Flagship 5.8 |
 | 7 — No compute/sandbox layer | ✅ Scheduled (Phase 5) | See also §5 below — Hugging Face should factor into this decision, not just NVIDIA/cloud GPU |
 | 8 — Access-tier landscape (commercial/controlled-access) | 🔜 Partial — the `CREDENTIAL`/`access_model` schema (Phase 2, first cut) supports this generically, but only DrugBank is actually onboarded; COSMIC/EcoCyc/UK Biobank/etc. have no scheduled onboarding | See §4 below |
-| 9 — Full-text sci-hub provenance compliance | 🔜 Implied but not explicit — `data/scihub.sql`'s provenance makes this gap *more* urgent for AI Scientist specifically than it was for the abstract report, since the platform now has direct access to sci-hub-sourced full text, not just DOIs. **Recommend promoting this to an explicit Phase 0/1 task**, not leaving it implicit. | Not currently a named Build Plan task despite being architecturally relevant now |
+| 9 — Full-text sci-hub provenance compliance | ✅ Scheduled (Phase 0), **decision reversed from the report's original stance** — user explicitly decided (2026-08-15) Sci-Hub is an allowed source in the full-text acquisition waterfall, not restricted to OA-only. Requirement is now provenance-*labeling* (disclose OA/BYO-paywalled/Sci-Hub per response), not source-*restriction*. | See `10-build-plan.md` Phase 0's revised Gap 9 task |
 | 10 — Regulatory/liability framing | ✅ Scheduled (Phase 3, the review-marker UX convention) | |
 
 ## 4. Paid & commercial integrations (13, report Section 8)

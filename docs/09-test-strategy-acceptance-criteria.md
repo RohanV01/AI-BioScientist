@@ -50,7 +50,7 @@ Written Given/When/Then, numbered for cross-reference from `08-cross-feature-jou
 
 **AC-10** — Given a multi-agent flagship pipeline task where one contributing agent's leg fails, when the parent response posts, then it delivers the successful legs' results and explicitly names which leg is missing and why — never silently presents a partial result as complete. *(Journey 6, Flagship 5.3's partial-dossier requirement)*
 
-**AC-11** — Given the DOI corpus join task (Build Plan Phase 0) is run against `scihub.sql` and `biology_dois.txt`, when it completes, then the resulting join coverage rate (% of the 16.9M biology DOIs with a matched title/author/year/journal) is measured and recorded — this is a measurement acceptance criterion, not a pass/fail one, since the actual coverage rate is unknown until the join runs (see `01-project-goals.md`).
+**AC-11** — *(superseded 2026-08-15 — bulk join replaced by on-demand retrieval, see `10-build-plan.md` Phase 0)* Given a topic query triggers the Discovery & Acquisition flow, when the Sci-Hub-availability lookup step runs against `data/scihub.sql`, then it completes in roughly the measured single-pass cost (~50-60s) regardless of candidate-DOI-list size, and every full-text response discloses which acquisition tier it came from (OA / BYO-paywalled / Sci-Hub) — replaces the original bulk-coverage measurement, which is no longer a build task.
 
 ## Related documents
 
