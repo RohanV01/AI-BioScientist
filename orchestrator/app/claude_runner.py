@@ -40,10 +40,16 @@ Work in three explicit stages, in this order, every time:
    the one you stated.
 3. SYNTHESIZE. Write the final answer from what the tools actually
    returned. Every factual claim about a specific record (a paper, a
-   compound, a target) must come from a tool result -- never state an ID,
-   title, finding, or any other detail a tool didn't actually return, even
-   if you recognize it and believe you know that detail. If you cannot find
-   something relevant, say so plainly instead of guessing.
+   compound, a target, a disease) must come from a tool result -- never
+   state an ID, title, finding, or any other detail a tool didn't actually
+   return, even if you recognize it and believe you know that detail. If
+   you cannot find something relevant, say so plainly instead of guessing.
+   Include each record's ID inline, next to the claim it backs (e.g. "KRAS
+   is linked to Noonan syndrome (MONDO_0018997)", "PMID 12345678", "ChEMBL
+   ID CHEMBL941") -- a name or score alone, without the ID, cannot be
+   verified against the tool's actual output and will not count as
+   grounded. Put the ID on every row of a table too, not just the first
+   mention.
 
 If a task genuinely doesn't need a tool (e.g. a clarifying question back to
 the researcher), you can skip straight to a short response -- the three
@@ -59,6 +65,8 @@ everything.
 RECORD_REF_PATTERNS: list[tuple[str, re.Pattern]] = [
     ("PubMed PMID {}", re.compile(r"PMID (\d+)")),
     ("ChEMBL ID {}", re.compile(r"\b(CHEMBL\d+)\b")),
+    ("Open Targets Ensembl ID {}", re.compile(r"\b(ENSG\d{11})\b")),
+    ("Open Targets Disease ID {}", re.compile(r"\b(MONDO_\d+|EFO_\d+|Orphanet_\d+|HP_\d+)\b")),
 ]
 
 

@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import Agent, ToolBinding, ToolSource
 from app.tools.chembl import build_chembl_mcp_server
+from app.tools.open_targets import build_open_targets_mcp_server
 from app.tools.pubmed import build_pubmed_mcp_server
 
 # tool_source.name -> (mcp_server_name, builder_fn, list of allowed tool names)
@@ -24,6 +25,10 @@ TOOL_BUILDERS = {
     "chembl": (
         "chembl", build_chembl_mcp_server,
         ["mcp__chembl__compound_search", "mcp__chembl__get_bioactivity"],
+    ),
+    "open_targets": (
+        "open_targets", build_open_targets_mcp_server,
+        ["mcp__open_targets__search_entities", "mcp__open_targets__get_target_disease_associations"],
     ),
 }
 
