@@ -38,6 +38,7 @@ KNOWN_TOOL_SOURCES = {
     "ensembl": ("genomics", "free_public", "in-process:app.tools.ensembl"),
     "uniprot": ("genomics", "free_public", "in-process:app.tools.uniprot"),
     "clinvar": ("genomics", "free_public", "in-process:app.tools.clinvar"),
+    "gnomad": ("genomics", "free_public", "in-process:app.tools.gnomad"),
 }
 
 

@@ -75,6 +75,7 @@ RECORD_REF_PATTERNS: list[tuple[str, re.Pattern]] = [
         re.compile(r"\b((?:[OPQ][0-9][A-Z0-9]{3}[0-9])|(?:[A-NR-Z][0-9][A-Z][A-Z0-9]{2}[0-9](?:[A-Z][A-Z0-9]{2}[0-9])?))\b"),
     ),
     ("ClinVar ID {}", re.compile(r"\b(VCV\d+)\b")),
+    ("gnomAD variant {}", re.compile(r"\b([0-9XYM]{1,2}-\d+-[ACGT]+-[ACGT]+)\b")),
 ]
 
 
