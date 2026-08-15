@@ -1,14 +1,13 @@
-"""Receives Mattermost's Outgoing Webhook calls (docs/04-information-
-architecture.md: "@mention in any channel... delegates a task"). This is
-the Message Router half of docs/07-system-architecture.md's Orchestrator
-Service.
+"""Receives Mattermost's Outgoing Webhook calls -- the one master agent's
+entry point (docs/04-information-architecture.md: one bot, any channel/DM,
+no per-domain routing to figure out). This is the Message Router half of
+docs/07-system-architecture.md's Orchestrator Service.
 
-Phase 1: routes to the real Literature Agent (Claude + PubMed). The
-synchronous webhook response is just a receipt (docs/05-ux-behavior.md
+The synchronous webhook response is just a receipt (docs/05-ux-behavior.md
 Section 1's "immediately react to confirm receipt" rule) -- the actual
-agent call runs in the background and posts its real answer via the
-Mattermost REST API once done, since a real Claude+tool-use turn takes
-longer than Mattermost's synchronous webhook timeout tolerates.
+agent run (Plan -> Execute -> Synthesize) happens in the background and
+posts to the channel as it goes: the stated methodology as soon as it's
+produced, then the final synthesized report once execution finishes.
 """
 import logging
 from datetime import datetime, timezone
@@ -17,13 +16,13 @@ from fastapi import APIRouter, BackgroundTasks, Depends, Form, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.claude_runner import run_literature_agent
+from app.claude_runner import run_agent
 from app.config import settings
 from app.db import async_session, get_db
 from app.grounding import Citation, create_response
 from app.mattermost_client import MattermostClient
 from app.models import Agent, Task, ToolCall
-from app.tool_sources import get_or_create_pubmed_tool_source
+from app.tool_roster import build_tool_roster
 from app.vault import decrypt
 
 logger = logging.getLogger(__name__)
@@ -48,10 +47,15 @@ async def _run_agent_and_respond(task_id, agent_id: str, channel_id: str, user_m
         bot_token = decrypt(agent.encrypted_mattermost_bot_token)
         mm = MattermostClient(bot_token)
         try:
+            roster = await build_tool_roster(db, agent)
+
+            async def on_plan(plan_text: str) -> None:
+                await mm.post_message(channel_id, f"**Plan:**\n{plan_text}")
+
             try:
-                result = await run_literature_agent(user_message)
+                result = await run_agent(user_message, roster, on_plan=on_plan)
             except Exception:
-                logger.exception("Literature agent run failed for task %s", task_id)
+                logger.exception("Agent run failed for task %s", task_id)
                 await mm.post_message(
                     channel_id,
                     "Something went wrong answering this -- no response was produced. "
@@ -68,15 +72,18 @@ async def _run_agent_and_respond(task_id, agent_id: str, channel_id: str, user_m
                 return
 
             # Persist every real tool call the runner made as a ToolCall row
-            # (docs/06-data-model.md) -- this is what lets GroundingLink
-            # point at something real instead of a citation string floating
-            # free of any actual invocation.
-            pubmed_source = await get_or_create_pubmed_tool_source(db)
+            # (docs/06-data-model.md), mapped back to the right ToolSource via
+            # the roster -- generalized past the Phase 1 PubMed-only version,
+            # since the roster can now span multiple tool sources.
             tool_call_rows: list[ToolCall] = []
             for tc in result.tool_calls:
+                tool_source = roster.tool_source_by_mcp_name.get(tc.mcp_server_name)
+                if tool_source is None:
+                    logger.warning("Tool call from unknown mcp server %r; skipping ToolCall row.", tc.mcp_server_name)
+                    continue
                 row = ToolCall(
                     task_id=task_id,
-                    tool_source_id=pubmed_source.id,
+                    tool_source_id=tool_source.id,
                     request_payload=tc.request,
                     response_payload={"text": tc.result_text},
                     status="ok",
@@ -86,20 +93,39 @@ async def _run_agent_and_respond(task_id, agent_id: str, channel_id: str, user_m
             if tool_call_rows:
                 await db.flush()  # assigns .id to each row before citations reference them
 
+            # Map each citation's tool_call_index (an index into result.tool_calls)
+            # to the corresponding persisted row -- skipped tool calls (unknown
+            # mcp server) would desync a simple positional list, so build an
+            # explicit index map instead of assuming 1:1 ordering.
+            persisted_by_original_index = {}
+            row_i = 0
+            for orig_i, tc in enumerate(result.tool_calls):
+                if roster.tool_source_by_mcp_name.get(tc.mcp_server_name) is not None:
+                    persisted_by_original_index[orig_i] = tool_call_rows[row_i]
+                    row_i += 1
+
             citations = [
                 Citation(
-                    tool_call_id=tool_call_rows[c.tool_call_index].id,
+                    tool_call_id=persisted_by_original_index[c.tool_call_index].id,
                     citation_label=c.label,
-                    record_ref=c.pmid,
+                    record_ref=c.record_ref,
                 )
                 for c in result.citations
+                if c.tool_call_index in persisted_by_original_index
             ]
 
+            # grounding.py's create_response() raises if provenance_type is
+            # "grounded" without >=1 citation -- the roster-mapping filter
+            # above can (rarely) drop every citation the runner found (an
+            # unrecognized mcp server), so recompute provenance from what
+            # actually survived filtering rather than trusting the runner's
+            # own (pre-filter) judgment.
+            final_provenance = "grounded" if citations else "synthesis" if result.body else "ungroundable"
             response = await create_response(
                 db,
                 task_id=task_id,
                 body=result.body,
-                provenance_type=result.provenance_type,
+                provenance_type=final_provenance,
                 citations=citations or None,
             )
             posted = await mm.post_message(channel_id, result.body)
@@ -127,10 +153,8 @@ async def mattermost_outgoing_webhook(
     if settings.mattermost_webhook_secret and token != settings.mattermost_webhook_secret:
         raise HTTPException(status_code=403, detail="invalid webhook token")
 
-    # Phase 1: still routes to "any active agent" rather than parsing
-    # trigger_word to pick a specific one -- real multi-agent routing is a
-    # Phase 4 concern (more than one agent exists then). Fine for now since
-    # there's exactly one real agent.
+    # There is exactly one master AGENT per org (docs/07-system-architecture.md
+    # pivot note) -- no per-domain routing decision to make here anymore.
     result = await db.execute(select(Agent).where(Agent.active.is_(True)).limit(1))
     agent = result.scalar_one_or_none()
     if agent is None:
@@ -153,5 +177,6 @@ async def mattermost_outgoing_webhook(
     background_tasks.add_task(_run_agent_and_respond, task.id, str(agent.id), channel_id, text)
 
     # Synchronous receipt only (docs/05-ux-behavior.md Section 1) -- the
-    # real answer is posted asynchronously once the agent finishes.
+    # plan and the final report are both posted asynchronously as the
+    # background run produces them.
     return {"text": f"🔎 Looking into this, @{user_name} -- one moment...", "response_type": "in_channel"}

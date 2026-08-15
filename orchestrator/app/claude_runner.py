@@ -1,12 +1,11 @@
-"""The Claude Code/Codex Runner (docs/07-system-architecture.md): invokes
-the actual agentic loop for a task, scoped tightly to just the tools the
-agent is bound to -- explicitly NOT inheriting the host's full Claude Code
-configuration (personal tools/plugins/connectors), which is the default
-behavior of a bare `query()` call and is wrong for a backend service
-running on someone else's behalf.
+"""The Claude Code/Codex Runner (docs/07-system-architecture.md): the
+master agent's Plan -> Execute -> Synthesize loop. One runner, whatever
+tools happen to be wired -- not one function per domain (see the
+architecture pivot note in docs/10-build-plan.md).
 """
 import re
 import tempfile
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 
 from claude_agent_sdk import (
@@ -20,95 +19,121 @@ from claude_agent_sdk import (
     query,
 )
 
-from app.tools.pubmed import build_pubmed_mcp_server
+from app.tool_roster import ToolRoster
+
+MASTER_AGENT_SYSTEM_PROMPT = """\
+You are the AI Scientist research agent. A researcher will ask you something --
+answer it by using the tools available to you, never from memory alone for
+anything you could instead look up.
+
+Work in three explicit stages, in this order, every time:
+
+1. PLAN. Before calling any tool, write a short methodology: what you
+   understand the request to need, and which tool(s) you intend to use and
+   why. Keep it concrete ("I'll search PubMed for X, then Y") not vague
+   ("I'll do some research"). This is shown to the researcher as-is, before
+   you've executed anything -- it's how they know what you're about to do
+   and can catch a wrong plan before it runs.
+2. EXECUTE. Call the tools your plan named. If a tool result changes what
+   you need to do next (nothing useful came back, or it points somewhere
+   else), say so and adapt -- don't silently execute a different plan than
+   the one you stated.
+3. SYNTHESIZE. Write the final answer from what the tools actually
+   returned. Every factual claim about a specific record (a paper, a
+   compound, a target) must come from a tool result -- never state an ID,
+   title, finding, or any other detail a tool didn't actually return, even
+   if you recognize it and believe you know that detail. If you cannot find
+   something relevant, say so plainly instead of guessing.
+
+If a task genuinely doesn't need a tool (e.g. a clarifying question back to
+the researcher), you can skip straight to a short response -- the three
+stages are for tasks that need real lookups, not a rigid format for
+everything.
+"""
 
 PMID_RE = re.compile(r"PMID (\d+)")
-
-LITERATURE_AGENT_SYSTEM_PROMPT = """\
-You are the Literature Agent for AI Scientist, a research platform.
-
-Hard rule, non-negotiable: every factual claim you make about a paper
-(its existence, findings, authors, journal, year) must come from a
-search_articles tool result. Never state a PMID, title, finding, or any
-other detail you did not receive from a tool call -- this includes DOIs,
-links, page numbers, or anything else the tool did not return, even if you
-recognize the paper and believe you know that detail. If the tool result
-doesn't include something, leave it out rather than filling it in from
-memory. If you cannot find a relevant paper, say so plainly instead of
-guessing.
-
-Only discuss papers you actually cite by PMID in your answer -- don't
-mention a search turned up other results if you're not going to use them.
-
-Be concise. Answer the question, cite what backs each claim, PMID only
-(e.g. "PMID 12345678") -- no DOIs, no external links.
-"""
 
 
 @dataclass
 class RunnerToolCall:
     """One real tool invocation the agent made -- persisted as a ToolCall
-    row by the caller (docs/06-data-model.md), not just kept in memory,
-    so GroundingLink rows can point at something real rather than a
-    citation that's disconnected from any actual tool call."""
+    row by the caller (docs/06-data-model.md)."""
 
-    tool_name: str
+    tool_name: str  # full mcp__<server>__<tool> name
+    mcp_server_name: str  # just <server> -- maps back to a ToolSource via the roster
     request: dict
     result_text: str
 
 
 @dataclass
 class RunnerCitation:
-    pmid: str
+    record_ref: str
     label: str
     tool_call_index: int  # index into RunnerResult.tool_calls -- which call backs this citation
 
 
 @dataclass
 class RunnerResult:
+    plan: str
     body: str
     citations: list[RunnerCitation]
     provenance_type: str  # "grounded" | "synthesis" | "ungroundable"
     tool_calls: list[RunnerToolCall] = field(default_factory=list)
 
 
-async def run_literature_agent(user_message: str) -> RunnerResult:
-    pubmed_server = build_pubmed_mcp_server()
+def _mcp_server_name_from_tool_name(tool_name: str) -> str:
+    # ToolUseBlock.name is "mcp__<server>__<tool>" for MCP-provided tools.
+    parts = tool_name.split("__")
+    return parts[1] if len(parts) >= 3 and parts[0] == "mcp" else ""
 
+
+async def run_agent(
+    user_message: str,
+    roster: ToolRoster,
+    on_plan: Callable[[str], Awaitable[None]] | None = None,
+) -> RunnerResult:
     options = ClaudeAgentOptions(
-        system_prompt=LITERATURE_AGENT_SYSTEM_PROMPT,
-        mcp_servers={"pubmed": pubmed_server},
-        allowed_tools=["mcp__pubmed__search_articles"],
-        # No filesystem/bash/etc access -- this agent only ever needs the
-        # one tool above. cwd is a scratch dir so nothing in the actual
-        # repo is reachable even if something tried.
-        tools=[],
-        # CRITICAL isolation setting -- without this, `allowed_tools` above
-        # is not enough: the SDK's default (setting_sources=None) still
-        # loads ~/.claude/settings.json and every personal MCP connector
-        # configured there (found the hard way: a real run used the
-        # developer's own personal PubMed/Gmail/etc connectors instead of
-        # the tool defined above). []  disables all filesystem settings --
-        # the SDK's own documented "isolation mode."
+        system_prompt=MASTER_AGENT_SYSTEM_PROMPT,
+        mcp_servers=roster.mcp_servers,
+        allowed_tools=roster.allowed_tools,
+        tools=[],  # no filesystem/bash/etc -- only the wired roster
+        # CRITICAL: without this, the SDK loads the host's ~/.claude/settings.json
+        # and every personal MCP connector configured there instead of just the
+        # roster above -- found the hard way in Phase 1, see 07-system-architecture.md.
         setting_sources=[],
         permission_mode="bypassPermissions",  # headless service, no human to prompt
-        max_turns=6,
-        cwd=tempfile.mkdtemp(prefix="ai-scientist-literature-agent-"),
+        max_turns=10,
+        cwd=tempfile.mkdtemp(prefix="ai-scientist-agent-"),
     )
 
-    # tool_use_id -> {"name": ..., "input": ...}, paired with its result
-    # once the matching ToolResultBlock arrives.
     pending_calls: dict[str, dict] = {}
     tool_calls: list[RunnerToolCall] = []
+    plan_text_parts: list[str] = []
     final_text_parts: list[str] = []
+    plan_announced = False
 
     async for msg in query(prompt=user_message, options=options):
         if isinstance(msg, AssistantMessage):
+            has_tool_use_this_message = any(isinstance(b, ToolUseBlock) for b in msg.content)
             for block in msg.content:
                 if isinstance(block, TextBlock):
-                    final_text_parts.append(block.text)
+                    if not plan_announced:
+                        plan_text_parts.append(block.text)
+                    else:
+                        final_text_parts.append(block.text)
                 elif isinstance(block, ToolUseBlock):
                     pending_calls[block.id] = {"name": block.name, "input": block.input}
+            if has_tool_use_this_message and not plan_announced:
+                # First message that actually calls a tool marks the plan as
+                # "announced" -- everything before this was the PLAN stage;
+                # everything from here on (including this message's own text,
+                # if any, e.g. narration alongside a tool call) counts as
+                # execution/synthesis text, not more plan.
+                plan_announced = True
+                if on_plan is not None:
+                    plan_text = "\n".join(plan_text_parts).strip()
+                    if plan_text:
+                        await on_plan(plan_text)
         elif isinstance(msg, UserMessage):
             content = msg.content if isinstance(msg.content, list) else []
             for block in content:
@@ -129,6 +154,7 @@ async def run_literature_agent(user_message: str) -> RunnerResult:
                     tool_calls.append(
                         RunnerToolCall(
                             tool_name=call_info["name"],
+                            mcp_server_name=_mcp_server_name_from_tool_name(call_info["name"]),
                             request=call_info["input"],
                             result_text="\n".join(text_parts),
                         )
@@ -136,41 +162,38 @@ async def run_literature_agent(user_message: str) -> RunnerResult:
         elif isinstance(msg, ResultMessage):
             if msg.is_error:
                 return RunnerResult(
+                    plan="\n".join(plan_text_parts).strip(),
                     body=f"Something went wrong answering this: {msg.result or 'unknown error'}",
                     citations=[],
                     provenance_type="ungroundable",
                     tool_calls=tool_calls,
                 )
 
-    body = "\n".join(final_text_parts).strip()
+    plan = "\n".join(plan_text_parts).strip()
+    body = "\n".join(final_text_parts).strip() or plan  # no-tool-needed replies land entirely in "plan"
 
-    # Precision matters here: a citation should mean "this specific claim in
-    # the answer traces to this PMID," not "this PMID appeared somewhere in
-    # a tool call's raw results." Intersect what the tools actually returned
-    # (the only PMIDs we can vouch for) with what the final answer actually
-    # discusses -- excludes search results the model saw but didn't use,
-    # which would otherwise inflate the grounding block with noise.
+    # Citation extraction is PubMed-shaped today (PMID regex) because
+    # PubMed is the only wired tool -- this needs to generalize once
+    # Phase 3 adds tools with different record-ID formats (ChEMBL IDs,
+    # PDB IDs, etc.). Tracked as a known gap, not solved here.
     pmids_in_answer = set(re.findall(r"PMID (\d+)", body))
-
     citations: list[RunnerCitation] = []
-    seen_pmids: set[str] = set()
+    seen: set[str] = set()
     for idx, tc in enumerate(tool_calls):
         for pmid in PMID_RE.findall(tc.result_text):
-            if pmid in pmids_in_answer and pmid not in seen_pmids:
-                seen_pmids.add(pmid)
+            if pmid in pmids_in_answer and pmid not in seen:
+                seen.add(pmid)
                 citations.append(
-                    RunnerCitation(pmid=pmid, label=f"PubMed PMID {pmid}", tool_call_index=idx)
+                    RunnerCitation(record_ref=pmid, label=f"PubMed PMID {pmid}", tool_call_index=idx)
                 )
 
     if not body:
         return RunnerResult(
+            plan=plan,
             body="I wasn't able to produce an answer for this.",
             citations=[],
             provenance_type="ungroundable",
             tool_calls=tool_calls,
         )
-    if citations:
-        return RunnerResult(
-            body=body, citations=citations, provenance_type="grounded", tool_calls=tool_calls
-        )
-    return RunnerResult(body=body, citations=[], provenance_type="synthesis", tool_calls=tool_calls)
+    provenance = "grounded" if citations else "synthesis"
+    return RunnerResult(plan=plan, body=body, citations=citations, provenance_type=provenance, tool_calls=tool_calls)
