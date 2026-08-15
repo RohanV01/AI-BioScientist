@@ -39,11 +39,16 @@ services:
       MM_SERVICESETTINGS_ENABLEOAUTHSERVICEPROVIDER: "true"
       MM_PLUGINSETTINGS_ENABLEUPLOADS: "true"
       # Outgoing Webhooks call the orchestrator at its internal Docker DNS
-      # name, which Mattermost otherwise blocks as a private-network
-      # address (a real SSRF protection, not a bug) -- explicitly trust it.
-      MM_SERVICESETTINGS_ALLOWEDUNTRUSTEDINTERNALCONNECTIONS: "orchestrator"
+      # name (or host.docker.internal when running the orchestrator on the
+      # host directly instead of as a container, e.g. for local dev with
+      # Claude Code CLI auth mounted -- see docs/10-build-plan.md Phase 1
+      # notes), which Mattermost otherwise blocks as a private-network
+      # address (a real SSRF protection, not a bug) -- explicitly trust both.
+      MM_SERVICESETTINGS_ALLOWEDUNTRUSTEDINTERNALCONNECTIONS: "orchestrator,host.docker.internal"
     ports:
       - "127.0.0.1:8065:8065"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - mm_data:/mattermost/data
       - mm_logs:/mattermost/logs

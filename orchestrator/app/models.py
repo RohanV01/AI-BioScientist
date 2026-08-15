@@ -36,6 +36,11 @@ class Agent(Base):
     org_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("org.id"), nullable=False)
     name: Mapped[str] = mapped_column(String, nullable=False)
     mattermost_bot_user_id: Mapped[str] = mapped_column(String, nullable=False)
+    # Encrypted via app.vault (same boundary as CREDENTIAL.encrypted_value) --
+    # needed so the agent can post its response back via the REST API
+    # (async path, docs/05-ux-behavior.md FR-7) rather than the synchronous
+    # Outgoing Webhook response, which is too slow for a real agent call.
+    encrypted_mattermost_bot_token: Mapped[str | None] = mapped_column(Text, nullable=True)
     cluster: Mapped[str] = mapped_column(String, nullable=False)  # e.g. "literature", "drug_discovery"
     feasibility_tier_note: Mapped[str | None] = mapped_column(Text, nullable=True)
     active: Mapped[bool] = mapped_column(Boolean, default=True)

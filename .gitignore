@@ -67,6 +67,9 @@ data/*.sql
 *.swp
 *.swo
 
+# Serena MCP's semantic-code-index cache (auto-generated, machine-specific)
+.serena/
+
 # OS
 .DS_Store
 Thumbs.db
