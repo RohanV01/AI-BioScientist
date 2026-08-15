@@ -28,6 +28,11 @@ from app.vault import decrypt
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
+# docs/05-ux-behavior.md Section 4: reserved *only* for "requires expert
+# review" content, never reused for any other purpose, so a reviewer can
+# scan a channel and immediately spot which messages need sign-off.
+EXPERT_REVIEW_COLOR = "#D72638"
+
 
 async def _run_agent_and_respond(task_id, agent_id: str, channel_id: str, user_message: str) -> None:
     """Runs in the background, after the webhook has already returned a
@@ -121,14 +126,33 @@ async def _run_agent_and_respond(task_id, agent_id: str, channel_id: str, user_m
             # actually survived filtering rather than trusting the runner's
             # own (pre-filter) judgment.
             final_provenance = "grounded" if citations else "synthesis" if result.body else "ungroundable"
+
+            # Flagged by *which tool sources contributed to the grounding*
+            # (docs/05-ux-behavior.md Section 4), not by which tool was
+            # merely called -- a source consulted but not actually cited
+            # doesn't trigger this.
+            requires_review = any(
+                roster.tool_source_by_mcp_name.get(
+                    result.tool_calls[c.tool_call_index].mcp_server_name
+                ).requires_expert_review
+                for c in result.citations
+                if c.tool_call_index in persisted_by_original_index
+            )
+
             response = await create_response(
                 db,
                 task_id=task_id,
                 body=result.body,
                 provenance_type=final_provenance,
                 citations=citations or None,
+                requires_expert_review=requires_review,
             )
-            posted = await mm.post_message(channel_id, result.body)
+            attachments = (
+                [{"color": EXPERT_REVIEW_COLOR, "pretext": "⚠️ **Requires expert review**"}]
+                if requires_review
+                else None
+            )
+            posted = await mm.post_message(channel_id, result.body, attachments=attachments)
             response.mattermost_message_id = posted.get("id")
             if task is not None:
                 task.status = "completed"

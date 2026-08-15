@@ -63,6 +63,13 @@ class ToolSource(Base):
     # commercial_license / controlled_access
     access_model: Mapped[str] = mapped_column(String, nullable=False, default="free_public")
     requires_credential: Mapped[bool] = mapped_column(Boolean, default=False)
+    # docs/05-ux-behavior.md Section 4 (Dr. Rahman's requirement): a
+    # response grounded via a clinical/regulatory-sensitive source
+    # (FAERS, trial registries, clinical variant databases like ClinVar)
+    # gets a structurally distinct "requires expert review" marker when
+    # posted -- set on the tool source, not guessed from its category
+    # string, so it's an explicit per-source decision.
+    requires_expert_review: Mapped[bool] = mapped_column(Boolean, default=False)
     mcp_server_ref: Mapped[str | None] = mapped_column(String, nullable=True)
 
     tool_bindings: Mapped[list["ToolBinding"]] = relationship(back_populates="tool_source")
@@ -157,6 +164,11 @@ class Response(Base):
     task_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("task.id"), nullable=False)
     body: Mapped[str] = mapped_column(Text, nullable=False)
     provenance_type: Mapped[str] = mapped_column(String, nullable=False)  # grounded|synthesis|ungroundable
+    # Derived once at creation from whether any citation traces back to a
+    # ToolSource.requires_expert_review=True tool call (docs/05-ux-behavior.md
+    # Section 4) -- stored rather than recomputed on every read, same
+    # precedent as provenance_type itself.
+    requires_expert_review: Mapped[bool] = mapped_column(Boolean, default=False)
     mattermost_message_id: Mapped[str | None] = mapped_column(String, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 

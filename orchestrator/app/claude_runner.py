@@ -87,6 +87,11 @@ RECORD_REF_PATTERNS: list[tuple[str, re.Pattern]] = [
     ("KEGG pathway {}", re.compile(r"\b([a-z]{2,4}\d{5})\b")),
     ("Reactome ID {}", re.compile(r"\b(R-[A-Z]{3}-\d+)\b")),
     ("STRING ID {}", re.compile(r"\b(\d+\.ENSP\d{11})\b")),
+    ("ClinicalTrials.gov ID {}", re.compile(r"\b(NCT\d{8})\b")),
+    (
+        "DailyMed set ID {}",
+        re.compile(r"\b([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\b"),
+    ),
 ]
 
 

@@ -27,22 +27,34 @@ from app.db import async_session  # noqa: E402
 from app.models import Agent, Org, ToolBinding, ToolSource  # noqa: E402
 from app.vault import encrypt  # noqa: E402
 
-# name -> (category, access_model, mcp_server_ref) for tool sources this
-# script knows how to create. Matches app/tool_roster.py's TOOL_BUILDERS
-# keys -- add an entry here when you add one there.
+# name -> (category, access_model, mcp_server_ref, requires_expert_review)
+# for tool sources this script knows how to create. Matches
+# app/tool_roster.py's TOOL_BUILDERS keys -- add an entry here when you
+# add one there. requires_expert_review is docs/05-ux-behavior.md
+# Section 4's marker: True for clinical/regulatory-sensitive sources
+# (clinical variant databases, trial registries, drug labels, FAERS).
 KNOWN_TOOL_SOURCES = {
-    "pubmed": ("literature", "free_public", "in-process:app.tools.pubmed"),
-    "chembl": ("drug_discovery", "free_public", "in-process:app.tools.chembl"),
-    "open_targets": ("drug_discovery", "free_public", "in-process:app.tools.open_targets"),
-    "literature_discovery": ("literature", "free_public", "in-process:app.tools.literature_discovery"),
-    "ensembl": ("genomics", "free_public", "in-process:app.tools.ensembl"),
-    "uniprot": ("genomics", "free_public", "in-process:app.tools.uniprot"),
-    "clinvar": ("genomics", "free_public", "in-process:app.tools.clinvar"),
-    "gnomad": ("genomics", "free_public", "in-process:app.tools.gnomad"),
-    "ontologies": ("ontologies", "free_public", "in-process:app.tools.ontologies"),
-    "kegg": ("systems_biology", "free_public", "in-process:app.tools.kegg"),
-    "reactome": ("systems_biology", "free_public", "in-process:app.tools.reactome"),
-    "string": ("systems_biology", "free_public", "in-process:app.tools.string_db"),
+    "pubmed": ("literature", "free_public", "in-process:app.tools.pubmed", False),
+    "chembl": ("drug_discovery", "free_public", "in-process:app.tools.chembl", False),
+    "open_targets": ("drug_discovery", "free_public", "in-process:app.tools.open_targets", False),
+    "literature_discovery": ("literature", "free_public", "in-process:app.tools.literature_discovery", False),
+    "ensembl": ("genomics", "free_public", "in-process:app.tools.ensembl", False),
+    "uniprot": ("genomics", "free_public", "in-process:app.tools.uniprot", False),
+    "clinvar": ("genomics", "free_public", "in-process:app.tools.clinvar", True),
+    "gnomad": ("genomics", "free_public", "in-process:app.tools.gnomad", False),
+    "ontologies": ("ontologies", "free_public", "in-process:app.tools.ontologies", False),
+    "kegg": ("systems_biology", "free_public", "in-process:app.tools.kegg", False),
+    "reactome": ("systems_biology", "free_public", "in-process:app.tools.reactome", False),
+    "string": ("systems_biology", "free_public", "in-process:app.tools.string_db", False),
+    "clinicaltrials": ("clinical", "free_public", "in-process:app.tools.clinicaltrials", True),
+    "dailymed": ("clinical", "free_public", "in-process:app.tools.dailymed", True),
+    # pharmgkb intentionally not here yet -- see docs/10-build-plan.md
+    # Shortlist #6: PharmGKB rebranded to ClinPGx and its old public API
+    # surface (api.pharmgkb.org/v1/data/*) no longer resolves/works;
+    # every guessed replacement path on clinpgx.org returns the SPA's
+    # HTML shell instead of JSON (200 for any path, no clean 404 to
+    # signal a wrong guess), so this needs real API docs, not more
+    # trial and error.
 }
 
 
@@ -84,18 +96,28 @@ async def main(team_id: str, bot_user_id: str, bot_token: str, name: str, tool_n
         for tool_name in tool_names:
             result = await db.execute(select(ToolSource).where(ToolSource.name == tool_name))
             tool_source = result.scalar_one_or_none()
-            if tool_source is None:
-                if tool_name not in KNOWN_TOOL_SOURCES:
+            if tool_name not in KNOWN_TOOL_SOURCES:
+                if tool_source is None:
                     print(f"  skipping unknown tool source {tool_name!r} (add it to KNOWN_TOOL_SOURCES)")
                     continue
-                category, access_model, mcp_ref = KNOWN_TOOL_SOURCES[tool_name]
-                tool_source = ToolSource(
-                    name=tool_name, category=category, access_model=access_model,
-                    requires_credential=False, mcp_server_ref=mcp_ref,
-                )
-                db.add(tool_source)
-                await db.flush()
-                print(f"  created tool_source {tool_name!r}")
+            else:
+                category, access_model, mcp_ref, requires_review = KNOWN_TOOL_SOURCES[tool_name]
+                if tool_source is None:
+                    tool_source = ToolSource(
+                        name=tool_name, category=category, access_model=access_model,
+                        requires_credential=False, mcp_server_ref=mcp_ref,
+                        requires_expert_review=requires_review,
+                    )
+                    db.add(tool_source)
+                    await db.flush()
+                    print(f"  created tool_source {tool_name!r}")
+                elif tool_source.requires_expert_review != requires_review:
+                    # Keeps an already-created row in sync with
+                    # KNOWN_TOOL_SOURCES if the flag changes later (this is
+                    # how clinvar picked up requires_expert_review=True
+                    # after being wired before this convention existed).
+                    tool_source.requires_expert_review = requires_review
+                    print(f"  updated {tool_name!r}.requires_expert_review -> {requires_review}")
 
             result = await db.execute(
                 select(ToolBinding).where(

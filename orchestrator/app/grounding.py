@@ -37,6 +37,7 @@ async def create_response(
     provenance_type: str,
     citations: list[Citation] | None = None,
     mattermost_message_id: str | None = None,
+    requires_expert_review: bool = False,
 ) -> Response:
     if provenance_type not in PROVENANCE_TYPES:
         raise GroundingViolation(
@@ -60,6 +61,7 @@ async def create_response(
         body=body,
         provenance_type=provenance_type,
         mattermost_message_id=mattermost_message_id,
+        requires_expert_review=requires_expert_review,
     )
     db.add(response)
     await db.flush()  # assigns response.id without committing

@@ -15,11 +15,13 @@ class MattermostClient:
             timeout=15.0,
         )
 
-    async def post_message(self, channel_id: str, message: str, root_id: str = "") -> dict:
-        resp = await self._client.post(
-            "/api/v4/posts",
-            json={"channel_id": channel_id, "message": message, "root_id": root_id},
-        )
+    async def post_message(
+        self, channel_id: str, message: str, root_id: str = "", attachments: list[dict] | None = None
+    ) -> dict:
+        payload: dict = {"channel_id": channel_id, "message": message, "root_id": root_id}
+        if attachments:
+            payload["props"] = {"attachments": attachments}
+        resp = await self._client.post("/api/v4/posts", json=payload)
         resp.raise_for_status()
         return resp.json()
 
