@@ -80,6 +80,13 @@ RECORD_REF_PATTERNS: list[tuple[str, re.Pattern]] = [
     ),
     ("ClinVar ID {}", re.compile(r"\b(VCV\d+)\b")),
     ("gnomAD variant {}", re.compile(r"\b([0-9XYM]{1,2}-\d+-[ACGT]+-[ACGT]+)\b")),
+    # Lowercase-only prefix (KEGG organism/map codes: hsa, map, ko, ec, rn,
+    # ...) deliberately excludes \w's digits/uppercase/underscore -- a
+    # broader class here would false-match substrings of PMIDs, ChEMBL
+    # IDs, etc. that happen to be 5+ digits.
+    ("KEGG pathway {}", re.compile(r"\b([a-z]{2,4}\d{5})\b")),
+    ("Reactome ID {}", re.compile(r"\b(R-[A-Z]{3}-\d+)\b")),
+    ("STRING ID {}", re.compile(r"\b(\d+\.ENSP\d{11})\b")),
 ]
 
 

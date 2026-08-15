@@ -19,10 +19,13 @@ from app.tools.chembl import build_chembl_mcp_server
 from app.tools.clinvar import build_clinvar_mcp_server
 from app.tools.ensembl import build_ensembl_mcp_server
 from app.tools.gnomad import build_gnomad_mcp_server
+from app.tools.kegg import build_kegg_mcp_server
 from app.tools.literature_discovery import build_literature_discovery_mcp_server
 from app.tools.ontologies import build_ontologies_mcp_server
 from app.tools.open_targets import build_open_targets_mcp_server
 from app.tools.pubmed import build_pubmed_mcp_server
+from app.tools.reactome import build_reactome_mcp_server
+from app.tools.string_db import build_string_mcp_server
 from app.tools.uniprot import build_uniprot_mcp_server
 
 # tool_source.name -> (mcp_server_name, builder_fn, list of allowed tool names)
@@ -45,6 +48,9 @@ TOOL_BUILDERS = {
     "clinvar": ("clinvar", build_clinvar_mcp_server, ["mcp__clinvar__search_variants"]),
     "gnomad": ("gnomad", build_gnomad_mcp_server, ["mcp__gnomad__get_variant_frequency"]),
     "ontologies": ("ontologies", build_ontologies_mcp_server, ["mcp__ontologies__search_ontology_term"]),
+    "kegg": ("kegg", build_kegg_mcp_server, ["mcp__kegg__get_gene_pathways"]),
+    "reactome": ("reactome", build_reactome_mcp_server, ["mcp__reactome__search_pathways"]),
+    "string": ("string", build_string_mcp_server, ["mcp__string__get_interaction_partners"]),
 }
 
 

@@ -40,6 +40,9 @@ KNOWN_TOOL_SOURCES = {
     "clinvar": ("genomics", "free_public", "in-process:app.tools.clinvar"),
     "gnomad": ("genomics", "free_public", "in-process:app.tools.gnomad"),
     "ontologies": ("ontologies", "free_public", "in-process:app.tools.ontologies"),
+    "kegg": ("systems_biology", "free_public", "in-process:app.tools.kegg"),
+    "reactome": ("systems_biology", "free_public", "in-process:app.tools.reactome"),
+    "string": ("systems_biology", "free_public", "in-process:app.tools.string_db"),
 }
 
 
