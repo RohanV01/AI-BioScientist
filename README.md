@@ -4,17 +4,37 @@ A local-first research platform: a Mattermost-based messaging workspace where yo
 
 ## Status
 
-**Planning complete, build starting.** See `docs/` for the full spec. Nothing here runs yet — Phase 0 of `docs/10-build-plan.md` is the current work.
+**Build in progress — Phase 0 of `docs/10-build-plan.md`.** Planning is complete (`docs/`); the messaging layer and orchestrator skeleton are being stood up now. Nothing is feature-complete yet — see `CHANGELOG.md` for exactly what runs today.
 
 ## Why this exists
 
-This is the build-out of the [Researcher's Lab report](../Daily%20Learning/Vault/Ideas/researcher-lab-experiment-catalog-2026-08-15.md) — 105 candidate experiments across 7 domains, a gap analysis, and a confirmed product vision (local-first, Claude Code-native, Slack-style delegation, grounded output). That report is this project's requirements source.
+This is the build-out of a research report — 105 candidate research-agent experiments across 7 domains, a gap analysis, and a confirmed product vision (local-first, Claude Code-native, Slack-style delegation, grounded output) — written by the author before this repo existed. That report lives outside this repo (a personal research vault, not redistributed here) and is referenced throughout `docs/` as `[[researcher-lab-experiment-catalog-2026-08-15]]`; treat those references as "the design rationale lives elsewhere," not as working links.
+
+## Getting started
+
+**Prerequisites:** Docker + Docker Compose v2, Python 3.11+.
+
+```bash
+git clone <this-repo-url>
+cd ai-scientist
+cp .env.example .env        # edit if you want a non-default Postgres password
+docker compose up -d postgres
+# wait for postgres to report healthy, then:
+docker compose up -d mattermost
+```
+
+Mattermost will be reachable at `http://localhost:8065` — first visit creates the initial admin account. The Orchestrator Service (`orchestrator/`) is added to `docker-compose.yml` once its skeleton exists (Build Plan Phase 0, in progress); until then, Mattermost runs standalone with no agents wired up.
+
+**Optional bulk data:** none of the above requires it. If you have (or want to build) the local bibliographic/database corpus some agents can use, see `data/README.md` — it's entirely optional and gitignored, and every agent is designed to degrade gracefully without it (`docs/05-ux-behavior.md` §1).
+
+**Everything else you might want to reuse:** `reference/rxdis-legacy/` contains a previously-built 9-phase local-first drug-discovery pipeline (RxDis) whose application code was removed in favor of the plan in `docs/`, but whose design docs are kept — see `docs/10-build-plan.md` Phase 2 for how it gets wrapped back in as an agent, not rebuilt.
 
 ## What's already here
 
-- **`data/`** — bulk local data assets (not in git, see `.gitignore`): `scihub.sql` (32.7GB Sci-Hub metadata dump — DOI, Title, Author, Year, Journal, PubmedID, PMC) and `Databases/` (52GB of already-local bulk copies of ChEMBL, STRING, GTEx, GWAS Catalog, OMIM, BioGRID, DepMap, PrimeKG, AlphaMissense, and more).
-- **`reference/rxdis-legacy/`** — RxDis, a working 9-phase local-first drug-discovery pipeline (target ID → validation → repurposing/de novo design → biologics → optimization → packaging) built before this project's messaging-layer pivot. Its code was removed (superseded by the plan in `docs/`), but its docs, design notes, and phase summaries are kept as reference — and its FastAPI service is the first non-trivial agent this project wraps (`docs/10-build-plan.md` Phase 2).
-- **`docs/`** — the full planning suite: goals, PRD, personas, architecture, data model, UX behavior, cross-feature journeys, test strategy, and the build plan.
+- **`docker-compose.yml`, `.env.example`, `mattermost-server/`** — the local dev stack (Postgres + Mattermost); see Getting Started above.
+- **`docs/`** — the full planning suite: goals, PRD, personas, architecture, data model, UX behavior, cross-feature journeys, test strategy, build plan, and a backlog/traceability index.
+- **`reference/rxdis-legacy/`** — design docs and notes from RxDis, the prior drug-discovery pipeline this project wraps rather than rebuilds (see above).
+- **`data/`** (gitignored, not part of a fresh clone) — see `data/README.md`.
 
 ## Reading order
 

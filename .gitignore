@@ -1,10 +1,12 @@
-# Environment & secrets
+# Environment & secrets — .env.example is the committed template, never ignore it
 .env
 .env.*
+!.env.example
 *.env.local
 
-# Bulk local data — never committed (see data/README.md for how to source these)
-data/
+# Bulk local data — never committed (data/README.md explains what goes here and how to get it)
+data/*
+!data/README.md
 
 # Legacy RxDis reference material — kept locally, not part of the new app's history
 reference/rxdis-legacy/output/
@@ -47,11 +49,14 @@ mattermost-server/data/
 mattermost-server/logs/
 mattermost-server/config/config.json
 
-# Databases & large data files
+# Databases & large data files (scoped to data/ and .duckdb specifically —
+# NOT a blanket *.sql, which would also hide tracked files like
+# mattermost-server/init-databases.sql)
 *.db
 *.sqlite
 *.sqlite3
-*.sql
+*.duckdb
+data/*.sql
 
 # Notebooks checkpoints
 .ipynb_checkpoints/

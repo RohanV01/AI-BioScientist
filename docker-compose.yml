@@ -1,0 +1,57 @@
+# Local-first dev stack (docs/07-system-architecture.md "Deployment topology (MVP)").
+# One Postgres instance, two databases (mattermost + orchestrator) -- resolves the
+# open question in docs/02-prd.md Section 8 in favor of one running Postgres process,
+# while keeping each service's schema fully isolated (Mattermost owns its own
+# migrations and expects a dedicated database, not a shared schema).
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: ai-scientist-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: aiscientist
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dev_only_change_me}
+      POSTGRES_DB: postgres
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./mattermost-server/init-databases.sql:/docker-entrypoint-initdb.d/init-databases.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aiscientist"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  mattermost:
+    image: mattermost/mattermost-team-edition:9.11
+    container_name: ai-scientist-mattermost
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      MM_SQLSETTINGS_DRIVERNAME: postgres
+      MM_SQLSETTINGS_DATASOURCE: "postgres://aiscientist:${POSTGRES_PASSWORD:-dev_only_change_me}@postgres:5432/mattermost?sslmode=disable"
+      MM_SERVICESETTINGS_SITEURL: "http://localhost:8065"
+      MM_SERVICESETTINGS_ENABLEBOTACCOUNTCREATION: "true"
+      MM_SERVICESETTINGS_ENABLEOAUTHSERVICEPROVIDER: "true"
+      MM_PLUGINSETTINGS_ENABLEUPLOADS: "true"
+    ports:
+      - "127.0.0.1:8065:8065"
+    volumes:
+      - mm_data:/mattermost/data
+      - mm_logs:/mattermost/logs
+      - mm_config:/mattermost/config
+      - mm_plugins:/mattermost/plugins
+
+  # orchestrator: added once the FastAPI skeleton exists (docs/10-build-plan.md Phase 0
+  # task "scaffold the Orchestrator Service") -- see orchestrator/Dockerfile
+
+volumes:
+  pg_data:
+  mm_data:
+  mm_logs:
+  mm_config:
+  mm_plugins:
