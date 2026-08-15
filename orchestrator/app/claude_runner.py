@@ -68,7 +68,11 @@ RECORD_REF_PATTERNS: list[tuple[str, re.Pattern]] = [
     # Shared between open_targets.py and ensembl.py -- both surface Ensembl
     # gene IDs, so the label stays tool-agnostic rather than naming one.
     ("Ensembl Gene ID {}", re.compile(r"\b(ENSG\d{11})\b")),
-    ("Open Targets Disease ID {}", re.compile(r"\b(MONDO_\d+|EFO_\d+|Orphanet_\d+|HP_\d+)\b")),
+    # Underscore form (MONDO_0007254) is Open Targets'/OBO-URI style; colon
+    # form (MONDO:0007254) is what app/tools/ontologies.py's OLS-backed
+    # search returns (its `obo_id` field) -- same identifiers, two
+    # notations in the wild, so match either.
+    ("Ontology/Disease ID {}", re.compile(r"\b((?:MONDO|EFO|Orphanet|HP|GO)[_:]\d+)\b")),
     ("DOI {}", re.compile(r"\b(10\.\d{4,9}/[A-Za-z0-9._;()/-]+)")),
     (
         "UniProt ID {}",
