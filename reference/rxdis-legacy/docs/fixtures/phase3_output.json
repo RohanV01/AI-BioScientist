@@ -1,0 +1,60 @@
+{
+  "routing": [
+    {
+      "symbol": "EGFR",
+      "seeded": false,
+      "primary": "peptide",
+      "secondary": "PROTAC",
+      "branches": [
+        "P4_repurpose",
+        "P6_biologic",
+        "P5_small_molecule"
+      ],
+      "repurposing_priority": "LOW",
+      "modality_scores": {
+        "PROTAC": 0.6,
+        "peptide": 0.65,
+        "oligo": 0.55
+      },
+      "llm_decision": null
+    },
+    {
+      "symbol": "KRAS",
+      "seeded": true,
+      "primary": "peptide",
+      "secondary": "PROTAC",
+      "branches": [
+        "P4_repurpose",
+        "P6_biologic",
+        "P5_small_molecule"
+      ],
+      "repurposing_priority": "LOW",
+      "modality_scores": {
+        "PROTAC": 0.6,
+        "peptide": 0.65,
+        "oligo": 0.55
+      },
+      "llm_decision": null
+    },
+    {
+      "symbol": "ESR1",
+      "seeded": false,
+      "primary": "peptide",
+      "secondary": "PROTAC",
+      "branches": [
+        "P4_repurpose",
+        "P6_biologic",
+        "P5_small_molecule"
+      ],
+      "repurposing_priority": "LOW",
+      "modality_scores": {
+        "PROTAC": 0.6,
+        "peptide": 0.65,
+        "oligo": 0.55
+      },
+      "llm_decision": null
+    }
+  ],
+  "intent_mode": "explore",
+  "wall_time_s": 6.0
+}

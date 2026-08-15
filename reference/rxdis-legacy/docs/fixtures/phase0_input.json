@@ -1,0 +1,52 @@
+{
+  "run_id": "e610f82e-451a-4213-8c8a-993a16739fae",
+  "config": {
+    "disease_name": "pancreatic cancer",
+    "disease_efo_id": "EFO_0001691",
+    "disease_mondo_id": null,
+    "disease_doid_id": null,
+    "icd10": null,
+    "intent_mode": "explore",
+    "seed_targets": [],
+    "seed_smiles": [],
+    "exclude_targets": [],
+    "exclude_drugs": [],
+    "known_positives": [
+      "KRAS",
+      "TP53",
+      "SMAD4",
+      "CDKN2A",
+      "BRCA2"
+    ],
+    "pu_n_bags": 5,
+    "tissue_of_interest": "Lung",
+    "indication_type": "chronic",
+    "selectivity_target": null,
+    "patient_cohort": {
+      "expression_matrix": null,
+      "metadata": null,
+      "vcf": null
+    },
+    "modality_preference": "any",
+    "budget_hosted_usd": 25.0,
+    "target_count_max": 3,
+    "candidates_per_target_max": 2,
+    "repurposing_enabled": true,
+    "de_novo_enabled": true,
+    "resume_from_phase": null,
+    "dry_run": false,
+    "output_dir": "output/run",
+    "llm": {
+      "provider": "lmstudio",
+      "anthropic": null,
+      "openai": null,
+      "lmstudio": {
+        "base_url": "http://localhost:1234/v1",
+        "model": "qwen/qwen3-4b-thinking-2507"
+      },
+      "temperature": 0.1,
+      "self_consistency_override": null,
+      "llm_budget_usd": null
+    }
+  }
+}

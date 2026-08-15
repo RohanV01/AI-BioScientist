@@ -1,0 +1,29 @@
+# Changelog
+
+All notable changes to this project are logged here. Format loosely follows [Keep a Changelog](https://keepachangelog.com/); dates in `YYYY-MM-DD`.
+
+## [Unreleased]
+
+### Added — 2026-08-15
+- Full planning document suite in `docs/`: project goals, PRD, user personas, information architecture, UX behavior, data model, system architecture, cross-feature journeys, test strategy + acceptance criteria, and a phased build plan.
+- `README.md` rewritten for the new project direction (Mattermost-based multi-agent messaging platform, superseding the prior single-purpose RxDis README at that path).
+- This changelog and the project's auto-memory entry.
+
+### Changed — 2026-08-15
+- Repository re-scoped from a single drug-discovery pipeline (RxDis) to a broader multi-agent research platform, per the confirmed product vision in [[researcher-lab-experiment-catalog-2026-08-15]] Section 11.
+- Reorganized the folder: legacy RxDis docs/notes moved to `reference/rxdis-legacy/`; bulk data (`scihub.sql`, `Databases/`) moved to `data/`.
+- `.gitignore` rewritten for the new project structure (data/, node_modules, Go build artifacts, Mattermost runtime config).
+
+### Removed — 2026-08-15
+- RxDis's application code (`src/`, `frontend/`, `scripts/`, `tools/`, `testing/`, `docker-compose.yml`, `Dockerfile`) and its build artifacts (`.venv/`, `.serena/`). Design docs, memory notes, and data were explicitly kept — see `reference/rxdis-legacy/` and `data/`. RxDis's FastAPI service is planned to be re-wrapped as an MCP tool source in Build Plan Phase 2, not reimplemented.
+
+### Discovered — 2026-08-15
+- `data/scihub.sql` (32.7GB) turns out to be a full Sci-Hub `scimag` metadata dump (DOI, Title, Author, Year, Journal, PubmedID, PMC per record) — potentially resolves Gap 1 from the Researcher's Lab report (the DOI-biology-classifier corpus having no metadata) via a local join, without rebuilding the CrossRef/Unpaywall enrichment pipeline that report originally proposed. Confirming this is Build Plan Phase 0's first task.
+- `data/Databases/` (52GB) already contains local bulk copies of ChEMBL, STRING, GTEx, GWAS Catalog, OMIM, BioGRID, DepMap, PrimeKG, and AlphaMissense — several of these upgrade specific Tier-2 ("needs MCP wiring") gaps from the research report toward Tier-1 ("already have local data"). The research report itself has not yet been updated to reflect this — flagged as an open follow-up in `docs/10-build-plan.md`.
+
+---
+
+## How to use this file
+
+- Every Build Plan phase completion gets an entry.
+- Every architecture decision reversal (e.g. if Mattermost gets replaced, if the credential-vault key-management approach changes) gets an entry, even before code exists — decisions are logged when made, not just when shipped.

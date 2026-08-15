@@ -1,0 +1,136 @@
+{
+  "credentials": [
+    {
+      "service": "Supabase",
+      "ok": true,
+      "latency_ms": 208,
+      "detail": "connected"
+    },
+    {
+      "service": "Redis",
+      "ok": true,
+      "latency_ms": 69,
+      "detail": "pong"
+    },
+    {
+      "service": "LMStudio",
+      "ok": false,
+      "latency_ms": 5,
+      "detail": "[Errno 111] Connection refused"
+    },
+    {
+      "service": "local_tools",
+      "ok": true,
+      "latency_ms": 0,
+      "detail": {
+        "rfdiffusion": "installed",
+        "boltz1": "installed",
+        "esmfold": "transformers 5.10.2"
+      }
+    },
+    {
+      "service": "NCBI_Eutils",
+      "ok": true,
+      "latency_ms": 4035,
+      "detail": "reachable, hits=3938673"
+    },
+    {
+      "service": "OpenTargets",
+      "ok": true,
+      "latency_ms": 1540,
+      "detail": "OT 26-03"
+    }
+  ],
+  "databases": [
+    {
+      "name": "PrimeKG",
+      "present": true,
+      "version": "combined_kg.csv",
+      "size_mb": 936.3
+    },
+    {
+      "name": "DepMap",
+      "present": true,
+      "version": "CRISPRGeneEffect",
+      "size_mb": 420.2
+    },
+    {
+      "name": "STRING",
+      "present": true,
+      "version": "v12.0",
+      "size_mb": 828.3
+    },
+    {
+      "name": "BioGRID",
+      "present": true,
+      "version": "BIOGRID-ORGANISM-Homo_sapiens-5.0.257.tab3",
+      "size_mb": 694.6
+    },
+    {
+      "name": "GTEx",
+      "present": true,
+      "version": "v11",
+      "size_mb": 8516.0
+    },
+    {
+      "name": "AlphaMissense",
+      "present": true,
+      "version": "v1",
+      "size_mb": 5233.3
+    },
+    {
+      "name": "ChEMBL",
+      "present": true,
+      "version": "37",
+      "size_mb": 29068.3
+    },
+    {
+      "name": "GWAS_Catalog_Associations",
+      "present": true,
+      "version": "latest",
+      "size_mb": 319.7
+    }
+  ],
+  "endpoints": [
+    {
+      "tool": "RFdiffusion",
+      "installed": true,
+      "path": "/home/rohanvyas/tools/RFdiffusion",
+      "used_in": "Phase 6 backbone generation"
+    },
+    {
+      "tool": "Boltz-1",
+      "installed": true,
+      "path": "/home/rohanvyas/Documents/AI Scientist/.venv/bin/boltz",
+      "used_in": "Phase 6 refolding / ipTM scoring (CPU mode)"
+    },
+    {
+      "tool": "ESMFold (transformers)",
+      "installed": true,
+      "path": "transformers 5.10.2",
+      "used_in": "Phase 2 structure prediction (novel proteins)"
+    },
+    {
+      "tool": "ProteinMPNN",
+      "installed": false,
+      "path": null,
+      "used_in": "Phase 6 sequence design on backbones"
+    }
+  ],
+  "gpu": {
+    "gpus": [
+      {
+        "name": "NVIDIA GeForce RTX 3050 6GB Laptop GPU",
+        "vram_free_mb": 5691
+      }
+    ],
+    "sharing_mode": "lmstudio_resident"
+  },
+  "cost_estimate_usd": 38.5,
+  "missing_required": [],
+  "warnings": [
+    "LLM provider (LMStudio/Anthropic/OpenAI) unreachable \u2014 LLM gates will be skipped"
+  ],
+  "go_no_go": "go",
+  "summary": "All credentials and databases validated. Pipeline is ready to run."
+}

@@ -1,8 +1,14 @@
 # Environment & secrets
 .env
+.env.*
 *.env.local
-/bottlenecks
-/Scientific Protocol
+
+# Bulk local data — never committed (see data/README.md for how to source these)
+data/
+
+# Legacy RxDis reference material — kept locally, not part of the new app's history
+reference/rxdis-legacy/output/
+reference/rxdis-legacy/.env.rxdis-legacy
 
 # Python
 __pycache__/
@@ -21,17 +27,31 @@ htmlcov/
 .coverage
 *.cover
 
-# Virtual environment
+# Virtual environments
 .venv/
 venv/
 env/
 
-# Databases & large data files — stored outside git
-Databases/
+# Node / frontend
+node_modules/
+.next/
+out/
+
+# Go
+bin/
+*.exe
+
+# Mattermost server build/runtime artifacts (once vendored in Phase 0 of the build plan)
+mattermost-server/dist/
+mattermost-server/data/
+mattermost-server/logs/
+mattermost-server/config/config.json
+
+# Databases & large data files
 *.db
 *.sqlite
 *.sqlite3
-scihub.sql
+*.sql
 
 # Notebooks checkpoints
 .ipynb_checkpoints/

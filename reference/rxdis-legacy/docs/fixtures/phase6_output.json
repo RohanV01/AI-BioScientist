@@ -1,0 +1,494 @@
+{
+  "biologic": {
+    "EGFR": [
+      {
+        "id": "BIO_EGFR_001",
+        "sequence": "AELEKEEEEKKLLEKLKAIPPPPPPPRPRTCRGNSNGLTKIGTDEENYNYLKKEYEGCEIVLGNLEIIFIPAGYDLSFLESIREVEGYLLIANNTVKEIPLTNLEVIYGNTLYNGKYALVIENNYDSNNNGLSLLPMRNLTAIKKGAIRISNNPALCNLDTVDWRDIVNPEYLKDNELNFNNTNPNCEPCHPSCPGGSCWGPGPENCQRLTRLICHPTCPGRCRGTSPSQCCHPNCASGCTGPTASDCLTCLNYRCGDRCVESCPPLRILDPETKKWVPNPNGLYRYGRFCVPACPPGYVLTPDGVCVRRCPPDSRAVLENGVLRCVPCDGTCPKVCDGIGKGSLANDTTINSVNIKSFKGCTTVNGNIVINPTAFKGDATKGIPALDPNDLNILKSIKKITGYLYISAWPPSWSDLSPFENLEEIEGNDKYNGKYSLVIENLPITKLGLRSLKKIAKGNVLISGNKNLCFAYTINWSKFFGESGQTVDISNNRPPAECKANGLVCNPLCSSDGCFGPGNSDCVACKNVKDGDTCVSSCNITSGSPKQYISNGECIPCNSTCKPQSGAPSCTGPGPENCKECSTFQYGSYCVSSCPQGELGPNGKKVWTYADSNNVCLPCHPLCTSGCSGPGLSGCPPNSPVVVEDGETGEEEEKKLAAKAAAEAEAKAAAEAARAARLAARRARREQIPYSNPNGDQPNPDLLRIINESEIEPLRKLGEGDGGTVYEAILRESGTDVQIPVALKELHENSDPELRKRILESALLMANVDHPNVLRLLGVSIGDKIKLIFPYAPYGELYLFVRRHKDKIGAETLLGWMLQIAEGLKYLEDNRIVHRDLKAGNVLVVSPTHIRITDFGGAELLGPGETTIKRKGGKWPTRWLAPEAIKNSLFSHKTDVWSLGITFWEILTFGEEPWAGIPDSEILALLEKGEIPPKPKIASDEIYELIKACLKKDPEERPSFAEIVKKLGEFLKNPKKYLNIEGDENKKLPSEEDDPLLEELLAEPGLENVEEADLYFNPPPELEAPPEEPEPPEAAPAPAPPPPAPALALALGGPPALPLPPGEEEDLVGIDPDRDAPPGGPGAPVLPPPPAIALKPPGPPAGPPPPPPLPQPPEPPPPAPPPAPPAPPPAEAEPPPGEEPLPVPGAPVRVPGPAPPAGPVPPVVPPPDPWGSEEGLPPPPPPAGPPGPPPEVPSSLDVPKPYVPPLAAS",
+        "length": 1210,
+        "type": "cyclic_peptide",
+        "design_strategy": "helical_mimetic",
+        "target_class": "intracellular",
+        "iptm": null,
+        "pae_interface": null,
+        "binder_plddt": null,
+        "refolding_source": null,
+        "aggregation": "high",
+        "solubility_score": 0.4,
+        "immunogenicity": "high",
+        "n_mhc_strong_binders": 57,
+        "developability_score": 0.3,
+        "stability": {
+          "half_life_class": "long",
+          "n_terminal_rule": "stable",
+          "proteolysis_concern": false
+        },
+        "disqualifying": [
+          "aggregation_high(score=0.15)",
+          "immunogenic_chronic(n_mhc=57)"
+        ],
+        "concerns": [
+          "moderate_solubility(0.40)"
+        ],
+        "passed": false,
+        "combined_pre8": 0.3,
+        "rank": 1,
+        "immunogenicity_report": ""
+      },
+      {
+        "id": "BIO_EGFR_002",
+        "sequence": "ASLLGGLALALLALLLALLPPLPPPPEPKTCKGTSLGLTQIGTTDQNYAYLKKEFDGCQVVLGNLEIRFVPAGYDLSFLKSIQVVEGYLLIANNTVSTIPLTNLKVIYGRRLYEGKYALVIKNNYDSNKNGLKLLPMKNLTAIKRGAVKIENNPALCNIDTIPWEDIIDPKWLDKCELNFNNTRPDCEPCDPSCPGGSCWGPGAENCFVYTRTICHPTCPGRCTGTSASQCCHPNCASGCTGNTATQCLTCLNYRDGTSCVEKCTPLKVLDPTTKEWVPNPNGKYAFGRFCVPECPEGYVLTPEGVCVRECRPDSYAKEIDGVLKCVPCDGTCPITCDGIGVGSLANTPTINAKNIPLYKNCTTIDGNIVINPTAFAGDPVTGTPALDPNDLLILKTIKKITGYLYISAWPSSWDSLEPFKNLETIEGKTRYNGKYALVIENLPITKLGLKSLKKIAAGNILISGNKNLCFAYTIDWSKYFGTSGQTVDLSNNRPREECIANGLVCNKLCSSDGCFGTKNSECVACKNVKDGDTCVESCNVTSGSPKQYIENGECVDCDKNCKPVKGGPTCSGKGPENCKECKNYLFGKYCVASCPNGVQGPNGKTAWYYADSNNVCLPCHPLCTKGCTGPGLEGCPPDTPVVPVAGAAGPLALLLALALLLALLAALRAALEERRRELERRRKLRENIEPEDPTGESPNPSLLRIISESEIEKLEKLGENGGGTVYRAILRPSGEKVKIPVALKELHRNDDPELRKRLLESALLMANVDHPNVLRLLGVVIGDSISLIMEYCPYGDLRTFIKKNKDKIGASTLLGWMVQIAEGLLYLEENRIVHRDLKADNVLVVDYNHIKITDFGRGRLLGKDEKYIVEDGGRWPYRWLALDAIKNRLFSFETDVWSFGVTMWEILTFGATPWEGIPDSELASLLEKGEILPKPAIASDAVYDVIRACLQKDPSKRPSFKELVKVFSEFAKDPTKYIHIEGDENKKLPSPENDPLKEKELEEPGLENVISADDYFNPDPSLDLPPLLPLPPLPAPAPAPPPPAPALELEEGGPPELPLPPEEEESIAGIDPDRGSPPGGPSAPVLPPPPSLSLAPPGAAAGPPPPPPEPPPPLPPPPGPPPGPLPPPPPAPLPPPGPPPAPVPPLPVPVPKPEKKKKKKEKKEPPPDPRGEDEKEEKKKKKKGPPGPPPLVPEEEEEPKPYVPPPAAA",
+        "length": 1210,
+        "type": "cyclic_peptide",
+        "design_strategy": "helical_mimetic",
+        "target_class": "intracellular",
+        "iptm": null,
+        "pae_interface": null,
+        "binder_plddt": null,
+        "refolding_source": null,
+        "aggregation": "high",
+        "solubility_score": 0.336,
+        "immunogenicity": "high",
+        "n_mhc_strong_binders": 56,
+        "developability_score": 0.1,
+        "stability": {
+          "half_life_class": "long",
+          "n_terminal_rule": "stable",
+          "proteolysis_concern": false
+        },
+        "disqualifying": [
+          "aggregation_high(score=0.48)",
+          "low_solubility(0.34)",
+          "immunogenic_chronic(n_mhc=56)"
+        ],
+        "concerns": [],
+        "passed": false,
+        "combined_pre8": 0.1,
+        "rank": 2,
+        "immunogenicity_report": ""
+      },
+      {
+        "id": "BIO_EGFR_003",
+        "sequence": "AAAAGGAALAALAAAAAAAPAPAPPAEPKTCEGTDLEYTKIGTDEENYNYLKEEFEGCEVVLGNLEIRFIPAGKDLSFLESVKVVEGYLLIANNTVSTIPLTNLRVIYGRTLYKGKYALVIENNYDSNGNGLSLLPMRNLTYIKKGAIKISNNPALCNIDTINWEDIINPEDLDKCELNFDNKNPNCPPCHPTCPGGSCWGPGADNCQVLTRTICHPTCPGRCRGTSPADCCHPNCASGCTGPSATQCLECLNIRCGDTCVAACPPLRVLDPETKEWVPNPNGLYRYGRFCVPACPPGYVVTPDGVCVPRCRPDEEAVLRDGVLECVPCDGTCPKVCDGIGVGSLANATTINATNIKSYEGCTTINGNIVINPTAFAGDPTTGIPALDPNDLQILKTIKEITGYLYITAWPPSWSNLDFFKNLKTINGKNKYNGTYSLVIENLPITELGLKSLKEIKSGNVKIKGNKNLCFAYTIDWSLYFGTSGQTVDISDNRPPEECKANGLVCNSLCSDKGCFGRSNSDCVACKNVKDGDTCVSSCNITSGSPRQYIENGQCVNCHPECEPVEGGPTCSGPGPENCAKCKNFLYGKYCVSSCPQGVPGPNGKTVWTYADENNVCLPCHPLCTSGCSGPGLEGCPPGSPVVPVAGAAGPAALAAAAAAAAAAAAAAAAAAAAEAALRAARRALREQCKPENPDGTEPDPRRLRIIDESEIEPLKLLGEGPGGKVYLALLTPSGETVKIPVALKVLKRNDDPELRRRIRRSALLMANVDHPNVLRLLGVVIGDRISLIFPYCPYGDLLTFLRKNKDRIGAKYLLNWMVQIAKGLKYLEDNRIVHRDLKAGNVLVVSPEHIRITDFGGGELLGPGQTTIVRDGGRIPKRWLAPEALANGLFSHQTDVWSFGITFWEILTFGATPWAGIPDEDILALLQKGEILPRPAIASQEVYDIIKACLQPDPAERPSFAELIKKFSEFNKNPTKYINIEGDENKKLPDISNDPLKEKLLSEPGLENVIDADEYFNPPPAADLAPAAPAPPLPGPAPAPPPPAPVAEVEEEGPPALPLPEGEEEELVGVPPDRGAPPGGPAAPVLPPPASIATAPAGPEAGPPPPPPAEEPPAPLAPAAPLAPRPPPLLAAAPPPGAGPAVKPGKVVVTPKKEKKKKKKKLVKPPPYPFGEEEGLKKKKKPKGKPGPPPEVPEEEEEPPPPVPPPAAA",
+        "length": 1210,
+        "type": "cyclic_peptide",
+        "design_strategy": "helical_mimetic",
+        "target_class": "intracellular",
+        "iptm": null,
+        "pae_interface": null,
+        "binder_plddt": null,
+        "refolding_source": null,
+        "aggregation": "high",
+        "solubility_score": 0.293,
+        "immunogenicity": "high",
+        "n_mhc_strong_binders": 52,
+        "developability_score": 0.1,
+        "stability": {
+          "half_life_class": "long",
+          "n_terminal_rule": "stable",
+          "proteolysis_concern": false
+        },
+        "disqualifying": [
+          "aggregation_high(score=0.42)",
+          "low_solubility(0.29)",
+          "immunogenic_chronic(n_mhc=52)"
+        ],
+        "concerns": [],
+        "passed": false,
+        "combined_pre8": 0.1,
+        "rank": 3,
+        "immunogenicity_report": ""
+      },
+      {
+        "id": "BIO_EGFR_004",
+        "sequence": "ALVLGGAAAPLLLALLAAIPPPPRPPKPKTCEGNNLGYTQLGTTEQNYAYLKSLYDGCEIVLGNLEIIFVPAGADLSFLKSIKTVNGYLLISNNTVSTIPLTNLQVIRGNTLYEGKYALVIENNYDSNNNGLRLLPMKSLTEIKKGAIKISNNPALCNLDTVDWSDIINPSSLSDNELNFNDIDPTCPPCHPSCPNGSCWGPGPENCQVLTRTICHPTCPGRCRGTSASDCCHPFCASGCTGNSATQCLTCLNYRDGDSCVASCPPLKILDPTTKKWVPNPNGKYAYGNFCVPKCPEGYVLTEKGVCVKECPPNSYAKLVDGVLKCVPCNGTCPKTCDGIGKGKLKDAKTINSKNIKYFKGCTTVDGNIVIDPTAFKGDPKTKTPPLDPKDLDILKSIKTITGYLKITAWPKTEKDLSAFENLETINGKEKYNGKYSLVIENLPITQLGLKSLKKIEKGDILISGNKNLCYAYTINWSKFFGTKGQKVDLSNNRPREECIANGLVCNPLCSDDGCFGPGNSDCVSCKNVSNGTTCVSSCNITSGSPRQYISNGQCVNCNSQCKPVSGGPTCSGPGPENCAACANYKYGNYCVASCPNGVLGPNGKKVYTYADSNNVCNLCHPLCTDGCTGPGLSGCKPDKPVVVVAGAAGPAPALLLLAALAALLAAKAAEEERREELLRERRERRERIPPSDPTGSRPNPDLLRFIDESEIERLRKLGEGPGGTVYRALLTPKGTDVKIPVALKVLHRNDDPELRKRILESALLMANVDHPNVLRLLGVVKGKNISLIFPYCPLGDLLTYVRRNKDQIGADTLLGWMVQIAEGMLYLEKNRIVHRDLKAGNVLVVSPTHVRITDFGGGELLGPGQTTIVRDGGFYSYRWLALDAIKNSLFSHASDIYSLGITFWEILTFGATPWEGIPDEELAALLEKGEIPPRPPIASDEVYNVIKKCLQPDPAERPSFAELVEFFSKMAKDPEKYLNIEGNANKKLPPESDDPRREAELAEPGLENVIDADTYFNPPPSEDLPPGAPAPAAAAPAPAPPPAAPAIASARAGPPKAPLPPGEEEELVGVPPYEGEPPGGPAAPVYPPPAAVALAPPAPPAGPPPPPLDEPPPLPEAPAPPPAPQPPPPAAPAPPPGAAPAPVPALEVVDPEEEEAEEEEPPVVPPPDPFGEEEGLELEPPPEGPPGPPPEVPDEEEEEKPYVPPPAAE",
+        "length": 1210,
+        "type": "cyclic_peptide",
+        "design_strategy": "helical_mimetic",
+        "target_class": "intracellular",
+        "iptm": null,
+        "pae_interface": null,
+        "binder_plddt": null,
+        "refolding_source": null,
+        "aggregation": "high",
+        "solubility_score": 0.349,
+        "immunogenicity": "high",
+        "n_mhc_strong_binders": 62,
+        "developability_score": 0.1,
+        "stability": {
+          "half_life_class": "long",
+          "n_terminal_rule": "stable",
+          "proteolysis_concern": false
+        },
+        "disqualifying": [
+          "aggregation_high(score=0.48)",
+          "low_solubility(0.35)",
+          "immunogenic_chronic(n_mhc=62)"
+        ],
+        "concerns": [],
+        "passed": false,
+        "combined_pre8": 0.1,
+        "rank": 4
+      },
+      {
+        "id": "BIO_EGFR_005",
+        "sequence": "AAAAGAAAAAAAAAAAAALPAPAPPPEPRTCRGTNRGYTQIGTAAQNYAYLKREFEGCEIVLGNLEIIYIPAGADLSFLKSIKEILGYLLIANNTVSTIPLTNLRVVRGDTLYEGKYAIVIENNHDSNGNGLSLLPMKNLTAIIKGAVKIENNPALCNIDTVKWEDIINPEDLDKCELNFNNTNPNCPPCHPSCPGGSCWGPGEENCQVLTRLICHPTCPGRCSGSSPSQCCHPYCASGCTGPSASQCLTCLNYRCGTECVAECPPLTVLDPETKEWIPNPNGLYAYGNRCVPACPPGYVLRPDGVCVRRCRPDEYAELVDGVLRCVPCDGTCPITCPGIGKGPLANAPTINSTNIPLWKGCTKVDGNIVIDPTAFTGDPVTKTPPLNPSDLDILKTIREITGYLYISAWPSSQDDLSFLKNLETINGKEKYNGKYALVIENLPITKLGLKSLKSIKDGNVLISGNSNLCYAYTINWSLLFGTSGQTVDLSNNRPRSECIANGEVCNSLCSSNGCFGPSNSECVACKNLTDGNTCVSSCNITSGSPRQYISNGQCVNCDPNCKPQSGAPTCSGPGNKNCKECKNYLYGDYCVSSCPNGVLGPNGKKVYYYADSNNVCLPCHPSCTNGCTGPGLSGCPPNSPVVVTVGGAGAAAAAAAAAAAAAAAAAAAAAAAAKEALLRARRERRRQIVPSNPTGEEPNPSLLKIISEDEIEPLEKLGEGRGGTVYKAYLRPAGTDVIIPVALKVLHENSDPELRKQLLKSALLMANVDHPNVLRLLGVVIGDKISLIFPYCPLGDLLTYLKKNKDKIGASQLLNWMVQIAKGLKYLEDNRIVHRDLKAGNVLVVDPNHIKITDFGGGELLGKDEKTITRDGGIYPYRWLALEAIKNSEFSFYSDVWSFGVTFWEILTFGAEPWAGVPDEELAALLEKGEILPKPAIASDEVYDLIKKCHQKDPEKRPTFAEIVKILSEFNKNPTKYLNIEGDENKKLPSPDNDPRKEKELEEPGMENVIDADDYFNPPPELDAKPAAAAAKAEAEEPEPEPEEPEEEEEEEGPPGLPLPPGEEEDIAGIDPYRDVPPGGPAPPVLPPPPVVALAPAGPPAGAPPPPAAAAAPAPAAAAPPPAPKPPPPPKKKPPPGKKPKPVPKEPVPVPGAPAPAAEVPLVVPPPDPIGEEEGLEPAPPPAGPPGPPPVVPDESEEEPLPVPPPSSS",
+        "length": 1210,
+        "type": "cyclic_peptide",
+        "design_strategy": "helical_mimetic",
+        "target_class": "intracellular",
+        "iptm": null,
+        "pae_interface": null,
+        "binder_plddt": null,
+        "refolding_source": null,
+        "aggregation": "high",
+        "solubility_score": 0.339,
+        "immunogenicity": "high",
+        "n_mhc_strong_binders": 52,
+        "developability_score": 0.1,
+        "stability": {
+          "half_life_class": "long",
+          "n_terminal_rule": "stable",
+          "proteolysis_concern": false
+        },
+        "disqualifying": [
+          "aggregation_high(score=0.42)",
+          "low_solubility(0.34)",
+          "immunogenic_chronic(n_mhc=52)"
+        ],
+        "concerns": [],
+        "passed": false,
+        "combined_pre8": 0.1,
+        "rank": 5
+      }
+    ],
+    "KRAS": [
+      {
+        "id": "BIO_KRAS_001",
+        "sequence": "MKKYKILIVGAPGVGKSSLARRYVYGEYNPEYVPTEEEKLEKEVTIDGEKVLLEIIDTSGSEKYKEKYPEYFKEADGVLVVFAVNDRESFERLDEYVKLIKEVKNTEDVPMVVVGNKADLPNQTVPEEEAKKYAESLGIPYIATSAKTGYNVEKAFNTLVKRIDEKEEKEKKEEEAKPPEEEEEEVIEE",
+        "length": 189,
+        "type": "cyclic_peptide",
+        "design_strategy": "helical_mimetic",
+        "target_class": "intracellular",
+        "iptm": null,
+        "pae_interface": null,
+        "binder_plddt": null,
+        "refolding_source": null,
+        "aggregation": "high",
+        "solubility_score": 0.556,
+        "immunogenicity": "high",
+        "n_mhc_strong_binders": 11,
+        "developability_score": 0.4,
+        "stability": {
+          "half_life_class": "long",
+          "n_terminal_rule": "stable",
+          "proteolysis_concern": false
+        },
+        "disqualifying": [
+          "aggregation_high(score=0.50)",
+          "immunogenic_chronic(n_mhc=11)"
+        ],
+        "concerns": [],
+        "passed": false,
+        "combined_pre8": 0.4,
+        "rank": 1,
+        "immunogenicity_report": ""
+      },
+      {
+        "id": "BIO_KRAS_002",
+        "sequence": "MKKYKILIVGDTGVGKSSLARRLVYGEYDPEYRPTREEKLTKKVTIDGEEVELEIVDTSGSEEYADTYPKYYKEADGALIVFARNDRASFENTKYWVELIKKVKNTEDFPMVLVGNKADLPDQVVPEEEAKAFAKSLGIPFIAVSAKTGYNVEEAFFTLVKEIEKRKKKEAEEEAAKPPEEEEEEIELE",
+        "length": 189,
+        "type": "cyclic_peptide",
+        "design_strategy": "helical_mimetic",
+        "target_class": "intracellular",
+        "iptm": null,
+        "pae_interface": null,
+        "binder_plddt": null,
+        "refolding_source": null,
+        "aggregation": "high",
+        "solubility_score": 0.471,
+        "immunogenicity": "high",
+        "n_mhc_strong_binders": 10,
+        "developability_score": 0.3,
+        "stability": {
+          "half_life_class": "long",
+          "n_terminal_rule": "stable",
+          "proteolysis_concern": false
+        },
+        "disqualifying": [
+          "aggregation_high(score=0.33)",
+          "immunogenic_chronic(n_mhc=10)"
+        ],
+        "concerns": [
+          "moderate_solubility(0.47)"
+        ],
+        "passed": false,
+        "combined_pre8": 0.3,
+        "rank": 2,
+        "immunogenicity_report": ""
+      },
+      {
+        "id": "BIO_KRAS_003",
+        "sequence": "MKTYKILITGSSGVGKSSLAIRFVYGKYDPKYVPTKHETLEKEVTIDGEKIKLVITDTSGREEYADTFPEYYKEADGFLLVFAVDDRESFERLGYFYEKIKKVKNSEDVPMVVVGNKADLPNQTVPRAEGEAFAASLGIPFIETSAKTGYNVEEAFFTLVKRIKEREEKKKAEEEAKPPEEEEEVVVLG",
+        "length": 189,
+        "type": "cyclic_peptide",
+        "design_strategy": "helical_mimetic",
+        "target_class": "intracellular",
+        "iptm": null,
+        "pae_interface": null,
+        "binder_plddt": null,
+        "refolding_source": null,
+        "aggregation": "high",
+        "solubility_score": 0.406,
+        "immunogenicity": "high",
+        "n_mhc_strong_binders": 8,
+        "developability_score": 0.3,
+        "stability": {
+          "half_life_class": "long",
+          "n_terminal_rule": "stable",
+          "proteolysis_concern": false
+        },
+        "disqualifying": [
+          "aggregation_high(score=0.47)",
+          "immunogenic_chronic(n_mhc=8)"
+        ],
+        "concerns": [
+          "moderate_solubility(0.41)"
+        ],
+        "passed": false,
+        "combined_pre8": 0.3,
+        "rank": 3,
+        "immunogenicity_report": ""
+      },
+      {
+        "id": "BIO_KRAS_004",
+        "sequence": "MKTYKILIVGAPGVGKSSLARRFVYGEYEPEYKPTKAERLTKEVTIDGKKVKLEITDTSGREEYAEKLPEYYKEADGVLLVFAANDRESFERLKYFYEKIKEVKNSEDVPMVLVGNKVDLPDQKVPLEEAEAFAKELGIPFIATSAKTGYNVEEAFFTLVKEIEKKKEKEKKEEEAKPPEEEEEEIELG",
+        "length": 189,
+        "type": "cyclic_peptide",
+        "design_strategy": "helical_mimetic",
+        "target_class": "intracellular",
+        "iptm": null,
+        "pae_interface": null,
+        "binder_plddt": null,
+        "refolding_source": null,
+        "aggregation": "high",
+        "solubility_score": 0.45,
+        "immunogenicity": "high",
+        "n_mhc_strong_binders": 12,
+        "developability_score": 0.3,
+        "stability": {
+          "half_life_class": "long",
+          "n_terminal_rule": "stable",
+          "proteolysis_concern": false
+        },
+        "disqualifying": [
+          "aggregation_high(score=0.47)",
+          "immunogenic_chronic(n_mhc=12)"
+        ],
+        "concerns": [
+          "moderate_solubility(0.45)"
+        ],
+        "passed": false,
+        "combined_pre8": 0.3,
+        "rank": 4
+      },
+      {
+        "id": "BIO_KRAS_005",
+        "sequence": "MKKYRILVTGAPGVGKSSLVRRFVYGEYDPNYEPTVEEVYEKKVVINGKEVLLIITDTSGSDEYESKFPEYYKEADGFLIVFAVDDRESFERTEYFVNLIKEVKKTENVPMVLVGNKADLPNQVVPEEEARKFAESLGIPYIAVSAKTGYNVEKAFFTLVEEIDKKKEKEKAEEKAKPPELEELELELE",
+        "length": 189,
+        "type": "cyclic_peptide",
+        "design_strategy": "helical_mimetic",
+        "target_class": "intracellular",
+        "iptm": null,
+        "pae_interface": null,
+        "binder_plddt": null,
+        "refolding_source": null,
+        "aggregation": "high",
+        "solubility_score": 0.429,
+        "immunogenicity": "high",
+        "n_mhc_strong_binders": 13,
+        "developability_score": 0.3,
+        "stability": {
+          "half_life_class": "long",
+          "n_terminal_rule": "stable",
+          "proteolysis_concern": false
+        },
+        "disqualifying": [
+          "aggregation_high(score=0.53)",
+          "immunogenic_chronic(n_mhc=13)"
+        ],
+        "concerns": [
+          "moderate_solubility(0.43)"
+        ],
+        "passed": false,
+        "combined_pre8": 0.3,
+        "rank": 5
+      }
+    ],
+    "ESR1": [
+      {
+        "id": "BIO_ESR1_001",
+        "sequence": "PVIVPLPEELEELEDLLRELLGRLPLKVPKVIIPKGGPLPGAVSLGPGTVVIPVPPGGPVPLPPALPPAAAPAPAAAAAAAPAPGPAEPDPAAPGAPPPAPPAVPTVPVPVKPPPKVPKKGKKKKKKKKKKKPPKKKKKKPKKPKKKKKKKKKKKKKKKKKKKKGKKKKKEKKKKKKKKKKKKKCKVCGAPADGLHYGIWTCKECADFFEEAEKNKLKYKCPGDGSHPINEETRFKCPACRLKKCKEVGMKKSKVPKKPGKKKGKKKKKKKKGKKKKGKPKKAKKEKAKKKVPKPPPEPKPPKVPPALQLSPEELVKTLLEAKPEVLTAPWDPSQPLTPASLLQLLVDLLERWLEKYREWALRIPGFSELSPFVQRLLLESSFLQLFLLDVIYRSIDHPGKLLFAPNLLLDAEQAKVVPGFEEIFAALLALSAEFAALKLTEEEFVILRALILFSAGIDEVFDKFLKSEEELELRKALIAKLEEALRAIFAKKGLSPEEIEARKAELLALLERIKEIAEKLVELLLSYKEQGLVPLPPLLERLLNSKLKLKPKKIEPIVVIPKVVPVPAPPAPAALATPAVVVALGPAEGPLPLP",
+        "length": 595,
+        "type": "cyclic_peptide",
+        "design_strategy": "helical_mimetic",
+        "target_class": "intracellular",
+        "iptm": null,
+        "pae_interface": null,
+        "binder_plddt": null,
+        "refolding_source": null,
+        "aggregation": "high",
+        "solubility_score": 0.517,
+        "immunogenicity": "high",
+        "n_mhc_strong_binders": 56,
+        "developability_score": 0.3,
+        "stability": {
+          "half_life_class": "long",
+          "n_terminal_rule": "stable",
+          "proteolysis_concern": false
+        },
+        "disqualifying": [
+          "aggregation_high(score=0.42)",
+          "immunogenic_chronic(n_mhc=56)"
+        ],
+        "concerns": [
+          "moderate_solubility(0.52)"
+        ],
+        "passed": false,
+        "combined_pre8": 0.3,
+        "rank": 1,
+        "immunogenicity_report": ""
+      },
+      {
+        "id": "BIO_ESR1_002",
+        "sequence": "KLKIKKKGKLPEIEDLLEELLGKVPVVTPKVVVPAGAPLPGALALGPGPVVVLVPPGGPLPLLPAAPEAAAAEPPGPAPPPPPPAPPAPAPAAPGAPPPAPPALGEVPVVEKPPPLVKKLGKKKKKKKKKPGKPAKKKKKPPKKKKKKKKKKKKKKKAKKKKAAGKKKPKAKPAPPKAPAPAKKCKVCGAPADGLHFGVWTCKECAEFFEEYIKNDKKYKCKGNGKHPINAETRKECPACRFKKCKEVGMTKSSKKPKPGKKPGKLAAAGEEGELAEKLPEKEKPKKKKKKVPKPPPKPKPPRVVPALQLTPEELIATLLAARPPVLTAPWDPSQPLTPARFLALLVALLEAFLKELRKWAKRVPGFSELSKETQRLLFESSWLELFILEVAYASIDHPGKLLFAPNLLIDREQAKVVPGFDKIFDRLLALSARLRELRLTPEEFVLLRALILFSAGLDKVFEKYLKSKEELELRQALIDKLLAALRALLAARGLSPEEQEARLAELLALLEEVKEIAEELEALLLAYRRAGLVPFPPLLARVLEAKEKLKPKKEKLKKKKKKKKPKPGPKKKEKKKEKKKKKKKGKEEEEEPEE",
+        "length": 595,
+        "type": "cyclic_peptide",
+        "design_strategy": "helical_mimetic",
+        "target_class": "intracellular",
+        "iptm": null,
+        "pae_interface": null,
+        "binder_plddt": null,
+        "refolding_source": null,
+        "aggregation": "high",
+        "solubility_score": 0.527,
+        "immunogenicity": "high",
+        "n_mhc_strong_binders": 46,
+        "developability_score": 0.3,
+        "stability": {
+          "half_life_class": "short",
+          "n_terminal_rule": "unstable",
+          "proteolysis_concern": true
+        },
+        "disqualifying": [
+          "aggregation_high(score=0.52)",
+          "immunogenic_chronic(n_mhc=46)"
+        ],
+        "concerns": [
+          "moderate_solubility(0.53)"
+        ],
+        "passed": false,
+        "combined_pre8": 0.3,
+        "rank": 2,
+        "immunogenicity_report": ""
+      },
+      {
+        "id": "BIO_ESR1_003",
+        "sequence": "PLKLPVPGLEPLLAPLLRSLVGAEPIKTPKIYIPKGKPLPGALGLGPGLVPILTPPGGPLPLPPAGPPEAAPAPAAAAAAGPAPGAAAPAPAAPGPPPPAPPAVPGPPVPLVPPPPVPAVGRRPRPPVRRPGPPAPAPPPPPAPPPRPRVRRRRRPRRGGSRRRGPVRPARKKKPKKEKKPEKKCKVCGAKADGLFFGIWTCKSCKEFFEKAETNNLKYKCKGDGNHPINEKTRSLCPACRYKKCLEVGMKKSSVPPRPGGRPGRKKRKGKLKKKKKKKKLKEKKEEEGELLPLPPLPPLPPKTPEALTLSAEELIKTLLEARPPVLEAPWDPSVPLTPARLAALLVALLERYLEELEKEAAKIPGFSDLPPEVQRRKLYSSWLELWILDVCYRSIDHPGKLLFAPNFLIDAEMAKVVPGFQEIFDMMLELSKEFRDINLTEEEYVLLRAIILFSAGLNEVEKDYLPDEKTKELIEAIINKYLEALDALLRKKGLSEEEIEERKKKLLSLLEKIKEIAEKLYEWLLALRRAGLVPFPPLLAAYLDYREEIKPKKKKKKKKVKKKKPKPKPKEPEEPEEEEEEEEEEPEEGLEPGP",
+        "length": 595,
+        "type": "cyclic_peptide",
+        "design_strategy": "helical_mimetic",
+        "target_class": "intracellular",
+        "iptm": null,
+        "pae_interface": null,
+        "binder_plddt": null,
+        "refolding_source": null,
+        "aggregation": "high",
+        "solubility_score": 0.446,
+        "immunogenicity": "high",
+        "n_mhc_strong_binders": 39,
+        "developability_score": 0.3,
+        "stability": {
+          "half_life_class": "long",
+          "n_terminal_rule": "stable",
+          "proteolysis_concern": false
+        },
+        "disqualifying": [
+          "aggregation_high(score=0.52)",
+          "immunogenic_chronic(n_mhc=39)"
+        ],
+        "concerns": [
+          "moderate_solubility(0.45)"
+        ],
+        "passed": false,
+        "combined_pre8": 0.3,
+        "rank": 3,
+        "immunogenicity_report": ""
+      },
+      {
+        "id": "BIO_ESR1_004",
+        "sequence": "PVPLPLPEEEEELLRKLRKLLGKLPLLVPKVVVPPGAPLPGLPALGPGPVLVPVPPGGLLLLPAAGPPAAAPEPAAAAPAPPAPGAAAPGPAAPGAPPPAPPALPAAPVPLPPPPPPPPVGPVPRPPVLRPGPPAPAAAPPPAPAPPPRRRRRVAPARGAAAAAGPPEPEERPEPPEVPVPPLKCKVCGAPADGLFFGVYTCKKCADFYKEAITKDLKYECPGDGNHPINEKTRDKCKACRYKKCKEVGMKKSSVPPLPGGRPGRKKKAAKAGKELPGPKKKKKKKKKKKKKPKPPPKPKPPKVVPALTLTPEELIKTLLDAEPPVLEAPWDPSVPLTPAVLARILFELLERFLEELEKEAEKIPGFSELSEELQRLLLESSFLRLFIWDVCYRSIDHPGKLLLAPNLLLDREQAKVVPGFETIFDKMLALSARLRELDITPEEHVILKALILFSAGVDEVLEEYLKSEEELELRKAIIEKLKAALRALLAKRGLSPEEIEAREAELLALLGDVEAIAEELWKLLRGYAKQGLVPLPPLLRRLLEAREKLEPEEPEVPVPVPVVAPVPGPPAPAAPGPPAAAAAAGPAGGPAPAP",
+        "length": 595,
+        "type": "cyclic_peptide",
+        "design_strategy": "helical_mimetic",
+        "target_class": "intracellular",
+        "iptm": null,
+        "pae_interface": null,
+        "binder_plddt": null,
+        "refolding_source": null,
+        "aggregation": "high",
+        "solubility_score": 0.251,
+        "immunogenicity": "high",
+        "n_mhc_strong_binders": 60,
+        "developability_score": 0.1,
+        "stability": {
+          "half_life_class": "long",
+          "n_terminal_rule": "stable",
+          "proteolysis_concern": false
+        },
+        "disqualifying": [
+          "aggregation_high(score=0.13)",
+          "low_solubility(0.25)",
+          "immunogenic_chronic(n_mhc=60)"
+        ],
+        "concerns": [],
+        "passed": false,
+        "combined_pre8": 0.1,
+        "rank": 4
+      },
+      {
+        "id": "BIO_ESR1_005",
+        "sequence": "PVVLPEEEEEEEEEEELEELLGDVPLLEPEVVVPAGAIVPGAVALGPGPVVVLVPPGLPLPAPAAGPAAAAAAPAAAAAAPPAPGAAAPAPAAPGAPPPAPPAAPAVPVPVPPAPPVPPLGPAPAPPVTVPGPPAPAPAPPPAPPPAPVAVPVAAPAAGAAAAAGPPAPAASPKPPKVPKPKKKCKVCGAPADGYFFGIYTCKECADFYKEAIENDLKYECPGDGNCEINEKTRTKCKKCRFKKCKEVGMKKSDEPPLPGGRPGEAEEEEELGEEEEGEPKPEEPEAAGEVIPPPPPPPPPPAVPPALALTPEELIEALLAARPPVLEAPFDPAVPLTPARFLALLVELLDRFLRELRRWARRIPGFSDLSPEVQELRFASAWLSLFLLEVAWASIDHPGKLRFAPNLLIDAEQAKVVPGFEPIFAALLALAAKLAAMDLTPEEFELLRALILFSAGVDEVLEDYLKSEEELALIEALRAKLLAALRALLARRGLSPEEIEARLAELLALLEEIAAIARALAALLRRYAEEGLVPLPPLLRRLLERRLELEPPEVAPVPVVPVAAPAPAPPAPEAPAPPAAAAAAGAAGGVALGA",
+        "length": 595,
+        "type": "cyclic_peptide",
+        "design_strategy": "helical_mimetic",
+        "target_class": "intracellular",
+        "iptm": null,
+        "pae_interface": null,
+        "binder_plddt": null,
+        "refolding_source": null,
+        "aggregation": "high",
+        "solubility_score": 0.179,
+        "immunogenicity": "high",
+        "n_mhc_strong_binders": 48,
+        "developability_score": 0.1,
+        "stability": {
+          "half_life_class": "long",
+          "n_terminal_rule": "stable",
+          "proteolysis_concern": false
+        },
+        "disqualifying": [
+          "aggregation_high(score=0.43)",
+          "low_solubility(0.18)",
+          "immunogenic_chronic(n_mhc=48)"
+        ],
+        "concerns": [],
+        "passed": false,
+        "combined_pre8": 0.1,
+        "rank": 5
+      }
+    ]
+  },
+  "n_targets": 3,
+  "n_candidates_total": 15,
+  "wall_time_s": 197.0
+}
