@@ -45,6 +45,7 @@ from app.tools.reactome import build_reactome_mcp_server
 from app.tools.scikit_bio import build_scikit_bio_mcp_server
 from app.tools.string_db import build_string_mcp_server
 from app.tools.uniprot import build_uniprot_mcp_server
+from app.tools.vina_docking import build_vina_docking_mcp_server
 from app.vault import decrypt
 
 # Tool source names whose builder takes an api_key positional arg instead
@@ -90,6 +91,7 @@ TOOL_BUILDERS = {
         "cobra_fba", build_cobra_fba_mcp_server,
         ["mcp__cobra_fba__search_metabolic_models", "mcp__cobra_fba__run_flux_balance_analysis"],
     ),
+    "vina_docking": ("vina_docking", build_vina_docking_mcp_server, ["mcp__vina_docking__dock_ligand"]),
 }
 
 

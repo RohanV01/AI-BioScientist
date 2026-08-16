@@ -127,6 +127,11 @@ RECORD_REF_PATTERNS: list[tuple[str, re.Pattern]] = [
     # (app/tools/cobra_fba.py), same methodological-citation pattern as
     # scikit-bio/Hugging Face.
     ("cobra FBA on {}", re.compile(r"\[cobra:([A-Za-z0-9_]+)\]")),
+    # Vina docking result -- real local computation (app/tools/vina_docking.py),
+    # same methodological-citation pattern as cobra/scikit-bio. The
+    # receptor PDB ID itself is separately caught by the existing "PDB {}"
+    # pattern above, since this tool's output also says "PDB <id>".
+    ("Vina docking against {}", re.compile(r"\[vina:([A-Za-z0-9]+)\]")),
 ]
 
 
