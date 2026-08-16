@@ -27,29 +27,39 @@ from app.db import async_session  # noqa: E402
 from app.models import Agent, Org, ToolBinding, ToolSource  # noqa: E402
 from app.vault import encrypt  # noqa: E402
 
-# name -> (category, access_model, mcp_server_ref, requires_expert_review)
-# for tool sources this script knows how to create. Matches
-# app/tool_roster.py's TOOL_BUILDERS keys -- add an entry here when you
-# add one there. requires_expert_review is docs/05-ux-behavior.md
-# Section 4's marker: True for clinical/regulatory-sensitive sources
-# (clinical variant databases, trial registries, drug labels, FAERS).
+# name -> (category, access_model, mcp_server_ref, requires_expert_review,
+# requires_credential) for tool sources this script knows how to create.
+# requires_expert_review is docs/05-ux-behavior.md Section 4's marker:
+# True for clinical/regulatory-sensitive sources (clinical variant
+# databases, trial registries, drug labels, FAERS). requires_credential
+# marks a BYO-paid-credential tool source (app/vault.py's Credential
+# vault, Section 8) -- a row can exist here and be bound to the agent
+# with mcp_server_ref pointing at nothing real yet (no TOOL_BUILDERS
+# entry in app/tool_roster.py): build_tool_roster() silently skips any
+# ToolSource with no matching builder, so a placeholder row is inert
+# until a real tool file + credential exist, not a live broken tool.
 KNOWN_TOOL_SOURCES = {
-    "pubmed": ("literature", "free_public", "in-process:app.tools.pubmed", False),
-    "chembl": ("drug_discovery", "free_public", "in-process:app.tools.chembl", False),
-    "open_targets": ("drug_discovery", "free_public", "in-process:app.tools.open_targets", False),
-    "literature_discovery": ("literature", "free_public", "in-process:app.tools.literature_discovery", False),
-    "ensembl": ("genomics", "free_public", "in-process:app.tools.ensembl", False),
-    "uniprot": ("genomics", "free_public", "in-process:app.tools.uniprot", False),
-    "clinvar": ("genomics", "free_public", "in-process:app.tools.clinvar", True),
-    "gnomad": ("genomics", "free_public", "in-process:app.tools.gnomad", False),
-    "ontologies": ("ontologies", "free_public", "in-process:app.tools.ontologies", False),
-    "kegg": ("systems_biology", "free_public", "in-process:app.tools.kegg", False),
-    "reactome": ("systems_biology", "free_public", "in-process:app.tools.reactome", False),
-    "string": ("systems_biology", "free_public", "in-process:app.tools.string_db", False),
-    "clinicaltrials": ("clinical", "free_public", "in-process:app.tools.clinicaltrials", True),
-    "dailymed": ("clinical", "free_public", "in-process:app.tools.dailymed", True),
-    "pdb": ("structural_biology", "free_public", "in-process:app.tools.pdb", False),
-    "alphafold": ("structural_biology", "free_public", "in-process:app.tools.alphafold", False),
+    "pubmed": ("literature", "free_public", "in-process:app.tools.pubmed", False, False),
+    "chembl": ("drug_discovery", "free_public", "in-process:app.tools.chembl", False, False),
+    "open_targets": ("drug_discovery", "free_public", "in-process:app.tools.open_targets", False, False),
+    "literature_discovery": ("literature", "free_public", "in-process:app.tools.literature_discovery", False, False),
+    "ensembl": ("genomics", "free_public", "in-process:app.tools.ensembl", False, False),
+    "uniprot": ("genomics", "free_public", "in-process:app.tools.uniprot", False, False),
+    "clinvar": ("genomics", "free_public", "in-process:app.tools.clinvar", True, False),
+    "gnomad": ("genomics", "free_public", "in-process:app.tools.gnomad", False, False),
+    "ontologies": ("ontologies", "free_public", "in-process:app.tools.ontologies", False, False),
+    "kegg": ("systems_biology", "free_public", "in-process:app.tools.kegg", False, False),
+    "reactome": ("systems_biology", "free_public", "in-process:app.tools.reactome", False, False),
+    "string": ("systems_biology", "free_public", "in-process:app.tools.string_db", False, False),
+    "clinicaltrials": ("clinical", "free_public", "in-process:app.tools.clinicaltrials", True, False),
+    "dailymed": ("clinical", "free_public", "in-process:app.tools.dailymed", True, False),
+    "pdb": ("structural_biology", "free_public", "in-process:app.tools.pdb", False, False),
+    "alphafold": ("structural_biology", "free_public", "in-process:app.tools.alphafold", False, False),
+    # Placeholder only -- no app/tools/drugbank.py, no TOOL_BUILDERS entry.
+    # User decision 2026-08-16: wire this once a real DrugBank credential
+    # is available; until then this row just marks the intent in the
+    # catalog. mcp_server_ref reflects that it's not real yet.
+    "drugbank": ("drug_discovery", "commercial_license", "not-yet-implemented", False, True),
     # pharmgkb intentionally not here yet -- see docs/10-build-plan.md
     # Shortlist #6: PharmGKB rebranded to ClinPGx and its old public API
     # surface (api.pharmgkb.org/v1/data/*) no longer resolves/works;
@@ -112,11 +122,11 @@ async def main(
                     print(f"  skipping unknown tool source {tool_name!r} (add it to KNOWN_TOOL_SOURCES)")
                     continue
             else:
-                category, access_model, mcp_ref, requires_review = KNOWN_TOOL_SOURCES[tool_name]
+                category, access_model, mcp_ref, requires_review, requires_cred = KNOWN_TOOL_SOURCES[tool_name]
                 if tool_source is None:
                     tool_source = ToolSource(
                         name=tool_name, category=category, access_model=access_model,
-                        requires_credential=False, mcp_server_ref=mcp_ref,
+                        requires_credential=requires_cred, mcp_server_ref=mcp_ref,
                         requires_expert_review=requires_review,
                     )
                     db.add(tool_source)
