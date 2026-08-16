@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en" data-resolution="landscape">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: #0a0e12;
+      }
+      body {
+        font-family: "Inter", sans-serif;
+        color: #f1f5f4;
+      }
+      code,
+      pre,
+      .monospace {
+        font-family: "JetBrains Mono", monospace;
+      }
+      .scene {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+      }
+      .eyebrow {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 26px;
+        letter-spacing: 6px;
+        text-transform: uppercase;
+        color: #34d399;
+        margin-bottom: 28px;
+      }
+      .headline {
+        font-size: 108px;
+        font-weight: 800;
+        letter-spacing: -2px;
+        color: #ffffff;
+      }
+      .subline {
+        font-size: 38px;
+        font-weight: 400;
+        color: #9aa7ab;
+        margin-top: 30px;
+        max-width: 1300px;
+        text-align: center;
+        line-height: 1.5;
+      }
+      .accent {
+        color: #34d399;
+      }
+      .panel-card {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 40px;
+      }
+      .panel-img-wrap {
+        width: 1500px;
+        border-radius: 18px;
+        overflow: hidden;
+        border: 1px solid #1f2a2e;
+        box-shadow: 0 40px 90px rgba(0, 0, 0, 0.55);
+      }
+      .panel-img-wrap img {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+      .panel-caption {
+        font-size: 34px;
+        color: #e2e8ea;
+        text-align: center;
+        max-width: 1300px;
+      }
+      .panel-caption .accent {
+        font-weight: 700;
+      }
+      .closing-stats {
+        display: flex;
+        gap: 90px;
+        margin-top: 50px;
+      }
+      .stat {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .stat-num {
+        font-size: 72px;
+        font-weight: 800;
+        color: #34d399;
+      }
+      .stat-label {
+        font-size: 26px;
+        color: #9aa7ab;
+        margin-top: 8px;
+        letter-spacing: 1px;
+      }
+      .cta {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 30px;
+        color: #f1f5f4;
+        margin-top: 60px;
+        padding: 20px 40px;
+        border: 1px solid #34d399;
+        border-radius: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="27.5"
+      data-width="1920"
+      data-height="1080"
+    >
+      <!-- Scene 1: Title (0 - 3.5s) -->
+      <div id="scene-title" class="clip scene" data-start="0" data-duration="3.5" data-track-index="1">
+        <div class="eyebrow">Open Source for Autonomous Discovery</div>
+        <div class="headline">OpenBioLab</div>
+        <div class="subline">An open source agentic orchestrator, connected to every research tool we can wire in.</div>
+      </div>
+
+      <!-- Scene 2: Belief statement (3.5 - 7s) -->
+      <div id="scene-belief" class="clip scene" data-start="3.5" data-duration="3.5" data-track-index="1">
+        <div class="subline" style="font-size: 52px; color: #f1f5f4; max-width: 1500px;">
+          We believe biosciences can be <span class="accent">accelerated with AI</span>.
+        </div>
+        <div class="subline" style="margin-top: 40px;">This is our attempt at Applied AI in service of that.</div>
+      </div>
+
+      <!-- Scene 3: Panel - ChEMBL / EGFR query (7 - 12.5s) -->
+      <div id="scene-panel1" class="clip scene" data-start="7" data-duration="5.5" data-track-index="1">
+        <div class="panel-card">
+          <div class="panel-img-wrap"><img src="assets/panel-chembl.jpg" /></div>
+          <div class="panel-caption">Ask a real research question in chat. Get back a <span class="accent">grounded answer</span>, with a live tool call behind every claim.</div>
+        </div>
+      </div>
+
+      <!-- Scene 4: Panel - scikit-bio diversity (12.5 - 18s) -->
+      <div id="scene-panel2" class="clip scene" data-start="12.5" data-duration="5.5" data-track-index="1">
+        <div class="panel-card">
+          <div class="panel-img-wrap"><img src="assets/panel-scikitbio.jpg" /></div>
+          <div class="panel-caption">Real local computation, not just lookups. <span class="accent">scikit-bio</span> runs inside the orchestrator itself.</div>
+        </div>
+      </div>
+
+      <!-- Scene 5: Panel - Grounding Log (18 - 23.5s) -->
+      <div id="scene-panel3" class="clip scene" data-start="18" data-duration="5.5" data-track-index="1">
+        <div class="panel-card">
+          <div class="panel-img-wrap"><img src="assets/panel-groundinglog.jpg" /></div>
+          <div class="panel-caption">Every response logged with its tool calls and citations. <span class="accent">Full audit trail</span>, always.</div>
+        </div>
+      </div>
+
+      <!-- Scene 6: Closing (23.5 - 27.5s) -->
+      <div id="scene-closing" class="clip scene" data-start="23.5" data-duration="4" data-track-index="1">
+        <div class="headline" style="font-size: 88px;">OpenBioLab</div>
+        <div class="closing-stats">
+          <div class="stat"><div class="stat-num">20+</div><div class="stat-label">TOOLS LIVE</div></div>
+          <div class="stat"><div class="stat-num">100+</div><div class="stat-label">MORE QUEUED</div></div>
+          <div class="stat"><div class="stat-num">12</div><div class="stat-label">OPEN BRANCHES</div></div>
+        </div>
+        <div class="cta">MIT licensed. Fork it.</div>
+      </div>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      function sceneInOut(id, start, duration, holdIn, holdOut) {
+        tl.to("#" + id, { opacity: 1, duration: 0.01 }, start);
+        tl.from("#" + id + " > *", { opacity: 0, y: 26, duration: holdIn, stagger: 0.12, ease: "power2.out" }, start + 0.05);
+        tl.to("#" + id, { opacity: 0, duration: holdOut, ease: "power1.in" }, start + duration - holdOut);
+      }
+
+      sceneInOut("scene-title", 0, 3.5, 0.7, 0.5);
+      sceneInOut("scene-belief", 3.5, 3.5, 0.7, 0.5);
+      sceneInOut("scene-panel1", 7, 5.5, 0.7, 0.5);
+      sceneInOut("scene-panel2", 12.5, 5.5, 0.7, 0.5);
+      sceneInOut("scene-panel3", 18, 5.5, 0.7, 0.5);
+      sceneInOut("scene-closing", 23.5, 4, 0.7, 0.6);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

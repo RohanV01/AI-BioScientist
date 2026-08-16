@@ -10,7 +10,11 @@ We believe biosciences can be accelerated with AI. This is our attempt at Applie
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)](orchestrator/pyproject.toml)
 [![Status: build in progress](https://img.shields.io/badge/status-build%20in%20progress-orange)](CHANGELOG.md)
 
-> A capability-demo video is in progress (built HTML to video, via HyperFrames) and will be embedded here once it's rendered.
+<p align="center">
+  <img src="docs/media/capability-demo.gif" alt="OpenBioLab capability demo" width="720">
+  <br>
+  <sub><a href="docs/media/capability-demo.mp4">full-quality MP4</a> · built HTML to video, via <a href="https://github.com/heygen-com/hyperframes">HyperFrames</a>, real screenshots from a live run</sub>
+</p>
 
 ## What you can actually ask it today
 
