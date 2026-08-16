@@ -40,7 +40,9 @@ from app.tools.literature_discovery import build_literature_discovery_mcp_server
 from app.tools.ontologies import build_ontologies_mcp_server
 from app.tools.open_targets import build_open_targets_mcp_server
 from app.tools.pdb import build_pdb_mcp_server
+from app.tools.primer3 import build_primer3_mcp_server
 from app.tools.pubmed import build_pubmed_mcp_server
+from app.tools.pyhmmer_search import build_pyhmmer_search_mcp_server
 from app.tools.reactome import build_reactome_mcp_server
 from app.tools.scikit_bio import build_scikit_bio_mcp_server
 from app.tools.string_db import build_string_mcp_server
@@ -92,6 +94,11 @@ TOOL_BUILDERS = {
         ["mcp__cobra_fba__search_metabolic_models", "mcp__cobra_fba__run_flux_balance_analysis"],
     ),
     "vina_docking": ("vina_docking", build_vina_docking_mcp_server, ["mcp__vina_docking__dock_ligand"]),
+    "primer3": ("primer3", build_primer3_mcp_server, ["mcp__primer3__design_pcr_primers"]),
+    "pyhmmer_search": (
+        "pyhmmer_search", build_pyhmmer_search_mcp_server,
+        ["mcp__pyhmmer_search__search_pfam_domain"],
+    ),
 }
 
 

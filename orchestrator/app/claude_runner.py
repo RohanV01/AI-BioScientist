@@ -132,6 +132,13 @@ RECORD_REF_PATTERNS: list[tuple[str, re.Pattern]] = [
     # receptor PDB ID itself is separately caught by the existing "PDB {}"
     # pattern above, since this tool's output also says "PDB <id>".
     ("Vina docking against {}", re.compile(r"\[vina:([A-Za-z0-9]+)\]")),
+    # Primer3 primer-pair design -- real local computation
+    # (app/tools/primer3.py), same methodological-citation pattern.
+    ("Primer3 design {}", re.compile(r"\[primer3:(\w+)\]")),
+    # pyhmmer Pfam-domain search against InterPro's HMM (app/tools/
+    # pyhmmer_search.py) -- real local computation on a fetched profile,
+    # same methodological-citation pattern.
+    ("pyhmmer search {}", re.compile(r"\[pyhmmer:(PF\d+)\]")),
 ]
 
 
