@@ -118,6 +118,15 @@ RECORD_REF_PATTERNS: list[tuple[str, re.Pattern]] = [
     # "PDB <id> composition:", so it's already caught by the existing
     # PDB ID pattern above.
     ("scikit-bio metric {}", re.compile(r"\[scikit-bio:(\w+)\]")),
+    # BiGG model IDs (e.g. "e_coli_core", "iAF1260b") are short
+    # alphanumeric/underscore tokens too ambiguous to match bare -- same
+    # "PDB " lookbehind precedent, tied to app/tools/cobra_fba.py always
+    # formatting its own output as "BiGG model <id>".
+    ("BiGG model {}", re.compile(r"(?<=BiGG model )([A-Za-z0-9_]+)")),
+    # The FBA growth-rate result is a real local computation
+    # (app/tools/cobra_fba.py), same methodological-citation pattern as
+    # scikit-bio/Hugging Face.
+    ("cobra FBA on {}", re.compile(r"\[cobra:([A-Za-z0-9_]+)\]")),
 ]
 
 

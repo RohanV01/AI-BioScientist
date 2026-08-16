@@ -30,6 +30,7 @@ from app.tools.biopandas_structure import build_biopandas_structure_mcp_server
 from app.tools.chembl import build_chembl_mcp_server
 from app.tools.clinicaltrials import build_clinicaltrials_mcp_server
 from app.tools.clinvar import build_clinvar_mcp_server
+from app.tools.cobra_fba import build_cobra_fba_mcp_server
 from app.tools.dailymed import build_dailymed_mcp_server
 from app.tools.ensembl import build_ensembl_mcp_server
 from app.tools.gnomad import build_gnomad_mcp_server
@@ -84,6 +85,10 @@ TOOL_BUILDERS = {
     "biopandas_structure": (
         "biopandas_structure", build_biopandas_structure_mcp_server,
         ["mcp__biopandas_structure__get_structure_composition"],
+    ),
+    "cobra_fba": (
+        "cobra_fba", build_cobra_fba_mcp_server,
+        ["mcp__cobra_fba__search_metabolic_models", "mcp__cobra_fba__run_flux_balance_analysis"],
     ),
 }
 

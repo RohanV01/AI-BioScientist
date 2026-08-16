@@ -63,6 +63,7 @@ KNOWN_TOOL_SOURCES = {
     # GitHub-repo triage) -- real in-process computation, no external API.
     "scikit_bio": ("microbiome", "free_public", "in-process:app.tools.scikit_bio", False, False),
     "biopandas_structure": ("structural_biology", "free_public", "in-process:app.tools.biopandas_structure", False, False),
+    "cobra_fba": ("systems_biology", "free_public", "in-process:app.tools.cobra_fba", False, False),
     # Placeholder only -- no app/tools/drugbank.py, no TOOL_BUILDERS entry.
     # User decision 2026-08-16: wire this once a real DrugBank credential
     # is available; until then this row just marks the intent in the
