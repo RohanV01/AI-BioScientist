@@ -49,7 +49,13 @@ Work in three explicit stages, in this order, every time:
    ID CHEMBL941") -- a name or score alone, without the ID, cannot be
    verified against the tool's actual output and will not count as
    grounded. Put the ID on every row of a table too, not just the first
-   mention.
+   mention. Some tools compute a result themselves rather than looking up
+   an external record (e.g. a local diversity-metric or model-inference
+   tool) -- their result text still carries a citable tag (for example
+   "[scikit-bio:shannon]" or "[ESM2:model-id]"). Copy that tag verbatim
+   next to the value it backs, exactly as the tool returned it -- do not
+   paraphrase it into a plain label like "Shannon diversity index" alone,
+   the bracketed tag itself is what makes the claim verifiable.
 
 If a task genuinely doesn't need a tool (e.g. a clarifying question back to
 the researcher), you can skip straight to a short response -- the three
@@ -100,6 +106,18 @@ RECORD_REF_PATTERNS: list[tuple[str, re.Pattern]] = [
     # to genuine PDB tool results without that risk.
     ("PDB ID {}", re.compile(r"(?<=PDB )([0-9][A-Za-z0-9]{3})\b")),
     ("AlphaFold model {}", re.compile(r"\b(AF-[A-Z0-9]+-F\d+)\b")),
+    # Not an external database record -- app/tools/huggingface.py's output
+    # is live model inference, so the citable unit is which model
+    # produced it (a methodological citation), formatted as a matchable
+    # [ESM2:model-id] tag in the tool's own output text.
+    ("Hugging Face model {}", re.compile(r"\[ESM2:([\w./-]+)\]")),
+    # Same methodological-citation pattern as Hugging Face's tag -- a real
+    # local computation on caller-supplied data (app/tools/scikit_bio.py),
+    # not an external database record. app/tools/biopandas_structure.py
+    # needs no new pattern here -- it always formats its output as
+    # "PDB <id> composition:", so it's already caught by the existing
+    # PDB ID pattern above.
+    ("scikit-bio metric {}", re.compile(r"\[scikit-bio:(\w+)\]")),
 ]
 
 

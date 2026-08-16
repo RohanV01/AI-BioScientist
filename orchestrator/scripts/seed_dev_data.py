@@ -55,6 +55,14 @@ KNOWN_TOOL_SOURCES = {
     "dailymed": ("clinical", "free_public", "in-process:app.tools.dailymed", True, False),
     "pdb": ("structural_biology", "free_public", "in-process:app.tools.pdb", False, False),
     "alphafold": ("structural_biology", "free_public", "in-process:app.tools.alphafold", False, False),
+    # free_metered, not free_public -- HF's Inference API needs a real
+    # (free-to-create) token, unlike the NCBI/EBI/RCSB-style truly
+    # anonymous APIs everything else here uses.
+    "huggingface": ("compute", "free_metered", "in-process:app.tools.huggingface", False, True),
+    # Wrapped local libraries (docs/10-build-plan.md Phase 5's bio.tools +
+    # GitHub-repo triage) -- real in-process computation, no external API.
+    "scikit_bio": ("microbiome", "free_public", "in-process:app.tools.scikit_bio", False, False),
+    "biopandas_structure": ("structural_biology", "free_public", "in-process:app.tools.biopandas_structure", False, False),
     # Placeholder only -- no app/tools/drugbank.py, no TOOL_BUILDERS entry.
     # User decision 2026-08-16: wire this once a real DrugBank credential
     # is available; until then this row just marks the intent in the
