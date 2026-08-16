@@ -4,7 +4,7 @@
 
 ## What this is
 
-**AI Scientist** is a local-first research platform: a Mattermost-based messaging workspace where a researcher delegates tasks to specialized domain agents (genomics, drug discovery, literature, structural biology, systems biology, clinical/commercial ops, microbiome/immunology) instead of manually stitching together a dozen databases and tools by hand. Every agent runs on Claude Code/Codex, calling real MCP-wired tools and data sources, and every response carries a traceable link back to the tool call, record, or citation that produced it.
+**OpenBioLab** is a local-first research platform: a Mattermost-based messaging workspace where a researcher delegates tasks to specialized domain agents (genomics, drug discovery, literature, structural biology, systems biology, clinical/commercial ops, microbiome/immunology) instead of manually stitching together a dozen databases and tools by hand. Every agent runs on Claude Code/Codex, calling real MCP-wired tools and data sources, and every response carries a traceable link back to the tool call, record, or citation that produced it.
 
 It is the build-out of [[researcher-lab-experiment-catalog-2026-08-15]] (the "Researcher's Lab" report) — that report is this project's requirements source: its 105 experiments are the feature backlog, its gap analysis is the infrastructure roadmap, and its Section 11 (Product Vision) is the architecture brief this document expands on.
 

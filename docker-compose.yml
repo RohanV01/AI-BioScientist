@@ -7,7 +7,7 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: ai-scientist-postgres
+    container_name: openbiolab-postgres
     restart: unless-stopped
     environment:
       POSTGRES_USER: aiscientist
@@ -26,7 +26,7 @@ services:
 
   mattermost:
     image: mattermost/mattermost-team-edition:9.11
-    container_name: ai-scientist-mattermost
+    container_name: openbiolab-mattermost
     restart: unless-stopped
     depends_on:
       postgres:
@@ -57,7 +57,7 @@ services:
 
   orchestrator:
     build: ./orchestrator
-    container_name: ai-scientist-orchestrator
+    container_name: openbiolab-orchestrator
     restart: unless-stopped
     depends_on:
       postgres:

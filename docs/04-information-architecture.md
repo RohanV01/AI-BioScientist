@@ -18,7 +18,7 @@ Mattermost's own hierarchy (Team → Channel → Thread → Message) is reused a
 
 ```mermaid
 graph TD
-    subgraph Team["AI Scientist Workspace (1 Mattermost Team)"]
+    subgraph Team["OpenBioLab Workspace (1 Mattermost Team)"]
         direction TB
 
         subgraph Core["Core channels"]

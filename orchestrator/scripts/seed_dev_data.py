@@ -12,7 +12,7 @@ flag; "cluster" on the Agent model is vestigial post-pivot
 Usage:
   .venv/bin/python scripts/seed_dev_data.py \\
     --team-id <mattermost_team_id> --bot-user-id <bot_user_id> \\
-    --bot-token <bot_access_token> [--name "AI Scientist"] [--tools pubmed]
+    --bot-token <bot_access_token> [--name "OpenBioLab"] [--tools pubmed]
 """
 import argparse
 import asyncio
@@ -89,7 +89,7 @@ async def main(
         org = result.scalar_one_or_none()
         if org is None:
             org = Org(
-                name="AI Scientist (dev)", mattermost_team_id=team_id,
+                name="OpenBioLab (dev)", mattermost_team_id=team_id,
                 grounding_log_channel_id=grounding_log_channel_id or None,
             )
             db.add(org)
@@ -169,7 +169,7 @@ if __name__ == "__main__":
     parser.add_argument("--team-id", required=True)
     parser.add_argument("--bot-user-id", required=True)
     parser.add_argument("--bot-token", default="", help="Mattermost personal access token for this bot")
-    parser.add_argument("--name", default="AI Scientist")
+    parser.add_argument("--name", default="OpenBioLab")
     parser.add_argument("--tools", default="pubmed", help="Comma-separated tool source names to bind")
     parser.add_argument(
         "--grounding-log-channel-id", default="",

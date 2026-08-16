@@ -22,7 +22,7 @@ from claude_agent_sdk import (
 from app.tool_roster import ToolRoster
 
 MASTER_AGENT_SYSTEM_PROMPT = """\
-You are the AI Scientist research agent. A researcher will ask you something --
+You are the OpenBioLab research agent. A researcher will ask you something --
 answer it by using the tools available to you, never from memory alone for
 anything you could instead look up.
 
@@ -190,7 +190,7 @@ async def run_agent(
         strict_mcp_config=True,
         permission_mode="bypassPermissions",  # headless service, no human to prompt
         max_turns=10,
-        cwd=tempfile.mkdtemp(prefix="ai-scientist-agent-"),
+        cwd=tempfile.mkdtemp(prefix="openbiolab-agent-"),
     )
 
     pending_calls: dict[str, dict] = {}
