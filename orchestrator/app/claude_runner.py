@@ -132,6 +132,9 @@ RECORD_REF_PATTERNS: list[tuple[str, re.Pattern]] = [
     # receptor PDB ID itself is separately caught by the existing "PDB {}"
     # pattern above, since this tool's output also says "PDB <id>".
     ("Vina docking against {}", re.compile(r"\[vina:([A-Za-z0-9]+)\]")),
+    # msprime coalescent simulation -- real local computation
+    # (app/tools/msprime.py), same methodological-citation pattern.
+    ("msprime {}", re.compile(r"\[msprime:(\w+)\]")),
 ]
 
 

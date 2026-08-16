@@ -52,7 +52,12 @@ async def simulate_coalescent_diversity(args: dict[str, Any]) -> dict[str, Any]:
     mts = msprime.sim_mutations(ts, rate=mutation_rate, random_seed=random_seed)
 
     diversity = mts.diversity()
-    seg_sites = mts.segregating_sites()
+    # span_normalise=False for the raw site count -- the default
+    # (span_normalise=True) divides by sequence_length, which for a typical
+    # simulation is a small fraction (e.g. 77 sites / 50,000bp = 0.00154)
+    # and silently rounds to "0.0" under any reasonable display precision,
+    # making a real result look like zero segregating sites were found.
+    seg_sites = mts.segregating_sites(span_normalise=False)
     tajimas_d = mts.Tajimas_D()
 
     # [msprime:simulation] is the citable unit -- same methodological-
@@ -63,7 +68,7 @@ async def simulate_coalescent_diversity(args: dict[str, Any]) -> dict[str, Any]:
         f"(n={sample_size} haploid samples, L={sequence_length}bp, "
         f"Ne={population_size}, mu={mutation_rate}, r={recombination_rate}):",
         f"- Nucleotide diversity (pi): {diversity:.6f}",
-        f"- Segregating sites: {seg_sites:.1f}",
+        f"- Segregating sites: {seg_sites:.0f}",
         f"- Tajima's D: {tajimas_d:.4f}",
         f"- Trees in ancestral recombination graph: {ts.num_trees}",
     ]
