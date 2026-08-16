@@ -32,6 +32,18 @@ These map to tool sources that are wired and live-verified right now, not a road
 
 Every answer comes back with the record ID or computation tag inline (`PMID 12345678`, `CHEMBL941`, `[vina:6LU7]`) so you can verify it against the tool's own output — the agent is instructed to never state a detail a tool didn't actually return, even one it "recognizes."
 
+## Research workflows this replaces today
+
+Zoomed out past the individual tool table, these are the actual multi-step research tasks the current tool set already covers end-to-end in one chat message, without opening a dozen tabs by hand:
+
+- **Target & mechanism research** — go from a gene or protein to its structure, pathways, interaction partners, and known drugs in one pass (Ensembl/UniProt → PDB/AlphaFold → KEGG/Reactome/STRING → Open Targets/ChEMBL).
+- **Drug discovery triage** — find active compounds, understand mechanism of action, and run a real molecular docking pose against a target structure, cross-referenced against trial status and label data for anything already approved.
+- **Variant interpretation** — pull clinical significance and population allele frequency for the same variant side by side (ClinVar + gnomAD) — the two numbers you need together to judge pathogenicity.
+- **Literature-grounded due diligence** — search PubMed and get a compliance-checked answer on legal full-text availability (open access vs. Sci-Hub, tier always disclosed), every claim citable back to a PMID or DOI.
+- **Systems-level modeling** — real flux balance analysis on a genome-scale metabolic model (an actual constraint-based optimization, not a pathway diagram).
+- **Microbiome composition analysis** — real diversity statistics computed locally on your own abundance data, no upload to a third-party service.
+- **Regulatory/commercial due diligence** — trial status and drug label lookups in one place, aimed at the commercial/pharma research persona specifically, not just academic literature search.
+
 ## Tool & data-source coverage
 
 21 tool sources wired end-to-end (20 live today with no setup beyond cloning; 1 pending a free API token), plus one cataloged placeholder waiting on a licensed data source:
@@ -51,9 +63,22 @@ Every answer comes back with the record ID or computation tag inline (`PMID 1234
 
 **Structural biology, drug discovery, and systems biology tools run real local computation** — AutoDock Vina, cobrapy, scikit-bio, and BioPandas execute the actual packages inside the orchestrator's own Python environment, with no external API call and no rate limit for the computation itself.
 
-## What's next — the open backlog
+## Roadmap — what's being built next
 
-`docs/12-biotools-triage-shortlist.md` has **100+ additional tools already triaged**, one-by-one, across a 33,888-entry bio.tools catalog and 1,000 starred GitHub repos — each tagged with what gap it fills, whether it's a `pip install` away or needs a real integration, and how confident the triage is. They're organized into 11 capability clusters (structural biology, sequence analysis, phylogenetics, transcriptomics, population genetics, metagenomics, cheminformatics, immunoinformatics, proteomics, synthetic biology, and more), each with its own branch so parallel work doesn't collide. The single highest-leverage open item: an R/Bioconductor bridge that unlocks a large cluster of the strongest remaining candidates (Seurat, scran, dada2, WGCNA). See [`CONTRIBUTING.md`](CONTRIBUTING.md).
+**In progress right now** — five tools drafted/dependency-installed, not yet wired or live-verified, each parked on its matching cluster branch for the next work session to finish:
+- **Primer3** (PCR/qPCR primer design) — `feature/sequence-analysis`
+- **pyhmmer** (HMMER3 profile/Pfam-domain search) — `feature/sequence-analysis`
+- **msprime** (coalescent population-genetics simulation) — `feature/population-genetics`
+- **PLIP** (protein-ligand interaction profiling — explains a Vina docking pose's H-bonds/π-stacking) — `feature/structural-biology`
+- **MHCflurry** (peptide-MHC-I binding affinity prediction) — `feature/immunoinformatics`
+
+**The open backlog** — `docs/12-biotools-triage-shortlist.md` has **100+ additional tools already triaged**, one-by-one, across a 33,888-entry bio.tools catalog and 1,000 starred GitHub repos — each tagged with what gap it fills, whether it's a `pip install` away or needs a real integration, and how confident the triage is. They're organized into 11 capability clusters (structural biology, sequence analysis, phylogenetics, transcriptomics, population genetics, metagenomics, cheminformatics, immunoinformatics, proteomics, synthetic biology, and more), each with its own branch (`feature/<cluster-name>`) so parallel work doesn't collide. See [`CONTRIBUTING.md`](CONTRIBUTING.md).
+
+**The single highest-leverage open item** — an R/Bioconductor bridge (`rpy2` or an `Rscript`-subprocess wrapper) on `feature/r-bioconductor-bridge`. Nothing in this codebase touches R yet, and a large cluster of the strongest remaining candidates — Seurat, scran, dada2, WGCNA, most of the Bioconductor single-cell/transcriptomics ecosystem — sit behind that one missing piece. Building it unlocks the largest single chunk of the backlog at once.
+
+**Pending credentials, not code** — Hugging Face (ESM2 inference) is fully wired and just needs a real free API token via `scripts/add_credential.py`; DrugBank is cataloged but needs a licensed data credential before any code gets written against it.
+
+**Also coming** — a capability-demo video, authored as HTML/CSS and rendered to MP4 via [HyperFrames](https://github.com/heygen-com/hyperframes) (HTML → video, no screen recording), embedded at the top of this README once it's done.
 
 ## Getting started
 
