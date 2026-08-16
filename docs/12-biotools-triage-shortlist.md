@@ -19,7 +19,7 @@ Already-built tools (16 external-API + scikit-bio, BioPandas, cobra, Vina/RDKit/
 - [ ] **DockQ** (PIP, Medium) / **spyrmsd** (PIP, Medium) — score docking pose quality/RMSD; complements Vina output.
 - [ ] **Foldseek** (CLONE, High) / **FoldMason** (CLONE, Medium) — structure-vs-structure similarity search; multi-structure alignment.
 - [ ] **DSSP** (CLONE, High) — secondary structure assignment from a PDB file.
-- [ ] **PLIP** (PIP, High) — non-covalent interaction profiling (H-bonds, π-stacking, etc.) from a protein-ligand complex; explains a Vina docking pose.
+- [x] **PLIP** (PIP, High) — non-covalent interaction profiling (H-bonds, π-stacking, etc.) from a protein-ligand complex; explains a Vina docking pose.
 - [ ] **IDPConformerGenerator** (PIP, High) — 3D conformer ensembles for intrinsically disordered protein regions from sequence.
 - [ ] **correlationplus** (PIP, Medium-High) — dynamical/allosteric residue correlation from a static structure (Elastic Network Model, no trajectory needed).
 - [ ] **HADDOCK3** (CLONE, Medium) — protein-protein/protein-nucleic-acid docking (Vina only does small-molecule).
