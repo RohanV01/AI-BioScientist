@@ -22,6 +22,10 @@ rdkit>=2026.3,<2027.0
 vina>=1.2,<2.0
 meeko>=0.7,<1.0
 gemmi>=0.7,<1.0
+# mhcflurry needs CPU-only torch installed FIRST to avoid pulling the full
+# CUDA toolkit: uv pip install torch --index-url https://download.pytorch.org/whl/cpu
+# Also needs a one-time model download: .venv/bin/mhcflurry-downloads fetch models_class1_pan
+mhcflurry>=2.0,<3.0
 
 # dev/test
 pytest>=8.3,<9.0

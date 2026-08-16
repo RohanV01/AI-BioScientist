@@ -26,6 +26,14 @@ dependencies = [
     "vina>=1.2,<2.0",
     "meeko>=0.7,<1.0",
     "gemmi>=0.7,<1.0",  # meeko's chemtempgen submodule needs this at import time but doesn't declare it
+    # mhcflurry depends on torch, which by default pulls the full CUDA
+    # toolkit (~2GB+, and prone to flaky downloads) even though this
+    # tool only needs CPU inference. Install CPU-only torch FIRST:
+    #   uv pip install torch --index-url https://download.pytorch.org/whl/cpu
+    # then `uv pip install mhcflurry` reuses it instead of pulling CUDA.
+    # Also requires a one-time model download after installing:
+    #   .venv/bin/mhcflurry-downloads fetch models_class1_pan
+    "mhcflurry>=2.0,<3.0",
 ]
 
 [project.optional-dependencies]
