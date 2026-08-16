@@ -25,6 +25,22 @@ set +a
 MM_URL="${MATTERMOST_URL:-http://localhost:8065}"
 API="$MM_URL/api/v4"
 
+# No shared default admin password ships in .env.example -- generate one
+# per-instance on first run and persist it, same pattern already used below
+# for MATTERMOST_WEBHOOK_SECRET (Mattermost-issued secrets that can't be
+# chosen ahead of time also get written back into .env, not hardcoded).
+if [[ -z "${MM_ADMIN_PASSWORD:-}" ]]; then
+  MM_ADMIN_PASSWORD="$(openssl rand -base64 24 | tr -d '\n')"
+  if grep -q "^MM_ADMIN_PASSWORD=" "$ENV_FILE"; then
+    sed -i.bak "s|^MM_ADMIN_PASSWORD=.*|MM_ADMIN_PASSWORD=$MM_ADMIN_PASSWORD|" "$ENV_FILE" && rm -f "$ENV_FILE.bak"
+  else
+    echo "MM_ADMIN_PASSWORD=$MM_ADMIN_PASSWORD" >> "$ENV_FILE"
+  fi
+  echo "==> Generated a random admin password (saved to .env, shown here once):"
+  echo "    MM_ADMIN_PASSWORD=$MM_ADMIN_PASSWORD"
+  echo "    Change it after first login if you plan to keep this instance around."
+fi
+
 # api_call METHOD PATH AUTH_HEADER [JSON_BODY]
 # Prints the response body to stdout, HTTP status to fd 3. Never treats a
 # response's own `.id` field as a success signal -- Mattermost error bodies

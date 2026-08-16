@@ -1,6 +1,6 @@
 # Contributing
 
-AI Scientist is built so that adding a new tool is a same-day pull request, not a platform project. This doc covers the two things you actually need: how to add a tool, and how the branch structure works.
+OpenBioLab is built so that adding a new tool is a same-day pull request, not a platform project. This doc covers the two things you actually need: how to add a tool, and how the branch structure works.
 
 ## Adding one tool
 

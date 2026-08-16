@@ -1,5 +1,5 @@
 [project]
-name = "ai-scientist-orchestrator"
+name = "openbiolab-orchestrator"
 version = "0.1.0"
 description = "Routes Mattermost messages to Claude Code/Codex agents, enforces grounding on every response."
 requires-python = ">=3.11"
