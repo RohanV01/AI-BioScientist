@@ -1,5 +1,5 @@
 """Seeds one Org + the one master Agent for local dev, matching whatever
-scripts/bootstrap_mattermost.sh created (docs/10-build-plan.md). Also wires
+scripts/bootstrap_mattermost.py created (docs/10-build-plan.md). Also wires
 TOOL_BINDING rows for every tool source named --tools (default: pubmed),
 creating the ToolSource if it doesn't exist yet. Idempotent -- safe to
 re-run (updates the bot token/name/tool bindings if they changed).

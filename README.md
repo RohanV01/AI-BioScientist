@@ -48,18 +48,54 @@ Zoomed out past the individual tool table, these are the actual multi-step resea
 
 ## Getting started
 
-**Prerequisites:** Docker + Docker Compose v2, Python 3.11+.
+**Prerequisites:** Docker + Docker Compose v2. That's it — this works the same way on **Mac, Linux, and Windows** (Docker Desktop on Mac/Windows, Docker Engine on Linux); every service, including the `claude` CLI itself, runs inside containers, so nothing OS-specific is required on the host. (The bootstrap script in step 3 needs *some* Python 3.9+ on the host too, but nothing else does.)
+
+**1. Clone and configure**
 
 ```bash
 git clone https://github.com/RohanV01/AI-BioScientist.git
 cd AI-BioScientist
 cp .env.example .env        # edit if you want a non-default Postgres password
-docker compose up -d postgres
-# wait for postgres to report healthy, then:
-docker compose up -d mattermost
 ```
 
-Mattermost is reachable at `http://localhost:8065`; first visit creates the initial admin account. Bring up the Orchestrator Service (`orchestrator/`) per `docs/10-build-plan.md` to wire the agent in.
+**2. Bring up the stack**
+
+```bash
+docker compose up -d
+```
+Builds the orchestrator image (Node.js + `claude` CLI baked in — first run takes a few minutes) and starts Postgres, Mattermost, and the orchestrator together.
+
+**3. Authenticate the agent** — pick whichever you actually have:
+- **Anthropic API key:** set `ANTHROPIC_API_KEY` in `.env`, then `docker compose up -d` again to pick it up. Nothing else to do.
+- **Claude subscription (Pro/Max), no API key:** leave `ANTHROPIC_API_KEY` blank and instead run, once:
+  ```bash
+  docker compose exec orchestrator claude login
+  ```
+  It prints a URL + code — open it in a browser on any device (doesn't have to be this machine) and approve. Credentials land in the `claude_config` Docker volume and persist across restarts; you won't be asked again unless you `docker compose down -v`.
+
+**4. Bootstrap Mattermost** — creates the admin account, team, bot, and the webhook that wires the agent in (pure Python, same command on every OS, no bash/curl/jq needed):
+
+```bash
+python scripts/bootstrap_mattermost.py
+```
+Prints the generated admin password once (also saved to `.env`). Its final line of output is a ready-to-run `seed_dev_data.py` command with the real `--team-id`/`--bot-user-id`/`--grounding-log-channel-id` values filled in — copy that exact line for the next step.
+
+**5. Seed the agent's tool roster** — run inside the container (there's no host Python venv on a fresh clone):
+
+```bash
+docker compose exec orchestrator python scripts/seed_dev_data.py --team-id <...> --bot-user-id <...> --grounding-log-channel-id <...>
+```
+
+**6. Restart the orchestrator** to pick up the webhook secret bootstrap just wrote to `.env`:
+
+```bash
+docker compose up -d --force-recreate orchestrator
+```
+⚠️ Don't skip this — if the orchestrator container is still holding the old (or no) secret, `@orchestrator` messages get silently rejected (a 403 that never surfaces in Mattermost's UI at all — the channel just goes quiet). If step 7 below doesn't respond, this is the first thing to check.
+
+**7. Use it**
+
+Go to `http://localhost:8065`, log in with the admin credentials step 4 printed, open `#town-square`, and message `@orchestrator <your question>` to talk to the agent.
 
 **Optional bulk data:** none of the above requires it. If you have (or want to build) a local bibliographic/database corpus, see `data/README.md`. It's gitignored and every agent degrades gracefully without it (`docs/05-ux-behavior.md` §1).
 

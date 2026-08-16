@@ -39,11 +39,16 @@ services:
       MM_SERVICESETTINGS_ENABLEOAUTHSERVICEPROVIDER: "true"
       MM_PLUGINSETTINGS_ENABLEUPLOADS: "true"
       # Outgoing Webhooks call the orchestrator at its internal Docker DNS
-      # name (or host.docker.internal when running the orchestrator on the
-      # host directly instead of as a container, e.g. for local dev with
-      # Claude Code CLI auth mounted -- see docs/10-build-plan.md Phase 1
-      # notes), which Mattermost otherwise blocks as a private-network
-      # address (a real SSRF protection, not a bug) -- explicitly trust both.
+      # name ("orchestrator", the containerized default -- see the
+      # orchestrator service below). "host.docker.internal" is also trusted
+      # for the alternative host-run workflow: running the orchestrator
+      # directly on the host venv instead of in this container, so it
+      # inherits a `claude` CLI you're already logged into on your own
+      # machine (no ANTHROPIC_API_KEY, no `docker compose exec ... claude
+      # login` step -- exactly what a subscription-login dev session looks
+      # like day to day). Mattermost otherwise blocks both as private-network
+      # addresses (a real SSRF protection, not a bug) -- explicitly trust
+      # both so either workflow works without edits here.
       MM_SERVICESETTINGS_ALLOWEDUNTRUSTEDINTERNALCONNECTIONS: "orchestrator,host.docker.internal"
     ports:
       - "127.0.0.1:8065:8065"
@@ -66,8 +71,19 @@ services:
       ORCHESTRATOR_DB_URL: "postgresql+asyncpg://aiscientist:${POSTGRES_PASSWORD:-dev_only_change_me}@postgres:5432/orchestrator"
       MATTERMOST_URL: "http://mattermost:8065"
       MATTERMOST_WEBHOOK_SECRET: ${MATTERMOST_WEBHOOK_SECRET:-}
+      # Two mutually exclusive ways to authenticate the `claude` CLI
+      # (app/claude_runner.py) -- pick whichever you actually have:
+      #  (a) API key: set ANTHROPIC_API_KEY below, nothing else to do.
+      #  (b) Claude subscription (Pro/Max), no API key: leave this blank
+      #      and instead run, once, after `docker compose up -d`:
+      #        docker compose exec orchestrator claude login
+      #      It prints a URL -- open it in any browser, on any machine, to
+      #      approve. Credentials land in the claude_config volume below and
+      #      persist across restarts/rebuilds; you won't be asked again.
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       CREDENTIAL_VAULT_KEY: ${CREDENTIAL_VAULT_KEY:-}
+    volumes:
+      - claude_config:/home/orchestrator/.claude
     ports:
       - "127.0.0.1:8000:8000"
 
@@ -77,3 +93,4 @@ volumes:
   mm_logs:
   mm_config:
   mm_plugins:
+  claude_config:
