@@ -33,7 +33,9 @@ from app.tools.clinvar import build_clinvar_mcp_server
 from app.tools.cobra_fba import build_cobra_fba_mcp_server
 from app.tools.dailymed import build_dailymed_mcp_server
 from app.tools.ensembl import build_ensembl_mcp_server
+from app.tools.gene_set_enrichment import build_gene_set_enrichment_mcp_server
 from app.tools.gnomad import build_gnomad_mcp_server
+from app.tools.gprofiler_enrichment import build_gprofiler_enrichment_mcp_server
 from app.tools.huggingface import build_huggingface_mcp_server
 from app.tools.kegg import build_kegg_mcp_server
 from app.tools.literature_discovery import build_literature_discovery_mcp_server
@@ -92,6 +94,14 @@ TOOL_BUILDERS = {
         ["mcp__cobra_fba__search_metabolic_models", "mcp__cobra_fba__run_flux_balance_analysis"],
     ),
     "vina_docking": ("vina_docking", build_vina_docking_mcp_server, ["mcp__vina_docking__dock_ligand"]),
+    "gene_set_enrichment": (
+        "gene_set_enrichment", build_gene_set_enrichment_mcp_server,
+        ["mcp__gene_set_enrichment__enrich_gene_set"],
+    ),
+    "gprofiler_enrichment": (
+        "gprofiler_enrichment", build_gprofiler_enrichment_mcp_server,
+        ["mcp__gprofiler_enrichment__profile_gene_list"],
+    ),
 }
 
 

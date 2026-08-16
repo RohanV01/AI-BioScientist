@@ -132,6 +132,12 @@ RECORD_REF_PATTERNS: list[tuple[str, re.Pattern]] = [
     # receptor PDB ID itself is separately caught by the existing "PDB {}"
     # pattern above, since this tool's output also says "PDB <id>".
     ("Vina docking against {}", re.compile(r"\[vina:([A-Za-z0-9]+)\]")),
+    # Gene-set enrichment tools query a live external service (Enrichr,
+    # g:Profiler) but there's no single external record ID for an
+    # enrichment result, only the library/organism queried -- same
+    # methodological-citation convention as the wrapped-library tools.
+    ("gseapy/Enrichr against {}", re.compile(r"\[gseapy:([\w_]+)\]")),
+    ("g:Profiler against {}", re.compile(r"\[gprofiler:(\w+)\]")),
 ]
 
 

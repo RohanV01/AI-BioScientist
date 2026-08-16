@@ -51,9 +51,9 @@ Already-built tools (16 external-API + scikit-bio, BioPandas, cobra, Vina/RDKit/
 ## Transcriptomics / scRNA-seq (currently zero coverage — largest single gap found)
 
 - [ ] **SCANPY** (PIP, High) — the field-standard Python scRNA-seq toolkit (QC, clustering, trajectory, DE).
-- [ ] **GSEApy** (PIP, High) — gene set enrichment analysis (GSEA/ORA) from a gene list.
-- [ ] **g:Profiler / gprofiler-official** (PIP, High) — gene-list functional enrichment + ID conversion, REST-backed.
-- [ ] **Enrichr (via gseapy)** (PIP, High) — enrichment against 30+ gene-set libraries, simple REST wrapper.
+- [x] **GSEApy** (PIP, High) — gene set enrichment analysis (GSEA/ORA) from a gene list.
+- [x] **g:Profiler / gprofiler-official** (PIP, High) — gene-list functional enrichment + ID conversion, REST-backed.
+- [x] **Enrichr (via gseapy)** (PIP, High) — enrichment against 30+ gene-set libraries, simple REST wrapper.
 - [ ] **clusterProfiler** (CLONE, R, High) — GO/KEGG enrichment + GSEA.
 - [ ] **pyComBat** (PIP, High) — batch-effect correction.
 - [ ] **scVelo** (PIP, High) — RNA velocity (cell-state transition dynamics).

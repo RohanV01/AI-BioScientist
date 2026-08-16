@@ -65,6 +65,12 @@ KNOWN_TOOL_SOURCES = {
     "biopandas_structure": ("structural_biology", "free_public", "in-process:app.tools.biopandas_structure", False, False),
     "cobra_fba": ("systems_biology", "free_public", "in-process:app.tools.cobra_fba", False, False),
     "vina_docking": ("drug_discovery", "free_public", "in-process:app.tools.vina_docking", False, False),
+    # docs/12-biotools-triage-shortlist.md's Transcriptomics cluster
+    # (feature/transcriptomics branch) -- both query real, live enrichment
+    # services (Enrichr, g:Profiler), independent backends kept as two
+    # tools deliberately so results can cross-check each other.
+    "gene_set_enrichment": ("transcriptomics", "free_public", "in-process:app.tools.gene_set_enrichment", False, False),
+    "gprofiler_enrichment": ("transcriptomics", "free_public", "in-process:app.tools.gprofiler_enrichment", False, False),
     # Placeholder only -- no app/tools/drugbank.py, no TOOL_BUILDERS entry.
     # User decision 2026-08-16: wire this once a real DrugBank credential
     # is available; until then this row just marks the intent in the
