@@ -1,8 +1,8 @@
-# AI Scientist
+# OpenBioLab
 
 **Open Source for Autonomous Discovery.**
 
-Ask a real research question in a chat window — "find compounds active against EGFR," "dock this ligand against 6LU7," "what's the alpha diversity of this microbiome sample" — and get back an answer with a live tool call behind every claim, not a hallucinated guess. AI Scientist is a local-first research platform: a Mattermost workspace where you delegate to a Claude-powered agent wired to 20+ real bio/chem databases and computation tools, instead of manually stitching together a dozen browser tabs by hand.
+Ask a real research question in a chat window — "find compounds active against EGFR," "dock this ligand against 6LU7," "what's the alpha diversity of this microbiome sample" — and get back an answer with a live tool call behind every claim, not a hallucinated guess. OpenBioLab is a local-first research platform: a Mattermost workspace where you delegate to a Claude-powered agent wired to 20+ real bio/chem databases and computation tools, instead of manually stitching together a dozen browser tabs by hand.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)](orchestrator/pyproject.toml)
@@ -12,7 +12,7 @@ Ask a real research question in a chat window — "find compounds active against
 
 ## Why this exists
 
-Real research tooling is scattered — paywalled APIs, single-paper GitHub repos nobody maintains, databases that need an institutional login, and a paid tool locked to whoever's credit card is on file. AI Scientist is built so that (a) every answer is traceable back to the exact tool call and record that produced it, (b) any org can bring their own credential for a metered tool instead of it being hardcoded to one person's account, and (c) adding a new tool is a same-day pull request — one file, three one-line registrations — not a platform rewrite. See [`CONTRIBUTING.md`](CONTRIBUTING.md) for exactly how that works and a 100+-item backlog of triaged tools ready to build, organized into parallel branches anyone can pick up.
+Real research tooling is scattered — paywalled APIs, single-paper GitHub repos nobody maintains, databases that need an institutional login, and a paid tool locked to whoever's credit card is on file. OpenBioLab is built so that (a) every answer is traceable back to the exact tool call and record that produced it, (b) any org can bring their own credential for a metered tool instead of it being hardcoded to one person's account, and (c) adding a new tool is a same-day pull request — one file, three one-line registrations — not a platform rewrite. See [`CONTRIBUTING.md`](CONTRIBUTING.md) for exactly how that works and a 100+-item backlog of triaged tools ready to build, organized into parallel branches anyone can pick up.
 
 ## What you can actually ask it today
 

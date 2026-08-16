@@ -4,6 +4,10 @@ All notable changes to this project are logged here. Format loosely follows [Kee
 
 ## [Unreleased]
 
+### Changed — 2026-08-17
+- Product renamed from "AI Scientist" to **OpenBioLab** across the README, `CONTRIBUTING.md`, `docs/01-project-goals.md`, `docs/04-information-architecture.md`, `.env.example`, and the orchestrator (`app/main.py`'s FastAPI title, `app/claude_runner.py`'s system prompt and agent-workdir prefix, `pyproject.toml`'s package name, `scripts/seed_dev_data.py`'s default agent name), plus the Docker container names in `docker-compose.yml` and the default Mattermost team name/display name in `.env.example`. The GitHub repo slug (`RohanV01/AI-BioScientist`) was intentionally left unchanged — that's a separate, more disruptive decision (breaks old clone URLs/links) not yet made.
+- Closed a real default-credential gap ahead of the repo going public: `.env.example` previously shipped a real-looking default `MM_ADMIN_PASSWORD`, which `scripts/bootstrap_mattermost.sh` used to actually create the Mattermost admin account via the API — anyone who didn't override it got the same known password. Fixed by generating a random password on first bootstrap run (same pattern the script already used for `MATTERMOST_WEBHOOK_SECRET`): written into `.env`, printed once, never a shared default.
+
 ### Added — 2026-08-15 (traceability pass)
 - `docs/11-backlog-traceability.md` — full status index mapping all 105 experiments, 8 flagships, 10 gaps, 13 paid integrations, and Section 10's overlooked-resource findings from the Researcher's Lab report against actual Build Plan phases. Added after an audit found the original `docs/` suite covered its own MVP scope in real detail but only referenced (not tracked) most of the report's breadth — see "Changed" below for what got fixed as a result.
 

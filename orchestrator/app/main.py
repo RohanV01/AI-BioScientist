@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from app.routers import mattermost_webhook, reports
 
 app = FastAPI(
-    title="AI Scientist Orchestrator",
+    title="OpenBioLab Orchestrator",
     description="Routes Mattermost messages to Claude Code/Codex agents; enforces grounding on every response.",
     version="0.1.0",
 )
