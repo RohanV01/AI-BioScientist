@@ -16,17 +16,17 @@ We believe biosciences can be accelerated with AI. This is our attempt at Applie
 
 These map to tool sources that are wired and live-verified right now, not a roadmap:
 
-| Ask it... | It calls... |
+| Ask it... | 
 |---|---|
-| "What compounds are active against EGFR, and what's their mechanism?" | ChEMBL + Open Targets |
-| "Dock this ligand SMILES against PDB structure 6LU7" | AutoDock Vina (real docking, real binding poses) |
-| "What's the predicted structure of this UniProt protein?" | AlphaFold DB + UniProt |
-| "What's the alpha diversity of this microbiome abundance table?" | scikit-bio (real local computation) |
-| "Run flux balance analysis on the E. coli core metabolic model" | cobrapy + the BiGG model database |
-| "What clinical trials exist for this drug, and what's on its label?" | ClinicalTrials.gov + DailyMed |
-| "What's known about this variant, pathogenicity and population frequency?" | ClinVar + gnomAD |
-| "What pathways is this gene involved in?" | KEGG + Reactome + STRING |
-| "Find literature on this topic, including Sci-Hub-available full text where legal" | PubMed + a compliance-checked literature-discovery tool |
+| "What compounds are active against EGFR, and what's their mechanism?" |
+| "Dock this ligand SMILES against PDB structure 6LU7" |
+| "What's the predicted structure of this UniProt protein?" |
+| "What's the alpha diversity of this microbiome abundance table?" |
+| "Run flux balance analysis on the E. coli core metabolic model" |
+| "What clinical trials exist for this drug, and what's on its label?" |
+| "What's known about this variant, pathogenicity and population frequency?" |
+| "What pathways is this gene involved in?" |
+| "Find literature on this topic, including Sci-Hub-available full text where legal" |
 
 Every answer comes back with the record ID or computation tag inline (`PMID 12345678`, `CHEMBL941`, `[vina:6LU7]`) so you can verify it against the tool's own output. The agent is instructed to never state a detail a tool didn't actually return, even one it "recognizes."
 
