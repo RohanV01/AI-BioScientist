@@ -29,13 +29,13 @@ Already-built tools (16 external-API + scikit-bio, BioPandas, cobra, Vina/RDKit/
 
 - [ ] **BLAST+** (CLONE, High) — sequence similarity search, the single most fundamental missing operation.
 - [ ] **DIAMOND** (CLONE, High) — BLAST-class results at much larger scale.
-- [ ] **HMMER3 / pyhmmer** (PIP, High) — profile-HMM / remote homology / Pfam-domain search.
+- [x] **HMMER3 / pyhmmer** (PIP, High) — profile-HMM / remote homology / Pfam-domain search.
 - [ ] **Clustal Omega** (CLONE, High) / **MAFFT** (CLONE, High) — multiple sequence alignment.
 - [ ] **EMBOSS** (CLONE, High) — pairwise alignment (needle/water), primer picking, sequence composition/ORF utilities.
 - [ ] **Minimap2 / mappy** (PIP, High) — versatile pairwise aligner (long reads, cDNA, genome-vs-genome).
 - [ ] **Prodigal** (CLONE, High) — ab initio prokaryotic gene prediction from a genome sequence, no external DB needed.
 - [ ] **MUMmer4** (CLONE, High) — whole-genome-to-genome alignment/synteny.
-- [ ] **Primer3 / primer3-py** (PIP, High) — PCR/qPCR primer design.
+- [x] **Primer3 / primer3-py** (PIP, High) — PCR/qPCR primer design.
 - DATA-gated (need FASTQ/BAM/VCF): BWA, GATK, FreeBayes, RepeatMasker, DeepVariant, kallisto.
 
 ## Phylogenetics (currently zero coverage)
