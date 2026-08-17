@@ -47,6 +47,10 @@ If your tool needs a paid/metered key, don't hardcode it. Follow the Hugging Fac
 
 Pick an unchecked `[ ]` item from your cluster's section in `docs/12-biotools-triage-shortlist.md`, build it on that branch following the steps above, and open a PR against `main` when it's live-verified. `main` is the integration branch — nothing merges in without having actually been run against the live stack first (see step 5).
 
+### `feature/general-tools` — for anything that isn't on the shortlist
+
+Not every good tool idea comes from `docs/12-biotools-triage-shortlist.md`. `feature/general-tools` is the catch-all branch for tool ideas outside the existing triage: something you noticed while using the platform, a tool that crosses multiple clusters, glue/infrastructure tooling, or anything genuinely useful that doesn't fit one of the 12 cluster branches above. Same rules apply — real local computation or a real API, standalone-tested with real inputs, wired per the steps above, PR against `main` when it's live-verified.
+
 ### The biggest open opportunity: `feature/r-bioconductor-bridge`
 
 A large cluster of the strongest candidates in the triage doc — Seurat, scran, dada2, WGCNA, and most of the rest of the Bioconductor ecosystem's single-cell/transcriptomics tooling — need an R runtime bridge (`rpy2`, or a subprocess-based `Rscript` wrapper) that doesn't exist yet. Nothing else in this codebase touches R. Building this bridge unlocks the single largest chunk of the remaining backlog — if you want the highest-leverage contribution available, this is it.
