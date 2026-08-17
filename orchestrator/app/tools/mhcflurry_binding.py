@@ -55,7 +55,12 @@ def _run_prediction(peptides: list[str], allele: str) -> dict:
 )
 async def predict_mhc_binding(args: dict[str, Any]) -> dict[str, Any]:
     peptides = [p.strip().upper() for p in args["peptides"] if p.strip()]
-    allele = args["allele"].strip()
+    # HLA nomenclature is always uppercase (e.g. "HLA-A*02:01") -- without
+    # normalizing case here, a real, valid allele given in a different case
+    # (e.g. "hla-a*02:01") fails the supported_alleles membership check and
+    # is wrongly reported as unsupported, even though peptides ARE
+    # normalized the same way two lines above.
+    allele = args["allele"].strip().upper()
     if not peptides:
         return {"content": [{"type": "text", "text": "peptides must contain at least one non-empty sequence."}]}
     bad = [p for p in peptides if not (8 <= len(p) <= 15) or any(c not in "ACDEFGHIKLMNPQRSTVWY" for c in p)]

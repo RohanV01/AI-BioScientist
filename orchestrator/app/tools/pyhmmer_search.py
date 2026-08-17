@@ -67,7 +67,12 @@ async def search_pfam_domain(args: dict[str, Any]) -> dict[str, Any]:
 
     async with httpx.AsyncClient(timeout=30.0) as client:
         resp = await client.get(INTERPRO_HMM_URL.format(accession=accession))
-        if resp.status_code == 404:
+        # A well-formed but nonexistent accession (e.g. PF99999) doesn't 404 --
+        # InterPro returns 200 with an empty JSON body ("{}", content-type
+        # application/json) instead of the expected gzip HMM payload. Checking
+        # only status_code == 404 misses this and crashes gzip.decompress()
+        # with an unhandled BadGzipFile instead of a graceful message.
+        if resp.status_code == 404 or "gzip" not in resp.headers.get("content-type", ""):
             return {"content": [{"type": "text", "text": f"No Pfam entry found for accession {accession}."}]}
         resp.raise_for_status()
         hmm_bytes = gzip.decompress(resp.content)

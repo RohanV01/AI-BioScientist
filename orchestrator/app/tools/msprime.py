@@ -30,11 +30,17 @@ from claude_agent_sdk import create_sdk_mcp_server, tool
     },
 )
 async def simulate_coalescent_diversity(args: dict[str, Any]) -> dict[str, Any]:
-    sample_size = int(args.get("sample_size") or 20)
-    sequence_length = int(args.get("sequence_length") or 10_000)
-    population_size = int(args.get("population_size") or 10_000)
-    mutation_rate = float(args.get("mutation_rate") or 1e-8)
-    recombination_rate = float(args.get("recombination_rate") or 0.0)
+    # `or <default>` treats an explicit 0/0.0 as "not given" (falsy) and
+    # silently replaces it with the default instead of validating it --
+    # e.g. an explicit population_size=0 would silently become 10_000
+    # rather than hitting the "must be a positive integer" check below,
+    # and mutation_rate=0.0 (a legitimate "no new mutations" request)
+    # would silently become 1e-8. `is not None` preserves an explicit 0.
+    sample_size = int(args["sample_size"]) if args.get("sample_size") is not None else 20
+    sequence_length = int(args["sequence_length"]) if args.get("sequence_length") is not None else 10_000
+    population_size = int(args["population_size"]) if args.get("population_size") is not None else 10_000
+    mutation_rate = float(args["mutation_rate"]) if args.get("mutation_rate") is not None else 1e-8
+    recombination_rate = float(args["recombination_rate"]) if args.get("recombination_rate") is not None else 0.0
     random_seed = args.get("random_seed")
 
     if sample_size < 2 or sample_size > 1000:
@@ -69,7 +75,11 @@ async def simulate_coalescent_diversity(args: dict[str, Any]) -> dict[str, Any]:
         f"Ne={population_size}, mu={mutation_rate}, r={recombination_rate}):",
         f"- Nucleotide diversity (pi): {diversity:.6f}",
         f"- Segregating sites: {seg_sites:.0f}",
-        f"- Tajima's D: {tajimas_d:.4f}",
+        # Tajima's D is mathematically undefined (nan) when there are no
+        # segregating sites -- e.g. mutation_rate=0 -- since its formula
+        # divides by a variance term that's zero in that case. Report that
+        # plainly instead of a bare "nan", which reads as a rendering bug.
+        f"- Tajima's D: {tajimas_d:.4f}" if tajimas_d == tajimas_d else "- Tajima's D: undefined (no segregating sites)",
         f"- Trees in ancestral recombination graph: {ts.num_trees}",
     ]
     return {"content": [{"type": "text", "text": "\n".join(lines)}]}
