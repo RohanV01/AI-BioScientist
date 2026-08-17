@@ -40,6 +40,7 @@ from app.tools.literature_discovery import build_literature_discovery_mcp_server
 from app.tools.ontologies import build_ontologies_mcp_server
 from app.tools.open_targets import build_open_targets_mcp_server
 from app.tools.pdb import build_pdb_mcp_server
+from app.tools.pyteomics_mass import build_pyteomics_mass_mcp_server
 from app.tools.pubmed import build_pubmed_mcp_server
 from app.tools.reactome import build_reactome_mcp_server
 from app.tools.scikit_bio import build_scikit_bio_mcp_server
@@ -92,6 +93,10 @@ TOOL_BUILDERS = {
         ["mcp__cobra_fba__search_metabolic_models", "mcp__cobra_fba__run_flux_balance_analysis"],
     ),
     "vina_docking": ("vina_docking", build_vina_docking_mcp_server, ["mcp__vina_docking__dock_ligand"]),
+    "pyteomics_mass": (
+        "pyteomics_mass", build_pyteomics_mass_mcp_server,
+        ["mcp__pyteomics_mass__calculate_peptide_mass"],
+    ),
 }
 
 

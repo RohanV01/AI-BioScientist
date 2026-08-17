@@ -65,6 +65,13 @@ KNOWN_TOOL_SOURCES = {
     "biopandas_structure": ("structural_biology", "free_public", "in-process:app.tools.biopandas_structure", False, False),
     "cobra_fba": ("systems_biology", "free_public", "in-process:app.tools.cobra_fba", False, False),
     "vina_docking": ("drug_discovery", "free_public", "in-process:app.tools.vina_docking", False, False),
+    # docs/12-biotools-triage-shortlist.md's Proteomics cluster
+    # (feature/proteomics branch) -- real in-process mass calculation
+    # (Pyteomics), no external API. First proteomics coverage in the
+    # platform. mokapot (PSM rescoring) investigated and skipped -- it
+    # fundamentally needs real search-engine PSM output, which can't be
+    # honestly fabricated as a test input.
+    "pyteomics_mass": ("proteomics", "free_public", "in-process:app.tools.pyteomics_mass", False, False),
     # Placeholder only -- no app/tools/drugbank.py, no TOOL_BUILDERS entry.
     # User decision 2026-08-16: wire this once a real DrugBank credential
     # is available; until then this row just marks the intent in the
