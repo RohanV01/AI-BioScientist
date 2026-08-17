@@ -61,8 +61,12 @@ def _run_design(seq_constr: str, part_type: str, lmax: int, target_size: int) ->
 async def design_nonrepetitive_parts(args: dict[str, Any]) -> dict[str, Any]:
     seq_constr = args["sequence_constraint"].strip().upper()
     part_type = (args.get("part_type") or "DNA").strip().upper()
-    lmax = int(args.get("max_shared_repeat") or 6)
-    target_size = int(args.get("target_size") or 3)
+    # "or default" would silently replace an explicit 0 with the default
+    # (0 is falsy), letting an invalid target_size=0/max_shared_repeat=0
+    # skip validation entirely instead of being rejected below -- use an
+    # explicit None check so 0 reaches validation like any other bad value.
+    lmax = int(args["max_shared_repeat"]) if args.get("max_shared_repeat") is not None else 6
+    target_size = int(args["target_size"]) if args.get("target_size") is not None else 3
 
     if not seq_constr or any(c not in _IUPAC_CODES for c in seq_constr):
         return {"content": [{"type": "text", "text": "sequence_constraint must be non-empty IUPAC degenerate code (A/C/G/T/N/R/Y/S/W/K/M/B/D/H/V)."}]}

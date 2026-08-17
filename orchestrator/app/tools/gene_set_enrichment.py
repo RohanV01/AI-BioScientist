@@ -48,7 +48,12 @@ ALLOWED_LIBRARIES = {
 async def enrich_gene_set(args: dict[str, Any]) -> dict[str, Any]:
     genes = [g.strip().upper() for g in args["genes"] if g.strip()]
     library_key = (args.get("library") or "kegg").strip().lower()
-    max_results = min(max(int(args.get("max_results") or 10), 1), 25)
+    # "x or 10" would silently replace an explicit max_results=0 with the
+    # default (10) instead of clamping it down to the floor (1) -- an
+    # explicit None check keeps 0 (and any other falsy-but-valid int) on
+    # its own path to the clamp below.
+    raw_max_results = args.get("max_results")
+    max_results = min(max(int(raw_max_results) if raw_max_results is not None else 10, 1), 25)
 
     if len(genes) < 2:
         return {"content": [{"type": "text", "text": "genes must contain at least 2 gene symbols."}]}
