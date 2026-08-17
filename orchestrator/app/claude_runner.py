@@ -142,6 +142,11 @@ RECORD_REF_PATTERNS: list[tuple[str, re.Pattern]] = [
     # msprime coalescent simulation -- real local computation
     # (app/tools/msprime.py), same methodological-citation pattern.
     ("msprime {}", re.compile(r"\[msprime:(\w+)\]")),
+    # PLIP non-covalent interaction profile -- real local computation
+    # (app/tools/plip_interactions.py), same methodological-citation
+    # pattern as vina. The receptor PDB ID itself is separately caught by
+    # the existing "PDB {}" pattern above.
+    ("PLIP interaction profile for {}", re.compile(r"\[plip:([A-Za-z0-9]+)\]")),
 ]
 
 

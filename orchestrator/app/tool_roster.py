@@ -41,6 +41,7 @@ from app.tools.msprime import build_msprime_mcp_server
 from app.tools.ontologies import build_ontologies_mcp_server
 from app.tools.open_targets import build_open_targets_mcp_server
 from app.tools.pdb import build_pdb_mcp_server
+from app.tools.plip_interactions import build_plip_interactions_mcp_server
 from app.tools.primer3 import build_primer3_mcp_server
 from app.tools.pubmed import build_pubmed_mcp_server
 from app.tools.pyhmmer_search import build_pyhmmer_search_mcp_server
@@ -101,6 +102,10 @@ TOOL_BUILDERS = {
         ["mcp__pyhmmer_search__search_pfam_domain"],
     ),
     "msprime": ("msprime", build_msprime_mcp_server, ["mcp__msprime__simulate_coalescent_diversity"]),
+    "plip_interactions": (
+        "plip_interactions", build_plip_interactions_mcp_server,
+        ["mcp__plip_interactions__profile_ligand_interactions"],
+    ),
 }
 
 
