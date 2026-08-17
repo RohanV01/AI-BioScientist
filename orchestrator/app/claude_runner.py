@@ -187,6 +187,9 @@ RECORD_REF_PATTERNS: list[tuple[str, re.Pattern]] = [
     # (app/tools/straindesign_intervention.py), same methodological-
     # citation pattern as cobra_fba's [cobra:model_id].
     ("straindesign on {}", re.compile(r"\[straindesign:(\w+)\]")),
+    # NRP Calculator non-repetitive part design -- real local computation
+    # (app/tools/nrpcalc_design.py), same methodological-citation pattern.
+    ("NRP Calculator {}", re.compile(r"\[nrpcalc:(\w+)\]")),
 ]
 
 

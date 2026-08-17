@@ -42,6 +42,7 @@ from app.tools.kegg import build_kegg_mcp_server
 from app.tools.literature_discovery import build_literature_discovery_mcp_server
 from app.tools.mhcflurry_binding import build_mhcflurry_binding_mcp_server
 from app.tools.msprime import build_msprime_mcp_server
+from app.tools.nrpcalc_design import build_nrpcalc_design_mcp_server
 from app.tools.ontologies import build_ontologies_mcp_server
 from app.tools.open_targets import build_open_targets_mcp_server
 from app.tools.pdb import build_pdb_mcp_server
@@ -159,6 +160,10 @@ TOOL_BUILDERS = {
     "straindesign_intervention": (
         "straindesign_intervention", build_straindesign_intervention_mcp_server,
         ["mcp__straindesign_intervention__design_strain_intervention"],
+    ),
+    "nrpcalc_design": (
+        "nrpcalc_design", build_nrpcalc_design_mcp_server,
+        ["mcp__nrpcalc_design__design_nonrepetitive_parts"],
     ),
 }
 

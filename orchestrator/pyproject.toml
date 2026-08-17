@@ -59,6 +59,10 @@ dependencies = [
     # scale) for what this platform needs as simple batched Vina calls.
     # Reuses vina_docking.py's own internals instead; no new dependency.
     "straindesign>=1.19,<2.0",  # pulls pyscipopt (MILP solver), clean install
+    # NOT added here: pegg (Synthetic biology candidate) -- hard-pins
+    # scikit-learn==1.1.1, which would downgrade this venv's scikit-learn
+    # (needed at >=1.9 by mhcflurry) and break an already-shipped tool.
+    "nrpcalc>=1.7,<2.0",
 ]
 
 [project.optional-dependencies]

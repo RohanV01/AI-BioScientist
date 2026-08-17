@@ -44,6 +44,8 @@ soltrannet>=1.0,<2.0
 equilibrator-api>=0.6,<1.0
 # virtual_screening.py reuses vina_docking.py's internals, no pyscreener dependency (see pyproject.toml note)
 straindesign>=1.19,<2.0
+# NOT added: pegg (hard-pins scikit-learn==1.1.1, conflicts with mhcflurry's >=1.9 requirement)
+nrpcalc>=1.7,<2.0
 
 # dev/test
 pytest>=8.3,<9.0

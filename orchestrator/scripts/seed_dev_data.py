@@ -126,6 +126,11 @@ KNOWN_TOOL_SOURCES = {
     "straindesign_intervention": (
         "systems_biology", "free_public", "in-process:app.tools.straindesign_intervention", False, False,
     ),
+    # docs/12-biotools-triage-shortlist.md's Synthetic biology cluster
+    # (feature/synthetic-biology branch) -- real in-process combinatorial
+    # design (NRP Calculator), no external API. Platform's first
+    # synthetic-biology coverage.
+    "nrpcalc_design": ("synthetic_biology", "free_public", "in-process:app.tools.nrpcalc_design", False, False),
     # Placeholder only -- no app/tools/drugbank.py, no TOOL_BUILDERS entry.
     # User decision 2026-08-16: wire this once a real DrugBank credential
     # is available; until then this row just marks the intent in the
