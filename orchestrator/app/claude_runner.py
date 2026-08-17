@@ -151,6 +151,12 @@ RECORD_REF_PATTERNS: list[tuple[str, re.Pattern]] = [
     # (app/tools/mhcflurry_binding.py), same methodological-citation
     # pattern as huggingface.py's ESM2 tag.
     ("MHCflurry prediction for {}", re.compile(r"\[mhcflurry:([\w*:.\-]+)\]")),
+    # Gene-set enrichment tools query a live external service (Enrichr,
+    # g:Profiler) but there's no single external record ID for an
+    # enrichment result, only the library/organism queried -- same
+    # methodological-citation convention as the wrapped-library tools.
+    ("gseapy/Enrichr against {}", re.compile(r"\[gseapy:([\w_]+)\]")),
+    ("g:Profiler against {}", re.compile(r"\[gprofiler:(\w+)\]")),
 ]
 
 

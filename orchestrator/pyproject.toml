@@ -38,6 +38,8 @@ dependencies = [
     # Also requires a one-time model download after installing:
     #   .venv/bin/mhcflurry-downloads fetch models_class1_pan
     "mhcflurry>=2.0,<3.0",
+    "gseapy>=1.3,<2.0",
+    "gprofiler-official>=1.0,<2.0",
 ]
 
 [project.optional-dependencies]

@@ -30,6 +30,8 @@ plip>=3.0,<4.0
 # CUDA toolkit: uv pip install torch --index-url https://download.pytorch.org/whl/cpu
 # Also needs a one-time model download: .venv/bin/mhcflurry-downloads fetch models_class1_pan
 mhcflurry>=2.0,<3.0
+gseapy>=1.3,<2.0
+gprofiler-official>=1.0,<2.0
 
 # dev/test
 pytest>=8.3,<9.0
