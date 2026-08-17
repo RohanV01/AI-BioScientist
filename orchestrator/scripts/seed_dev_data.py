@@ -108,6 +108,24 @@ KNOWN_TOOL_SOURCES = {
     # phylogenetics coverage. Real in-process ML tree inference
     # (piqtree/IQ-TREE) + tree analysis (dendropy), no external API.
     "phylogenetics": ("phylogenetics", "free_public", "in-process:app.tools.phylogenetics", False, False),
+    # docs/12-biotools-triage-shortlist.md's Cheminformatics cluster
+    # (feature/cheminformatics branch) -- real in-process computation,
+    # no external API for the prediction/calculation itself.
+    "soltrannet_solubility": ("drug_discovery", "free_public", "in-process:app.tools.soltrannet_solubility", False, False),
+    "equilibrator_thermo": ("drug_discovery", "free_public", "in-process:app.tools.equilibrator_thermo", False, False),
+    # Batch virtual screening -- completes the pipeline that was stuck at
+    # one-compound-at-a-time (ChEMBL -> Vina -> PLIP). Reuses
+    # vina_docking.py's own proven internals rather than the pyscreener
+    # package itself (which pulls in ray + openmm, a distributed-compute
+    # footprint disproportionate to chat-tool-scale batch docking).
+    "virtual_screening": ("drug_discovery", "free_public", "in-process:app.tools.virtual_screening", False, False),
+    # OptKnock strain design, built on cobrapy -- completes the
+    # metabolic-engineering pipeline (cobra_fba predicts growth,
+    # equilibrator_thermo checks feasibility, this proposes the
+    # intervention).
+    "straindesign_intervention": (
+        "systems_biology", "free_public", "in-process:app.tools.straindesign_intervention", False, False,
+    ),
     # Placeholder only -- no app/tools/drugbank.py, no TOOL_BUILDERS entry.
     # User decision 2026-08-16: wire this once a real DrugBank credential
     # is available; until then this row just marks the intent in the

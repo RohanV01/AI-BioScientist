@@ -173,6 +173,20 @@ RECORD_REF_PATTERNS: list[tuple[str, re.Pattern]] = [
     # sourmash MinHash comparison -- real local computation
     # (app/tools/sourmash_compare.py), same methodological-citation pattern.
     ("sourmash {}", re.compile(r"\[sourmash:(\w+)\]")),
+    # SolTranNet solubility prediction -- real local model inference
+    # (app/tools/soltrannet_solubility.py), same methodological-citation
+    # pattern as huggingface/mhcflurry.
+    ("SolTranNet prediction {}", re.compile(r"\[soltrannet:([0-9a-f]{8})\]")),
+    # eQuilibrator reaction thermodynamics -- real local computation
+    # (app/tools/equilibrator_thermo.py) against a bundled reference
+    # dataset, same methodological-citation pattern.
+    ("eQuilibrator {}", re.compile(r"\[equilibrator:(\w+)\]")),
+    # virtual_screening.py reuses vina_docking.py's own [vina:pdb_id] tag
+    # (same underlying computation, just batched) -- no new pattern needed.
+    # straindesign OptKnock result -- real local MILP computation
+    # (app/tools/straindesign_intervention.py), same methodological-
+    # citation pattern as cobra_fba's [cobra:model_id].
+    ("straindesign on {}", re.compile(r"\[straindesign:(\w+)\]")),
 ]
 
 

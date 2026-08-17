@@ -39,6 +39,11 @@ dendropy>=5.0,<6.0
 # app/tools/phylogenetics.py's compute_tree_statistics.
 phykit>=2.0,<3.0
 sourmash>=4.8,<5.0
+# soltrannet also needs torch -- install CPU-only torch first (see mhcflurry's note)
+soltrannet>=1.0,<2.0
+equilibrator-api>=0.6,<1.0
+# virtual_screening.py reuses vina_docking.py's internals, no pyscreener dependency (see pyproject.toml note)
+straindesign>=1.19,<2.0
 
 # dev/test
 pytest>=8.3,<9.0

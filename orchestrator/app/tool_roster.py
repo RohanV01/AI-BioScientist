@@ -32,6 +32,7 @@ from app.tools.clinicaltrials import build_clinicaltrials_mcp_server
 from app.tools.clinvar import build_clinvar_mcp_server
 from app.tools.cobra_fba import build_cobra_fba_mcp_server
 from app.tools.dailymed import build_dailymed_mcp_server
+from app.tools.equilibrator_thermo import build_equilibrator_thermo_mcp_server
 from app.tools.ensembl import build_ensembl_mcp_server
 from app.tools.gene_set_enrichment import build_gene_set_enrichment_mcp_server
 from app.tools.gnomad import build_gnomad_mcp_server
@@ -52,10 +53,13 @@ from app.tools.pyhmmer_search import build_pyhmmer_search_mcp_server
 from app.tools.pyteomics_mass import build_pyteomics_mass_mcp_server
 from app.tools.reactome import build_reactome_mcp_server
 from app.tools.scikit_bio import build_scikit_bio_mcp_server
+from app.tools.soltrannet_solubility import build_soltrannet_solubility_mcp_server
 from app.tools.sourmash_compare import build_sourmash_compare_mcp_server
+from app.tools.straindesign_intervention import build_straindesign_intervention_mcp_server
 from app.tools.string_db import build_string_mcp_server
 from app.tools.uniprot import build_uniprot_mcp_server
 from app.tools.vina_docking import build_vina_docking_mcp_server
+from app.tools.virtual_screening import build_virtual_screening_mcp_server
 from app.vault import decrypt
 
 # Tool source names whose builder takes an api_key positional arg instead
@@ -139,6 +143,22 @@ TOOL_BUILDERS = {
     "sourmash_compare": (
         "sourmash_compare", build_sourmash_compare_mcp_server,
         ["mcp__sourmash_compare__compare_sequence_similarity"],
+    ),
+    "soltrannet_solubility": (
+        "soltrannet_solubility", build_soltrannet_solubility_mcp_server,
+        ["mcp__soltrannet_solubility__predict_aqueous_solubility"],
+    ),
+    "equilibrator_thermo": (
+        "equilibrator_thermo", build_equilibrator_thermo_mcp_server,
+        ["mcp__equilibrator_thermo__estimate_reaction_gibbs_energy"],
+    ),
+    "virtual_screening": (
+        "virtual_screening", build_virtual_screening_mcp_server,
+        ["mcp__virtual_screening__batch_dock_ligands"],
+    ),
+    "straindesign_intervention": (
+        "straindesign_intervention", build_straindesign_intervention_mcp_server,
+        ["mcp__straindesign_intervention__design_strain_intervention"],
     ),
 }
 
