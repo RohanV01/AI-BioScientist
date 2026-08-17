@@ -43,12 +43,19 @@ async def design_pcr_primers(args: dict[str, Any]) -> dict[str, Any]:
             return {"content": [{"type": "text", "text": "target_start/target_length must fall within sequence."}]}
         seq_args["SEQUENCE_TARGET"] = [target_start, target_length]
 
+    # Lower bound must never exceed the upper bound -- for a 50-74bp
+    # template, a hardcoded 75 lower bound with an upper bound of
+    # len(sequence) is an illegal range primer3 raises OSError on
+    # ("Illegal element in PRIMER_PRODUCT_SIZE_RANGE") instead of just
+    # reporting no primers found. Found via testing a 60bp input.
+    product_max = min(1000, len(sequence))
+    product_min = min(75, product_max)
     global_args = {
         "PRIMER_OPT_SIZE": 20, "PRIMER_MIN_SIZE": 18, "PRIMER_MAX_SIZE": 25,
         "PRIMER_OPT_TM": 60.0, "PRIMER_MIN_TM": 57.0, "PRIMER_MAX_TM": 63.0,
         "PRIMER_MIN_GC": 20.0, "PRIMER_MAX_GC": 80.0,
         "PRIMER_MAX_NS_ACCEPTED": 0, "PRIMER_NUM_RETURN": num_return,
-        "PRIMER_PRODUCT_SIZE_RANGE": [[75, min(1000, len(sequence))]],
+        "PRIMER_PRODUCT_SIZE_RANGE": [[product_min, product_max]],
     }
 
     result = primer3.bindings.design_primers(seq_args=seq_args, global_args=global_args)
