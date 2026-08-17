@@ -132,6 +132,9 @@ RECORD_REF_PATTERNS: list[tuple[str, re.Pattern]] = [
     # receptor PDB ID itself is separately caught by the existing "PDB {}"
     # pattern above, since this tool's output also says "PDB <id>".
     ("Vina docking against {}", re.compile(r"\[vina:([A-Za-z0-9]+)\]")),
+    # NRP Calculator non-repetitive part design -- real local computation
+    # (app/tools/nrpcalc_design.py), same methodological-citation pattern.
+    ("NRP Calculator {}", re.compile(r"\[nrpcalc:(\w+)\]")),
 ]
 
 

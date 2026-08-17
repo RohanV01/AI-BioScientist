@@ -131,7 +131,7 @@ Already-built tools (16 external-API + scikit-bio, BioPandas, cobra, Vina/RDKit/
 - [ ] **bebop/poly** (CLONE, High) — DNA sequence engineering (codon optimization, primers, part assembly).
 - [ ] **OpenCloning** (PIP/API, High) — cloning/genome-engineering strategy design with a documented API.
 - [ ] **PEGG** (PIP, High) — prime-editing pegRNA design.
-- [ ] **nrpcalc** (PIP, Medium-High) — non-repetitive DNA part design.
+- [x] **nrpcalc** (PIP, Medium-High) — non-repetitive DNA part design.
 
 ## Other notable finds
 

@@ -37,6 +37,7 @@ from app.tools.gnomad import build_gnomad_mcp_server
 from app.tools.huggingface import build_huggingface_mcp_server
 from app.tools.kegg import build_kegg_mcp_server
 from app.tools.literature_discovery import build_literature_discovery_mcp_server
+from app.tools.nrpcalc_design import build_nrpcalc_design_mcp_server
 from app.tools.ontologies import build_ontologies_mcp_server
 from app.tools.open_targets import build_open_targets_mcp_server
 from app.tools.pdb import build_pdb_mcp_server
@@ -92,6 +93,10 @@ TOOL_BUILDERS = {
         ["mcp__cobra_fba__search_metabolic_models", "mcp__cobra_fba__run_flux_balance_analysis"],
     ),
     "vina_docking": ("vina_docking", build_vina_docking_mcp_server, ["mcp__vina_docking__dock_ligand"]),
+    "nrpcalc_design": (
+        "nrpcalc_design", build_nrpcalc_design_mcp_server,
+        ["mcp__nrpcalc_design__design_nonrepetitive_parts"],
+    ),
 }
 
 
