@@ -32,6 +32,7 @@ from app.tools.clinicaltrials import build_clinicaltrials_mcp_server
 from app.tools.clinvar import build_clinvar_mcp_server
 from app.tools.cobra_fba import build_cobra_fba_mcp_server
 from app.tools.dailymed import build_dailymed_mcp_server
+from app.tools.equilibrator_thermo import build_equilibrator_thermo_mcp_server
 from app.tools.ensembl import build_ensembl_mcp_server
 from app.tools.gnomad import build_gnomad_mcp_server
 from app.tools.huggingface import build_huggingface_mcp_server
@@ -43,6 +44,7 @@ from app.tools.pdb import build_pdb_mcp_server
 from app.tools.pubmed import build_pubmed_mcp_server
 from app.tools.reactome import build_reactome_mcp_server
 from app.tools.scikit_bio import build_scikit_bio_mcp_server
+from app.tools.soltrannet_solubility import build_soltrannet_solubility_mcp_server
 from app.tools.string_db import build_string_mcp_server
 from app.tools.uniprot import build_uniprot_mcp_server
 from app.tools.vina_docking import build_vina_docking_mcp_server
@@ -92,6 +94,14 @@ TOOL_BUILDERS = {
         ["mcp__cobra_fba__search_metabolic_models", "mcp__cobra_fba__run_flux_balance_analysis"],
     ),
     "vina_docking": ("vina_docking", build_vina_docking_mcp_server, ["mcp__vina_docking__dock_ligand"]),
+    "soltrannet_solubility": (
+        "soltrannet_solubility", build_soltrannet_solubility_mcp_server,
+        ["mcp__soltrannet_solubility__predict_aqueous_solubility"],
+    ),
+    "equilibrator_thermo": (
+        "equilibrator_thermo", build_equilibrator_thermo_mcp_server,
+        ["mcp__equilibrator_thermo__estimate_reaction_gibbs_energy"],
+    ),
 }
 
 

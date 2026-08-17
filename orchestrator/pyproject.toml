@@ -26,6 +26,12 @@ dependencies = [
     "vina>=1.2,<2.0",
     "meeko>=0.7,<1.0",
     "gemmi>=0.7,<1.0",  # meeko's chemtempgen submodule needs this at import time but doesn't declare it
+    # soltrannet also depends on torch -- install CPU-only torch first
+    # (see mhcflurry's note on this branch's sibling commits) to avoid
+    # pulling the full CUDA toolkit; it reuses the CPU wheel if already
+    # installed for mhcflurry.
+    "soltrannet>=1.0,<2.0",
+    "equilibrator-api>=0.6,<1.0",
 ]
 
 [project.optional-dependencies]

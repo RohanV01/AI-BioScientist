@@ -100,8 +100,8 @@ Already-built tools (16 external-API + scikit-bio, BioPandas, cobra, Vina/RDKit/
 - [ ] **Auto3D** (PIP, Medium-High) — SMILES → 3D conformers (fills the gap between ChEMBL's 2D SMILES and Vina's need for 3D structures).
 - [ ] **AiZynthFinder** (PIP, High) — retrosynthetic route planning.
 - [ ] **Chemprop** (PIP, High) — trainable/pretrained molecular property prediction (MPNN).
-- [ ] **eQuilibrator** (PIP, High) — reaction/compound Gibbs free energy; pairs with cobrapy FBA.
-- [ ] **SolTranNet** (PIP, High) — aqueous solubility from SMILES.
+- [x] **eQuilibrator** (PIP, High) — reaction/compound Gibbs free energy; pairs with cobrapy FBA.
+- [x] **SolTranNet** (PIP, High) — aqueous solubility from SMILES.
 - [ ] **BioTransformer** (CLONE, High) / **Pickaxe** (PIP, High) — metabolite/biotransformation prediction from a structure.
 - [ ] **RAscore** (CLONE, Medium) — synthesizability scoring.
 - [ ] **ToxinPred2** (CLONE, Medium) — peptide/protein toxicity prediction.

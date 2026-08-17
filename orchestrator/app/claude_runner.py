@@ -132,6 +132,14 @@ RECORD_REF_PATTERNS: list[tuple[str, re.Pattern]] = [
     # receptor PDB ID itself is separately caught by the existing "PDB {}"
     # pattern above, since this tool's output also says "PDB <id>".
     ("Vina docking against {}", re.compile(r"\[vina:([A-Za-z0-9]+)\]")),
+    # SolTranNet solubility prediction -- real local model inference
+    # (app/tools/soltrannet_solubility.py), same methodological-citation
+    # pattern as huggingface/mhcflurry.
+    ("SolTranNet prediction {}", re.compile(r"\[soltrannet:([0-9a-f]{8})\]")),
+    # eQuilibrator reaction thermodynamics -- real local computation
+    # (app/tools/equilibrator_thermo.py) against a bundled reference
+    # dataset, same methodological-citation pattern.
+    ("eQuilibrator {}", re.compile(r"\[equilibrator:(\w+)\]")),
 ]
 
 
