@@ -28,6 +28,10 @@ dependencies = [
     "gemmi>=0.7,<1.0",  # meeko's chemtempgen submodule needs this at import time but doesn't declare it
     "piqtree>=0.7,<1.0",
     "dendropy>=5.0,<6.0",
+    # CLI-first, no clean library API (its service classes read a tree
+    # file and print(), not a function returning a value) -- wrapped via
+    # subprocess in app/tools/phylogenetics.py's compute_tree_statistics.
+    "phykit>=2.0,<3.0",
 ]
 
 [project.optional-dependencies]

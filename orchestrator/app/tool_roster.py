@@ -95,7 +95,11 @@ TOOL_BUILDERS = {
     "vina_docking": ("vina_docking", build_vina_docking_mcp_server, ["mcp__vina_docking__dock_ligand"]),
     "phylogenetics": (
         "phylogenetics", build_phylogenetics_mcp_server,
-        ["mcp__phylogenetics__build_phylogenetic_tree", "mcp__phylogenetics__analyze_tree"],
+        [
+            "mcp__phylogenetics__build_phylogenetic_tree",
+            "mcp__phylogenetics__analyze_tree",
+            "mcp__phylogenetics__compute_tree_statistics",
+        ],
     ),
 }
 

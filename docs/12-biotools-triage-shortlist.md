@@ -43,7 +43,7 @@ Already-built tools (16 external-API + scikit-bio, BioPandas, cobra, Vina/RDKit/
 - [ ] **IQ-TREE** (CLONE, High) / **FastTree** (CLONE, High) — ML phylogenetic tree inference from an alignment.
 - [x] **ete3** (skipped, used DendroPy instead) / **DendroPy** (PIP, High) — programmatic tree construction/manipulation/comparison.
 - [x] **piqtree** (PIP, High) — Python-native IQ-TREE bindings, no shelling out.
-- [ ] **PhyKIT** (PIP, High) / **BioKIT** (PIP, Medium-High) — one-command tree/alignment statistics.
+- [x] **PhyKIT** (PIP, High) / **BioKIT** (PIP, Medium-High) — one-command tree/alignment statistics.
 - [ ] **OrthoFinder** (CLONE, High) — ortholog/orthogroup inference across genomes.
 - [ ] **PAML** (CLONE, Medium-High) — dN/dS selection testing.
 - [ ] **ASTRAL-Pro2** (CLONE, Medium-High) — coalescent species-tree estimation from gene trees.
