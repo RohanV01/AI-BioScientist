@@ -122,7 +122,7 @@ Already-built tools (16 external-API + scikit-bio, BioPandas, cobra, Vina/RDKit/
 ## Proteomics (mass spec — currently zero coverage)
 
 - [ ] **mokapot** (PIP, High) — pure-Python PSM rescoring for FDR control.
-- [ ] **Pyteomics** (PIP, High) — foundational MS file-format parsing (mzML, MGF, pepXML) — prerequisite plumbing for the rest of this cluster.
+- [x] **Pyteomics** (PIP, High) — foundational MS file-format parsing (mzML, MGF, pepXML) — prerequisite plumbing for the rest of this cluster.
 - [ ] **Comet** (CLONE, High) / **Sage** (CLONE, Medium) — MS/MS database search engines.
 - [ ] **DIA-NN** (CLONE, High) — modern DIA proteomics search+quant.
 

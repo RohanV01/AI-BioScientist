@@ -48,6 +48,7 @@ from app.tools.plip_interactions import build_plip_interactions_mcp_server
 from app.tools.primer3 import build_primer3_mcp_server
 from app.tools.pubmed import build_pubmed_mcp_server
 from app.tools.pyhmmer_search import build_pyhmmer_search_mcp_server
+from app.tools.pyteomics_mass import build_pyteomics_mass_mcp_server
 from app.tools.reactome import build_reactome_mcp_server
 from app.tools.scikit_bio import build_scikit_bio_mcp_server
 from app.tools.string_db import build_string_mcp_server
@@ -120,6 +121,10 @@ TOOL_BUILDERS = {
     "gprofiler_enrichment": (
         "gprofiler_enrichment", build_gprofiler_enrichment_mcp_server,
         ["mcp__gprofiler_enrichment__profile_gene_list"],
+    ),
+    "pyteomics_mass": (
+        "pyteomics_mass", build_pyteomics_mass_mcp_server,
+        ["mcp__pyteomics_mass__calculate_peptide_mass"],
     ),
 }
 

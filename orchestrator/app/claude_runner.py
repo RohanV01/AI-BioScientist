@@ -157,6 +157,10 @@ RECORD_REF_PATTERNS: list[tuple[str, re.Pattern]] = [
     # methodological-citation convention as the wrapped-library tools.
     ("gseapy/Enrichr against {}", re.compile(r"\[gseapy:([\w_]+)\]")),
     ("g:Profiler against {}", re.compile(r"\[gprofiler:(\w+)\]")),
+    # Pyteomics peptide mass/fragment calculation -- real local
+    # computation (app/tools/pyteomics_mass.py), same methodological-
+    # citation pattern as scikit-bio/cobra/vina.
+    ("Pyteomics {}", re.compile(r"\[pyteomics:(\w+)\]")),
 ]
 
 
