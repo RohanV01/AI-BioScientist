@@ -37,6 +37,7 @@ from app.tools.gnomad import build_gnomad_mcp_server
 from app.tools.huggingface import build_huggingface_mcp_server
 from app.tools.kegg import build_kegg_mcp_server
 from app.tools.literature_discovery import build_literature_discovery_mcp_server
+from app.tools.mhcflurry_binding import build_mhcflurry_binding_mcp_server
 from app.tools.msprime import build_msprime_mcp_server
 from app.tools.ontologies import build_ontologies_mcp_server
 from app.tools.open_targets import build_open_targets_mcp_server
@@ -105,6 +106,10 @@ TOOL_BUILDERS = {
     "plip_interactions": (
         "plip_interactions", build_plip_interactions_mcp_server,
         ["mcp__plip_interactions__profile_ligand_interactions"],
+    ),
+    "mhcflurry_binding": (
+        "mhcflurry_binding", build_mhcflurry_binding_mcp_server,
+        ["mcp__mhcflurry_binding__predict_mhc_binding"],
     ),
 }
 

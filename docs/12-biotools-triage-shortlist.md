@@ -111,7 +111,7 @@ Already-built tools (16 external-API + scikit-bio, BioPandas, cobra, Vina/RDKit/
 
 ## Immunoinformatics
 
-- [ ] **MHCflurry** (PIP, High) — peptide-MHC-I binding affinity prediction.
+- [x] **MHCflurry** (PIP, High) — peptide-MHC-I binding affinity prediction.
 - [ ] **epitopepredict** (PIP, High) — unified T-cell epitope prediction framework.
 - [ ] **ANARCI** (PIP, High) — antibody/TCR sequence numbering (Kabat/Chothia/IMGT).
 - [ ] **AbLang** (PIP, High) — antibody sequence language model.

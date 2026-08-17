@@ -79,6 +79,10 @@ KNOWN_TOOL_SOURCES = {
     # analysis, no external API for the computation. Natural pair with
     # vina_docking: Vina scores a pose, PLIP explains it.
     "plip_interactions": ("structural_biology", "free_public", "in-process:app.tools.plip_interactions", False, False),
+    # docs/12-biotools-triage-shortlist.md's Immunoinformatics cluster
+    # (feature/immunoinformatics branch) -- real local model inference
+    # (pretrained pan-allele neural net, CPU-only), no external API.
+    "mhcflurry_binding": ("immunoinformatics", "free_public", "in-process:app.tools.mhcflurry_binding", False, False),
     # Placeholder only -- no app/tools/drugbank.py, no TOOL_BUILDERS entry.
     # User decision 2026-08-16: wire this once a real DrugBank credential
     # is available; until then this row just marks the intent in the

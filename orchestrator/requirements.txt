@@ -26,6 +26,10 @@ primer3-py>=2.0,<3.0
 pyhmmer>=0.12,<1.0
 msprime>=1.3,<2.0
 plip>=3.0,<4.0
+# mhcflurry needs CPU-only torch installed FIRST to avoid pulling the full
+# CUDA toolkit: uv pip install torch --index-url https://download.pytorch.org/whl/cpu
+# Also needs a one-time model download: .venv/bin/mhcflurry-downloads fetch models_class1_pan
+mhcflurry>=2.0,<3.0
 
 # dev/test
 pytest>=8.3,<9.0

@@ -147,6 +147,10 @@ RECORD_REF_PATTERNS: list[tuple[str, re.Pattern]] = [
     # pattern as vina. The receptor PDB ID itself is separately caught by
     # the existing "PDB {}" pattern above.
     ("PLIP interaction profile for {}", re.compile(r"\[plip:([A-Za-z0-9]+)\]")),
+    # MHCflurry binding-affinity prediction -- real local model inference
+    # (app/tools/mhcflurry_binding.py), same methodological-citation
+    # pattern as huggingface.py's ESM2 tag.
+    ("MHCflurry prediction for {}", re.compile(r"\[mhcflurry:([\w*:.\-]+)\]")),
 ]
 
 
