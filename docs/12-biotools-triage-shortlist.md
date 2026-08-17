@@ -81,7 +81,7 @@ Already-built tools (16 external-API + scikit-bio, BioPandas, cobra, Vina/RDKit/
 
 ## Metagenomics / microbiology (large, well-organized yield)
 
-- [ ] **sourmash** (PIP, High) — MinHash genome/metagenome comparison, lightweight.
+- [x] **sourmash** (PIP, High) — MinHash genome/metagenome comparison, lightweight.
 - [ ] **Kraken2** (CLONE, High) / **Kaiju** (CLONE, Medium) — taxonomic classification of sequences/reads.
 - [ ] **MetaPhlAn** (CLONE/PIP, High) / **HUMAnN** (CLONE/PIP, Medium) — taxonomic/functional profiling directly from real shotgun metagenomic FASTQ.
 - [ ] **Prokka** (CLONE, High) / **Bakta** (CLONE, High) — bacterial genome annotation.

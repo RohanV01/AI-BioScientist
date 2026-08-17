@@ -43,6 +43,7 @@ from app.tools.pdb import build_pdb_mcp_server
 from app.tools.pubmed import build_pubmed_mcp_server
 from app.tools.reactome import build_reactome_mcp_server
 from app.tools.scikit_bio import build_scikit_bio_mcp_server
+from app.tools.sourmash_compare import build_sourmash_compare_mcp_server
 from app.tools.string_db import build_string_mcp_server
 from app.tools.uniprot import build_uniprot_mcp_server
 from app.tools.vina_docking import build_vina_docking_mcp_server
@@ -92,6 +93,10 @@ TOOL_BUILDERS = {
         ["mcp__cobra_fba__search_metabolic_models", "mcp__cobra_fba__run_flux_balance_analysis"],
     ),
     "vina_docking": ("vina_docking", build_vina_docking_mcp_server, ["mcp__vina_docking__dock_ligand"]),
+    "sourmash_compare": (
+        "sourmash_compare", build_sourmash_compare_mcp_server,
+        ["mcp__sourmash_compare__compare_sequence_similarity"],
+    ),
 }
 
 
