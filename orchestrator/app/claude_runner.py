@@ -161,6 +161,15 @@ RECORD_REF_PATTERNS: list[tuple[str, re.Pattern]] = [
     # computation (app/tools/pyteomics_mass.py), same methodological-
     # citation pattern as scikit-bio/cobra/vina.
     ("Pyteomics {}", re.compile(r"\[pyteomics:(\w+)\]")),
+    # Phylogenetics tools -- real local computation (app/tools/
+    # phylogenetics.py: piqtree ML tree inference, dendropy tree
+    # analysis), same methodological-citation pattern as the others.
+    ("piqtree ML tree {}", re.compile(r"\[piqtree:(\w+)\]")),
+    ("dendropy tree analysis {}", re.compile(r"\[dendropy:(\w+)\]")),
+    # PhyKIT tree statistics (real CLI, subprocess-wrapped) -- same
+    # methodological-citation pattern, the analytical payoff step after
+    # piqtree/dendropy build and analyze a tree.
+    ("PhyKIT tree statistic {}", re.compile(r"\[phykit:(\w+)\]")),
 ]
 
 

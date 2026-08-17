@@ -44,6 +44,7 @@ from app.tools.msprime import build_msprime_mcp_server
 from app.tools.ontologies import build_ontologies_mcp_server
 from app.tools.open_targets import build_open_targets_mcp_server
 from app.tools.pdb import build_pdb_mcp_server
+from app.tools.phylogenetics import build_phylogenetics_mcp_server
 from app.tools.plip_interactions import build_plip_interactions_mcp_server
 from app.tools.primer3 import build_primer3_mcp_server
 from app.tools.pubmed import build_pubmed_mcp_server
@@ -125,6 +126,14 @@ TOOL_BUILDERS = {
     "pyteomics_mass": (
         "pyteomics_mass", build_pyteomics_mass_mcp_server,
         ["mcp__pyteomics_mass__calculate_peptide_mass"],
+    ),
+    "phylogenetics": (
+        "phylogenetics", build_phylogenetics_mcp_server,
+        [
+            "mcp__phylogenetics__build_phylogenetic_tree",
+            "mcp__phylogenetics__analyze_tree",
+            "mcp__phylogenetics__compute_tree_statistics",
+        ],
     ),
 }
 
