@@ -132,6 +132,11 @@ RECORD_REF_PATTERNS: list[tuple[str, re.Pattern]] = [
     # receptor PDB ID itself is separately caught by the existing "PDB {}"
     # pattern above, since this tool's output also says "PDB <id>".
     ("Vina docking against {}", re.compile(r"\[vina:([A-Za-z0-9]+)\]")),
+    # Phylogenetics tools -- real local computation (app/tools/
+    # phylogenetics.py: piqtree ML tree inference, dendropy tree
+    # analysis), same methodological-citation pattern as the others.
+    ("piqtree ML tree {}", re.compile(r"\[piqtree:(\w+)\]")),
+    ("dendropy tree analysis {}", re.compile(r"\[dendropy:(\w+)\]")),
 ]
 
 

@@ -65,6 +65,11 @@ KNOWN_TOOL_SOURCES = {
     "biopandas_structure": ("structural_biology", "free_public", "in-process:app.tools.biopandas_structure", False, False),
     "cobra_fba": ("systems_biology", "free_public", "in-process:app.tools.cobra_fba", False, False),
     "vina_docking": ("drug_discovery", "free_public", "in-process:app.tools.vina_docking", False, False),
+    # docs/12-biotools-triage-shortlist.md's Phylogenetics cluster
+    # (feature/phylogenetics branch) -- this platform's first
+    # phylogenetics coverage. Real in-process ML tree inference
+    # (piqtree/IQ-TREE) + tree analysis (dendropy), no external API.
+    "phylogenetics": ("phylogenetics", "free_public", "in-process:app.tools.phylogenetics", False, False),
     # Placeholder only -- no app/tools/drugbank.py, no TOOL_BUILDERS entry.
     # User decision 2026-08-16: wire this once a real DrugBank credential
     # is available; until then this row just marks the intent in the
