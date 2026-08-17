@@ -38,6 +38,7 @@ dendropy>=5.0,<6.0
 # CLI-first, no clean library API -- wrapped via subprocess in
 # app/tools/phylogenetics.py's compute_tree_statistics.
 phykit>=2.0,<3.0
+sourmash>=4.8,<5.0
 
 # dev/test
 pytest>=8.3,<9.0

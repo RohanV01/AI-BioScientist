@@ -170,6 +170,9 @@ RECORD_REF_PATTERNS: list[tuple[str, re.Pattern]] = [
     # methodological-citation pattern, the analytical payoff step after
     # piqtree/dendropy build and analyze a tree.
     ("PhyKIT tree statistic {}", re.compile(r"\[phykit:(\w+)\]")),
+    # sourmash MinHash comparison -- real local computation
+    # (app/tools/sourmash_compare.py), same methodological-citation pattern.
+    ("sourmash {}", re.compile(r"\[sourmash:(\w+)\]")),
 ]
 
 

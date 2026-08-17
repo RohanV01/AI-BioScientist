@@ -62,6 +62,13 @@ KNOWN_TOOL_SOURCES = {
     # Wrapped local libraries (docs/10-build-plan.md Phase 5's bio.tools +
     # GitHub-repo triage) -- real in-process computation, no external API.
     "scikit_bio": ("microbiome", "free_public", "in-process:app.tools.scikit_bio", False, False),
+    # docs/12-biotools-triage-shortlist.md's Metagenomics / microbiology
+    # cluster (feature/metagenomics branch) -- real in-process MinHash
+    # comparison (sourmash), no external API for the computation. The
+    # rest of this cluster (eggNOG-mapper, CheckM2, MetaPhlAn) needs
+    # multi-GB reference databases or a heavy TensorFlow dependency chain,
+    # not pursued this pass -- see docs/10-build-plan.md for the finding.
+    "sourmash_compare": ("microbiome", "free_public", "in-process:app.tools.sourmash_compare", False, False),
     "biopandas_structure": ("structural_biology", "free_public", "in-process:app.tools.biopandas_structure", False, False),
     "cobra_fba": ("systems_biology", "free_public", "in-process:app.tools.cobra_fba", False, False),
     "vina_docking": ("drug_discovery", "free_public", "in-process:app.tools.vina_docking", False, False),

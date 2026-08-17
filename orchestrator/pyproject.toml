@@ -47,6 +47,7 @@ dependencies = [
     # file and print(), not a function returning a value) -- wrapped via
     # subprocess in app/tools/phylogenetics.py's compute_tree_statistics.
     "phykit>=2.0,<3.0",
+    "sourmash>=4.8,<5.0",
 ]
 
 [project.optional-dependencies]
