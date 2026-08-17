@@ -72,7 +72,7 @@ Already-built tools (16 external-API + scikit-bio, BioPandas, cobra, Vina/RDKit/
 - [ ] **pixy** (PIP, High) — nucleotide diversity (π) / divergence (dxy) from a VCF.
 - [ ] **poolfstat** (CLONE, High) — Fst from allele-count data.
 - [ ] **egglib** (PIP, High) — general pop-gen stats engine (diversity, Fst, Tajima's D).
-- [ ] **msprime** (PIP, High) — coalescent simulation from demographic parameters.
+- [x] **msprime** (PIP, High) — coalescent simulation from demographic parameters.
 - [ ] **ADMIXTURE** (CLONE, High) / **Eigensoft** (CLONE, High) — ancestry/population-structure inference.
 - [ ] **TreeMix** (CLONE, High) — population tree + admixture edges from allele frequencies.
 - [ ] **selscan** (CLONE, High) — haplotype-based selection-scan statistics (iHS, XP-EHH).

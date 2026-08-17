@@ -139,6 +139,9 @@ RECORD_REF_PATTERNS: list[tuple[str, re.Pattern]] = [
     # pyhmmer_search.py) -- real local computation on a fetched profile,
     # same methodological-citation pattern.
     ("pyhmmer search {}", re.compile(r"\[pyhmmer:(PF\d+)\]")),
+    # msprime coalescent simulation -- real local computation
+    # (app/tools/msprime.py), same methodological-citation pattern.
+    ("msprime {}", re.compile(r"\[msprime:(\w+)\]")),
 ]
 
 
