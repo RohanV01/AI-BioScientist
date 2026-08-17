@@ -140,6 +140,12 @@ RECORD_REF_PATTERNS: list[tuple[str, re.Pattern]] = [
     # (app/tools/equilibrator_thermo.py) against a bundled reference
     # dataset, same methodological-citation pattern.
     ("eQuilibrator {}", re.compile(r"\[equilibrator:(\w+)\]")),
+    # virtual_screening.py reuses vina_docking.py's own [vina:pdb_id] tag
+    # (same underlying computation, just batched) -- no new pattern needed.
+    # straindesign OptKnock result -- real local MILP computation
+    # (app/tools/straindesign_intervention.py), same methodological-
+    # citation pattern as cobra_fba's [cobra:model_id].
+    ("straindesign on {}", re.compile(r"\[straindesign:(\w+)\]")),
 ]
 
 

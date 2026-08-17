@@ -32,6 +32,11 @@ dependencies = [
     # installed for mhcflurry.
     "soltrannet>=1.0,<2.0",
     "equilibrator-api>=0.6,<1.0",
+    # virtual_screening.py deliberately does NOT depend on the pyscreener
+    # package -- it pulls in ray + openmm (~36 packages, distributed-compute
+    # scale) for what this platform needs as simple batched Vina calls.
+    # Reuses vina_docking.py's own internals instead; no new dependency.
+    "straindesign>=1.19,<2.0",  # pulls pyscipopt (MILP solver), clean install
 ]
 
 [project.optional-dependencies]

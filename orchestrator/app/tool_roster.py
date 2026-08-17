@@ -45,9 +45,11 @@ from app.tools.pubmed import build_pubmed_mcp_server
 from app.tools.reactome import build_reactome_mcp_server
 from app.tools.scikit_bio import build_scikit_bio_mcp_server
 from app.tools.soltrannet_solubility import build_soltrannet_solubility_mcp_server
+from app.tools.straindesign_intervention import build_straindesign_intervention_mcp_server
 from app.tools.string_db import build_string_mcp_server
 from app.tools.uniprot import build_uniprot_mcp_server
 from app.tools.vina_docking import build_vina_docking_mcp_server
+from app.tools.virtual_screening import build_virtual_screening_mcp_server
 from app.vault import decrypt
 
 # Tool source names whose builder takes an api_key positional arg instead
@@ -101,6 +103,14 @@ TOOL_BUILDERS = {
     "equilibrator_thermo": (
         "equilibrator_thermo", build_equilibrator_thermo_mcp_server,
         ["mcp__equilibrator_thermo__estimate_reaction_gibbs_energy"],
+    ),
+    "virtual_screening": (
+        "virtual_screening", build_virtual_screening_mcp_server,
+        ["mcp__virtual_screening__batch_dock_ligands"],
+    ),
+    "straindesign_intervention": (
+        "straindesign_intervention", build_straindesign_intervention_mcp_server,
+        ["mcp__straindesign_intervention__design_strain_intervention"],
     ),
 }
 
