@@ -23,6 +23,16 @@ def _run_prediction(smiles: list[str]) -> list[tuple]:
     return list(soltrannet.predict(smiles))
 
 
+def _invalid_smiles(smiles: list[str]) -> list[str]:
+    # soltrannet.predict() itself raises an unhandled AttributeError deep
+    # inside its DataLoader worker on unparseable SMILES (RDKit returns
+    # None, and it calls None.GetAtoms() with no guard) -- validate with
+    # RDKit first so a bad SMILES becomes a reported skip, not a crash.
+    from rdkit import Chem
+
+    return [s for s in smiles if Chem.MolFromSmiles(s) is None]
+
+
 @tool(
     "predict_aqueous_solubility",
     "Given one or more SMILES strings, predict aqueous solubility (log S, "
@@ -37,9 +47,16 @@ async def predict_aqueous_solubility(args: dict[str, Any]) -> dict[str, Any]:
     if not smiles:
         return {"content": [{"type": "text", "text": "smiles must contain at least one non-empty SMILES string."}]}
 
-    results = await asyncio.to_thread(_run_prediction, smiles)
+    invalid = await asyncio.to_thread(_invalid_smiles, smiles)
+    valid_smiles = [s for s in smiles if s not in invalid]
+    if not valid_smiles:
+        return {"content": [{"type": "text", "text": f"No valid SMILES to predict on. Unparseable: {', '.join(invalid)}"}]}
+
+    results = await asyncio.to_thread(_run_prediction, valid_smiles)
 
     lines = ["SolTranNet aqueous solubility predictions:"]
+    if invalid:
+        lines.append(f"(skipped unparseable SMILES: {', '.join(invalid)})")
     for pred, smi, warning in results:
         # [soltrannet:smiles] is the citable unit -- real local model
         # inference, same methodological-citation convention as
