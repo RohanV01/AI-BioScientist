@@ -69,9 +69,9 @@ class Settings(BaseSettings):
     telegram_api_id: int = 0
     telegram_api_hash: str = ""
     telegram_session_string: str = ""
-    # The Sci-Hub bot's own @username (visible in the Telegram app for the
-    # chat you message) -- PLACEHOLDER, fill in the exact @handle.
-    telegram_scihub_bot_username: str = ""
+    # The Sci-Hub bot's own @username -- https://t.me/scihubot. Override if
+    # you use a different mirror bot.
+    telegram_scihub_bot_username: str = "scihubot"
     # Where downloaded PDFs are saved, one file per DOI.
     papers_download_dir: str = "../data/Databases/papers"
 
