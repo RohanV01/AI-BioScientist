@@ -41,7 +41,15 @@ class Settings(BaseSettings):
     # 2) Camofox stealth headless browser, only reached if (1) fails/is unset:
     #    https://github.com/jo-inc/camofox-browser
     #    (Vault/AI-Tools/camofox-browser-stealth-headless-browser-2026-08-16.md)
-    camofox_api_url: str = ""  # PLACEHOLDER -- fill in deployed server URL
+    #    Real API per that repo's README: POST /tabs to open+navigate,
+    #    GET /tabs/:id/downloads for captured downloads, GET /tabs/:id/snapshot
+    #    + POST /tabs/:id/click to click a save/download control, DELETE
+    #    /tabs/:id to clean up -- see _try_camofox in literature_discovery.py.
+    camofox_api_url: str = ""  # PLACEHOLDER -- fill in deployed server URL, e.g. http://localhost:9377
+    # Only needed if the Camofox server sets CAMOFOX_ACCESS_KEY -- sent as
+    # `Authorization: Bearer <key>` on every request. Leave blank for a
+    # loopback-only/no-auth deployment.
+    camofox_access_key: str = ""
     # Where downloaded PDFs are saved, one file per DOI.
     papers_download_dir: str = "../data/Databases/papers"
 

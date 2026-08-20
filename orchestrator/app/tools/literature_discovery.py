@@ -218,25 +218,104 @@ async def _try_camofox(doi: str) -> bytes | None:
     Camofox stealth headless browser
     (https://github.com/jo-inc/camofox-browser --
     Vault/AI-Tools/camofox-browser-stealth-headless-browser-2026-08-16.md).
+
+    Camofox is a generic browser-automation REST API, not a paper-download
+    endpoint -- so this drives a real tab lifecycle rather than one GET:
+      1. POST /tabs -- open a tab navigated straight to the Sci-Hub mirror
+         page for this DOI.
+      2. GET /tabs/:id/downloads -- Camofox auto-captures any browser
+         download the page triggers; check there first.
+      3. If nothing was captured, GET /tabs/:id/snapshot for the
+         accessibility tree, look for a save/download control by its
+         element ref, and POST /tabs/:id/click it -- then re-check
+         downloads. Sci-Hub's landing page typically needs a click on its
+         save button rather than downloading automatically.
+      4. DELETE /tabs/:id to clean up regardless of outcome.
+
+    PLACEHOLDER caveats to verify against the deployed server's live
+    /openapi.json or /docs once SCI_DOC_HUB_MCP_URL/CAMOFOX_API_URL are
+    wired up for real:
+      - exact JSON field names below (tab id, downloads/links shape) --
+        written from the README's documented examples, not a live response.
+      - "https://sci-hub.se" as the mirror -- swap for whichever mirror is
+        actually reachable/current.
+      - the save-button ref heuristic (matching "save"/"download" text) --
+        confirm against a real snapshot of the page.
+
     Returns the PDF bytes, or None if it couldn't be retrieved.
     """
     if not settings.camofox_api_url:
         return None
+
+    base = settings.camofox_api_url.rstrip("/")
+    headers = {"Authorization": f"Bearer {settings.camofox_access_key}"} if settings.camofox_access_key else {}
+    user_id = "ai-scientist-literature-agent"
+    session_key = f"paper-{doi.replace('/', '_')}"
+    tab_id: str | None = None
+
     try:
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            # PLACEHOLDER -- fill in Camofox's actual REST endpoint/request
-            # shape (e.g. navigate to https://sci-hub.se/<doi> and capture
-            # the resulting PDF) once deployed.
-            resp = await client.get(
-                f"{settings.camofox_api_url}",  # PLACEHOLDER endpoint path
-                params={"doi": doi},
+        async with httpx.AsyncClient(timeout=60.0, headers=headers) as client:
+            create_resp = await client.post(
+                f"{base}/tabs",
+                json={
+                    "userId": user_id,
+                    "sessionKey": session_key,
+                    "url": f"https://sci-hub.se/{doi}",  # PLACEHOLDER -- confirm mirror
+                },
             )
-            resp.raise_for_status()
-            if "pdf" not in resp.headers.get("content-type", ""):
+            create_resp.raise_for_status()
+            tab_id = create_resp.json()["id"]  # PLACEHOLDER -- confirm response field name
+
+            pdf_bytes = await _camofox_read_captured_pdf(client, base, tab_id)
+            if pdf_bytes is not None:
+                return pdf_bytes
+
+            # No auto-captured download -- try clicking a save/download
+            # control found in the page's accessibility snapshot.
+            snapshot_resp = await client.get(f"{base}/tabs/{tab_id}/snapshot")
+            snapshot_resp.raise_for_status()
+            snapshot_text = snapshot_resp.json().get("snapshot", "")  # PLACEHOLDER -- confirm field name
+            ref = _find_save_ref(snapshot_text)
+            if ref is None:
                 return None
-            return resp.content
+
+            click_resp = await client.post(f"{base}/tabs/{tab_id}/click", json={"ref": ref})
+            click_resp.raise_for_status()
+
+            return await _camofox_read_captured_pdf(client, base, tab_id)
     except httpx.HTTPError:
         return None
+    finally:
+        if tab_id is not None:
+            try:
+                async with httpx.AsyncClient(timeout=10.0, headers=headers) as client:
+                    await client.delete(f"{base}/tabs/{tab_id}")
+            except httpx.HTTPError:
+                pass
+
+
+async def _camofox_read_captured_pdf(client: httpx.AsyncClient, base: str, tab_id: str) -> bytes | None:
+    import base64
+
+    downloads_resp = await client.get(f"{base}/tabs/{tab_id}/downloads", params={"includeData": "true"})
+    downloads_resp.raise_for_status()
+    downloads = downloads_resp.json().get("downloads", [])  # PLACEHOLDER -- confirm response shape
+    for d in downloads:
+        data = d.get("data")
+        if data and (d.get("contentType", "").endswith("pdf") or d.get("filename", "").lower().endswith(".pdf")):
+            return base64.b64decode(data)
+    return None
+
+
+def _find_save_ref(snapshot_text: str) -> str | None:
+    """Look for a clickable element ref (e.g. "e3") next to save/download
+    wording in a Camofox accessibility snapshot string. PLACEHOLDER
+    heuristic -- confirm against a real snapshot's exact text/ref format.
+    """
+    import re
+
+    match = re.search(r"\[\w+ (e\d+)\][^\n]*\b(save|download)\b", snapshot_text, re.IGNORECASE)
+    return match.group(1) if match else None
 
 
 async def _download_one(doi: str, out_dir: Path, sem: asyncio.Semaphore) -> str:
