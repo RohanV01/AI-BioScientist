@@ -16,6 +16,7 @@ dependencies = [
     "python-dotenv>=1.0,<2.0",
     "cryptography>=43.0,<44.0",
     "claude-agent-sdk>=0.2.139,<1.0",
+    "telethon>=1.36,<2.0",  # Telegram user session for the Sci-Hub bot fallback (app/tools/telegram_scihub.py)
     # Wrapped, in-process bio libraries (docs/10-build-plan.md Phase 5's
     # bio.tools/GitHub triage) -- selected for being real, general-purpose,
     # actively-maintained packages, not single-paper research code.

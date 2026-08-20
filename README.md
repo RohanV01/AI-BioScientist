@@ -101,6 +101,15 @@ Go to `http://localhost:8065`, log in with the admin credentials step 4 printed,
 
 **BYO credentials:** metered tools (like Hugging Face) need your own API key. Add one with `orchestrator/scripts/add_credential.py`; it's encrypted at rest (`orchestrator/app/vault.py`) and never hardcoded to any one account.
 
+**Optional: full-text paper downloads.** `download_paper` (`orchestrator/app/tools/literature_discovery.py`) tries three sources in order, each optional and independently configured in `.env` -- without any of them set, discovery/citation still works, downloading full-text PDFs just doesn't:
+1. **Sci-Doc-Hub MCP server** ([JackKuo666/Sci-Hub-MCP-Server](https://github.com/JackKuo666/Sci-Hub-MCP-Server)) -- set `SCI_DOC_HUB_MCP_URL` to your deployed instance.
+2. **Camofox stealth browser** ([jo-inc/camofox-browser](https://github.com/jo-inc/camofox-browser)) -- set `CAMOFOX_API_URL` (and `CAMOFOX_ACCESS_KEY` if that deployment requires auth) plus `SCIHUB_MIRROR_URLS` (comma-separated Sci-Hub mirrors; list every one you know is currently working, since mirrors go down/get blocked independently).
+3. **Telegram Sci-Hub bot** -- a Telegram bot you message a DOI/URL to that replies with the PDF. This one needs a real Telegram user login (not a bot token -- bots can't message other bots), done once, by a human:
+   - Register an app at [my.telegram.org](https://my.telegram.org) → API development tools → note your `api_id`/`api_hash`.
+   - Run `python scripts/telegram_login.py` once, locally (not inside the container) -- installs nothing into the orchestrator itself, just needs `pip install telethon` wherever you run it. It walks you through the phone number + login code prompts and prints a session string.
+   - Copy the printed `TELEGRAM_API_ID`, `TELEGRAM_API_HASH`, and `TELEGRAM_SESSION_STRING` into `.env`, plus `TELEGRAM_SCIHUB_BOT_USERNAME` (the bot's exact `@handle`, visible in your Telegram app for that chat).
+   - After that one-time step, the orchestrator reuses the saved session unattended -- it never prompts for a login code itself.
+
 ## Change history
 
 See [`CHANGELOG.md`](CHANGELOG.md).
