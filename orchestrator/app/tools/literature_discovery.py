@@ -177,7 +177,126 @@ async def check_scihub_availability(args: dict[str, Any]) -> dict[str, Any]:
     return {"content": [{"type": "text", "text": "\n".join(lines)}]}
 
 
+# How many downloads run concurrently -- bounded rather than unbounded
+# asyncio.gather so a large result set (many discover_papers calls feeding
+# one download_paper call) doesn't hammer Sci-Doc-Hub/Camofox with dozens
+# of simultaneous requests at once.
+_DOWNLOAD_CONCURRENCY = 5
+
+
+def _doi_to_filename(doi: str) -> str:
+    return doi.replace("/", "_") + ".pdf"
+
+
+async def _try_sci_doc_hub(doi: str) -> bytes | None:
+    """Primary full-text source: the Sci-Doc-Hub MCP server
+    (https://github.com/JackKuo666/Sci-Hub-MCP-Server --
+    Vault/Open-Source-Projects/sci-doc-hub-mcp-server-2026-08-11.md).
+    Returns the PDF bytes, or None if unavailable/unreachable so the
+    caller falls back to Camofox.
+    """
+    if not settings.sci_doc_hub_mcp_url:
+        return None
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            # PLACEHOLDER -- fill in the Sci-Doc-Hub MCP server's actual
+            # download endpoint/request shape once deployed.
+            resp = await client.get(
+                f"{settings.sci_doc_hub_mcp_url}",  # PLACEHOLDER endpoint path
+                params={"doi": doi},
+            )
+            resp.raise_for_status()
+            if "pdf" not in resp.headers.get("content-type", ""):
+                return None
+            return resp.content
+    except httpx.HTTPError:
+        return None
+
+
+async def _try_camofox(doi: str) -> bytes | None:
+    """Fallback full-text source when Sci-Doc-Hub fails/is unreachable:
+    Camofox stealth headless browser
+    (https://github.com/jo-inc/camofox-browser --
+    Vault/AI-Tools/camofox-browser-stealth-headless-browser-2026-08-16.md).
+    Returns the PDF bytes, or None if it couldn't be retrieved.
+    """
+    if not settings.camofox_api_url:
+        return None
+    try:
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            # PLACEHOLDER -- fill in Camofox's actual REST endpoint/request
+            # shape (e.g. navigate to https://sci-hub.se/<doi> and capture
+            # the resulting PDF) once deployed.
+            resp = await client.get(
+                f"{settings.camofox_api_url}",  # PLACEHOLDER endpoint path
+                params={"doi": doi},
+            )
+            resp.raise_for_status()
+            if "pdf" not in resp.headers.get("content-type", ""):
+                return None
+            return resp.content
+    except httpx.HTTPError:
+        return None
+
+
+async def _download_one(doi: str, out_dir: Path, sem: asyncio.Semaphore) -> str:
+    async with sem:
+        pdf_bytes = await _try_sci_doc_hub(doi)
+        source = "Sci-Doc-Hub"
+        if pdf_bytes is None:
+            pdf_bytes = await _try_camofox(doi)
+            source = "Camofox"
+
+    if pdf_bytes is None:
+        return f"- DOI {doi}: could not be downloaded (Sci-Doc-Hub and Camofox both failed)."
+
+    out_path = out_dir / _doi_to_filename(doi)
+    out_path.write_bytes(pdf_bytes)
+    return f"- DOI {doi}: downloaded via {source} -> {out_path}"
+
+
+@tool(
+    "download_paper",
+    "Given a list of DOIs (from one or more discover_papers/"
+    "check_scihub_availability calls -- pass every DOI collected across a "
+    "whole research query, not just one batch), download each paper's "
+    "full-text PDF. Tries the Sci-Doc-Hub MCP server first per paper, then "
+    "falls back to the Camofox stealth browser if that fails or is "
+    "unavailable. Downloads run concurrently (bounded) so many papers "
+    "don't download one at a time. Saves each PDF into the shared "
+    "project-local papers directory (same path for every user of this "
+    "repo, not a personal folder) and returns each paper's path, or "
+    "reports that neither source could retrieve it.",
+    {"dois": list},
+)
+async def download_paper(args: dict[str, Any]) -> dict[str, Any]:
+    # De-duplicate while preserving order -- the same DOI can legitimately
+    # show up across multiple discover_papers calls for one research query.
+    seen: set[str] = set()
+    dois = []
+    for d in args["dois"]:
+        doi = _strip_doi_prefix(d) if d else ""
+        if doi and doi not in seen:
+            seen.add(doi)
+            dois.append(doi)
+
+    if not dois:
+        return {"content": [{"type": "text", "text": "No DOIs given to download."}]}
+
+    # Project-local, gitignored (see data/README.md) -- resolved the same
+    # way for every clone of this repo, not tied to any one person's
+    # machine. Override via PAPERS_DOWNLOAD_DIR if you want it elsewhere.
+    out_dir = Path(settings.papers_download_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    sem = asyncio.Semaphore(_DOWNLOAD_CONCURRENCY)
+    lines = await asyncio.gather(*(_download_one(doi, out_dir, sem) for doi in dois))
+
+    return {"content": [{"type": "text", "text": "\n".join(lines)}]}
+
+
 def build_literature_discovery_mcp_server():
     return create_sdk_mcp_server(
-        name="literature_discovery", tools=[discover_papers, check_scihub_availability]
+        name="literature_discovery",
+        tools=[discover_papers, check_scihub_availability, download_paper],
     )

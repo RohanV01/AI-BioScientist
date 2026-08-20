@@ -33,5 +33,17 @@ class Settings(BaseSettings):
     # localhost since local dev browses from the host, not a container.
     orchestrator_public_url: str = "http://localhost:8000"
 
+    # Full-text acquisition waterfall (app/tools/literature_discovery.py
+    # download_paper) -- tried in order, first one that returns a PDF wins.
+    # 1) Sci-Doc-Hub MCP server: https://github.com/JackKuo666/Sci-Hub-MCP-Server
+    #    (Vault/Open-Source-Projects/sci-doc-hub-mcp-server-2026-08-11.md)
+    sci_doc_hub_mcp_url: str = ""  # PLACEHOLDER -- fill in deployed server URL
+    # 2) Camofox stealth headless browser, only reached if (1) fails/is unset:
+    #    https://github.com/jo-inc/camofox-browser
+    #    (Vault/AI-Tools/camofox-browser-stealth-headless-browser-2026-08-16.md)
+    camofox_api_url: str = ""  # PLACEHOLDER -- fill in deployed server URL
+    # Where downloaded PDFs are saved, one file per DOI.
+    papers_download_dir: str = "../data/Databases/papers"
+
 
 settings = Settings()
