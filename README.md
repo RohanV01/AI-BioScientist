@@ -132,6 +132,16 @@ Go to `http://localhost:8065`, log in with the admin credentials step 4 printed,
 
 Adding a new tool source is a same-day pull request, not a platform project — see [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
+## Acknowledgments
+
+OpenBioLab is an orchestrator, not a reimplementation — it's only useful because of the
+open platforms, databases, and tools it wires together:
+
+- **Platform:** [Claude Agent SDK](https://github.com/anthropics/claude-agent-sdk-python) (agent runtime), [Mattermost](https://mattermost.com) (chat interface), [Camofox](https://github.com/jo-inc/camofox-browser) (optional full-text retrieval), [LM Studio](https://lmstudio.ai) (optional local LLM backend)
+- **Data & tool sources:** [PubMed](https://pubmed.ncbi.nlm.nih.gov)/[OpenAlex](https://openalex.org), [ChEMBL](https://www.ebi.ac.uk/chembl/), [Open Targets](https://platform.opentargets.org), [UniProt](https://www.uniprot.org), [PDB](https://www.rcsb.org), [AlphaFold DB](https://alphafold.ebi.ac.uk), [Ensembl](https://www.ensembl.org), [ClinVar](https://www.ncbi.nlm.nih.gov/clinvar/), [gnomAD](https://gnomad.broadinstitute.org), [KEGG](https://www.genome.jp/kegg/), [Reactome](https://reactome.org), [STRING](https://string-db.org), [ClinicalTrials.gov](https://clinicaltrials.gov), [DailyMed](https://dailymed.nlm.nih.gov)
+- **Local computation:** [AutoDock Vina](https://github.com/ccsb-scripps/AutoDock-Vina) (docking), [COBRApy](https://opencobra.github.io/cobrapy/) (flux balance analysis), [scikit-bio](http://scikit-bio.org) (diversity statistics), [BioPandas](http://rasbt.github.io/biopandas/) (structure parsing)
+- **Demo media:** built HTML → video via [HyperFrames](https://github.com/heygen-com/hyperframes)
+
 ## Change history
 
 See [`CHANGELOG.md`](CHANGELOG.md).
