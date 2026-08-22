@@ -172,7 +172,24 @@ async def run_agent(
     user_message: str,
     roster: ToolRoster,
     on_plan: Callable[[str], Awaitable[None]] | None = None,
+    conversation_history: list[str] | None = None,
+    cwd: str | None = None,
 ) -> RunnerResult:
+    # conversation_history: prior turns' plan+body text within the same
+    # Experiment (oldest first), plain-text, no summarization/compaction yet
+    # -- see the Experiments plan. Without this, every message was answered
+    # with zero memory of earlier turns in the same investigation, even
+    # ones seconds apart. Prepended into the prompt itself rather than a
+    # separate multi-turn API, since claude_agent_sdk's query() here is a
+    # fresh one-shot call each time (see docs/07-system-architecture.md).
+    prompt = user_message
+    if conversation_history:
+        transcript = "\n\n".join(conversation_history)
+        prompt = (
+            "Earlier turns in this experiment (for context -- the researcher's "
+            f"new message follows):\n\n{transcript}\n\n---\n\nNew message: {user_message}"
+        )
+
     options = ClaudeAgentOptions(
         system_prompt=MASTER_AGENT_SYSTEM_PROMPT,
         mcp_servers=roster.mcp_servers,
@@ -190,7 +207,10 @@ async def run_agent(
         strict_mcp_config=True,
         permission_mode="bypassPermissions",  # headless service, no human to prompt
         max_turns=10,
-        cwd=tempfile.mkdtemp(prefix="openbiolab-agent-"),
+        # The current Experiment's own folder when one's in scope (real,
+        # persisted -- see the Experiments plan), else the old throwaway
+        # tempdir for standalone/test calls with no experiment.
+        cwd=cwd or tempfile.mkdtemp(prefix="openbiolab-agent-"),
     )
 
     pending_calls: dict[str, dict] = {}
@@ -199,7 +219,7 @@ async def run_agent(
     final_text_parts: list[str] = []
     plan_announced = False
 
-    async for msg in query(prompt=user_message, options=options):
+    async for msg in query(prompt=prompt, options=options):
         if isinstance(msg, AssistantMessage):
             has_tool_use_this_message = any(isinstance(b, ToolUseBlock) for b in msg.content)
             for block in msg.content:

@@ -51,8 +51,18 @@ class Settings(BaseSettings):
     # go down/get blocked at any given time) -- e.g.
     # "https://sci-hub.se,https://sci-hub.ren,https://sci-hub.st"
     scihub_mirror_urls: str = ""  # PLACEHOLDER -- fill in your working mirrors
-    # Where downloaded PDFs are saved, one file per DOI.
+    # Where downloaded PDFs are saved, one file per DOI. Used only as the
+    # fallback when no Experiment is in scope (app/experiment_context.py) --
+    # e.g. standalone tool calls outside a live agent run. A real agent run
+    # always saves into that Experiment's own data/Experiments/<id>/papers/
+    # instead.
     papers_download_dir: str = "../data/Databases/papers"
+    # Root directory each Experiment gets its own <id>/ subfolder under
+    # (papers/, findings/, papers.json manifest, conclusion.md). See the
+    # Experiments plan -- this is what makes "save individual experiments in
+    # a separate folder" real instead of everything landing in one shared
+    # pile.
+    experiments_dir: str = "../data/Experiments"
 
 
 settings = Settings()

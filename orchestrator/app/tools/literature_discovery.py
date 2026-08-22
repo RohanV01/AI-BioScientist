@@ -44,6 +44,7 @@ import httpx
 from claude_agent_sdk import create_sdk_mcp_server, tool
 
 from app.config import settings
+from app.experiment_context import papers_dir, update_manifest_entry
 
 OPENALEX_URL = "https://api.openalex.org/works"
 
@@ -70,7 +71,11 @@ async def discover_papers(args: dict[str, Any]) -> dict[str, Any]:
             params={
                 "search": args["query"],
                 "per_page": max_results,
-                "select": "doi,title,publication_year,open_access,primary_topic",
+                # relevance_score/cited_by_count are real OpenAlex fields
+                # this was already paying for but not surfacing -- the
+                # selection-gate policy (system prompt) needs real signal to
+                # rank against instead of guessing from titles alone.
+                "select": "doi,title,publication_year,open_access,primary_topic,relevance_score,cited_by_count",
             },
         )
         resp.raise_for_status()
@@ -87,8 +92,24 @@ async def discover_papers(args: dict[str, Any]) -> dict[str, Any]:
         oa = r.get("open_access") or {}
         subfield = ((r.get("primary_topic") or {}).get("subfield") or {}).get("display_name", "")
         oa_bit = f"open access, {oa.get('oa_status')}: {oa.get('oa_url')}" if oa.get("is_oa") else "not open access"
+        title = r.get("title", "")
+        year = r.get("publication_year", "")
+        relevance = r.get("relevance_score")
+        cited_by = r.get("cited_by_count", 0)
         lines.append(
-            f"- DOI {doi}: {r.get('title', '')} ({r.get('publication_year', '')}, {subfield}) -- {oa_bit}"
+            f"- DOI {doi}: {title} ({year}, {subfield}) -- {oa_bit} "
+            f"[relevance {relevance:.1f}, cited by {cited_by}]"
+            if relevance is not None
+            else f"- DOI {doi}: {title} ({year}, {subfield}) -- {oa_bit} [cited by {cited_by}]"
+        )
+        # Cross-cutting paper-selection gate (see the Experiments plan): every
+        # DOI this tool ever surfaces gets a manifest entry, so a later
+        # download_paper/read_paper call in the same experiment can dedup
+        # against it instead of re-fetching. No-op if no experiment is in
+        # scope (see app/experiment_context.py).
+        update_manifest_entry(
+            doi, title=title, is_oa=bool(oa.get("is_oa")), relevance_score=relevance,
+            cited_by_count=cited_by, status="discovered",
         )
     return {"content": [{"type": "text", "text": "\n".join(lines)}]}
 
@@ -335,6 +356,14 @@ async def _camofox_use_reference_form(client: httpx.AsyncClient, base: str, tab_
 
 
 async def _download_one(doi: str, out_dir: Path, sem: asyncio.Semaphore) -> str:
+    # Paper-selection dedup gate (Experiments plan): if this DOI's PDF is
+    # already on disk for the current experiment, don't re-hit Camofox for
+    # it -- a second, overlapping discover_papers call later in the same
+    # experiment shouldn't pay the same download cost twice.
+    out_path = out_dir / _doi_to_filename(doi)
+    if out_path.is_file():
+        return f"- DOI {doi}: already downloaded -> {out_path}"
+
     # Isolated per-DOI rather than letting an unexpected exception
     # propagate up into the batch's asyncio.gather -- a bug/edge-case on
     # one DOI's Camofox call must not cancel every other DOI's in-flight
@@ -351,10 +380,11 @@ async def _download_one(doi: str, out_dir: Path, sem: asyncio.Semaphore) -> str:
         return f"- DOI {doi}: download failed with an unexpected error ({exc})."
 
     if pdf_bytes is None:
+        update_manifest_entry(doi, status="skipped")
         return f"- DOI {doi}: could not be downloaded (Camofox failed to retrieve a PDF for this DOI)."
 
-    out_path = out_dir / _doi_to_filename(doi)
     out_path.write_bytes(pdf_bytes)
+    update_manifest_entry(doi, status="downloaded")
     return f"- DOI {doi}: downloaded via {source} -> {out_path}"
 
 
@@ -367,10 +397,10 @@ async def _download_one(doi: str, out_dir: Path, sem: asyncio.Semaphore) -> str:
     "Sci-Hub mirrors (drives the real UI: paste the DOI, click open, "
     "click the page's own save button, capture the resulting browser "
     "download). Downloads run concurrently (bounded) so many papers don't "
-    "download one at a time. Saves each PDF into the shared project-local "
-    "papers directory (same path for every user of this repo, not a "
-    "personal folder) and returns each paper's path, or reports that it "
-    "could not be retrieved.",
+    "download one at a time. Saves each PDF into the current experiment's "
+    "own papers folder and returns each paper's path, or reports that it "
+    "could not be retrieved. Already-downloaded DOIs are skipped, not "
+    "re-fetched.",
     {"dois": list},
 )
 async def download_paper(args: dict[str, Any]) -> dict[str, Any]:
@@ -387,10 +417,11 @@ async def download_paper(args: dict[str, Any]) -> dict[str, Any]:
     if not dois:
         return {"content": [{"type": "text", "text": "No DOIs given to download."}]}
 
-    # Project-local, gitignored (see data/README.md) -- resolved the same
-    # way for every clone of this repo, not tied to any one person's
-    # machine. Override via PAPERS_DOWNLOAD_DIR if you want it elsewhere.
-    out_dir = Path(settings.papers_download_dir)
+    # Experiment-scoped folder when an agent run is in progress
+    # (app/experiment_context.py); falls back to the old shared
+    # project-local dir for standalone/test invocations with no experiment
+    # in scope. Gitignored either way (see data/README.md).
+    out_dir = papers_dir() or Path(settings.papers_download_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     sem = asyncio.Semaphore(_DOWNLOAD_CONCURRENCY)
