@@ -101,14 +101,10 @@ Go to `http://localhost:8065`, log in with the admin credentials step 4 printed,
 
 **BYO credentials:** metered tools (like Hugging Face) need your own API key. Add one with `orchestrator/scripts/add_credential.py`; it's encrypted at rest (`orchestrator/app/vault.py`) and never hardcoded to any one account.
 
-**Optional: full-text paper downloads.** `download_paper` (`orchestrator/app/tools/literature_discovery.py`) tries three sources in order, each optional and independently configured in `.env` -- without any of them set, discovery/citation still works, downloading full-text PDFs just doesn't:
-1. **Sci-Doc-Hub MCP server** ([JackKuo666/Sci-Hub-MCP-Server](https://github.com/JackKuo666/Sci-Hub-MCP-Server)) -- set `SCI_DOC_HUB_MCP_URL` to your deployed instance.
-2. **Camofox stealth browser** ([jo-inc/camofox-browser](https://github.com/jo-inc/camofox-browser)) -- set `CAMOFOX_API_URL` (and `CAMOFOX_ACCESS_KEY` if that deployment requires auth) plus `SCIHUB_MIRROR_URLS` (comma-separated Sci-Hub mirrors; list every one you know is currently working, since mirrors go down/get blocked independently).
-3. **Telegram Sci-Hub bot** ([@scihubot](https://t.me/scihubot), default -- override `TELEGRAM_SCIHUB_BOT_USERNAME` for a different mirror bot) -- message it a DOI/URL, it replies with the PDF. This needs a real Telegram *user* login (not a bot token -- Telegram's Bot API can't message another bot at all), done once, by a human. Note this is a separate login from any existing bot-token setup elsewhere in this repo's ecosystem (e.g. Friday's own assistant bot) -- that's a Bot API bot, a fundamentally different mechanism that can't be reused here:
-   - Register an app at [my.telegram.org](https://my.telegram.org) → API development tools → note your `api_id`/`api_hash`.
-   - Run `python scripts/telegram_login.py` once, locally (not inside the container) -- installs nothing into the orchestrator itself, just needs `pip install telethon` wherever you run it. It walks you through the phone number + login code prompts and prints a session string.
-   - Copy the printed `TELEGRAM_API_ID`, `TELEGRAM_API_HASH`, and `TELEGRAM_SESSION_STRING` into `.env`.
-   - After that one-time step, the orchestrator reuses the saved session unattended -- it never prompts for a login code itself.
+**Optional: full-text paper downloads.** `download_paper` (`orchestrator/app/tools/literature_discovery.py`) uses the [Camofox stealth browser](https://github.com/jo-inc/camofox-browser) to actually fetch PDFs -- optional and independently configured in `.env`; without it set, discovery/citation still works, downloading full-text PDFs just doesn't. It drives the real Sci-Hub UI (paste the DOI, click open, click the page's own save button) and captures the resulting browser download, so it needs no API keys or scraping workarounds beyond a running Camofox server:
+1. `git clone https://github.com/jo-inc/camofox-browser external/camofox-browser` (gitignored -- a local dependency clone, not vendored into this repo's history).
+2. `cd external/camofox-browser && npm install && npm start` -- first run downloads the Camoufox browser + GeoIP database (~300MB, a few minutes). Runs on `http://localhost:9377` by default.
+3. Set `CAMOFOX_API_URL=http://localhost:9377` (and `CAMOFOX_ACCESS_KEY` only if that deployment requires auth) plus `SCIHUB_MIRROR_URLS` (comma-separated Sci-Hub mirrors; list every one you know is currently working, since mirrors go down/get blocked independently) in `.env`.
 
 ## Change history
 

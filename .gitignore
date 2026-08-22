@@ -79,3 +79,11 @@ Thumbs.db
 *.tmp
 tmp/
 logs/
+
+.codegraph
+
+# Local clones of external tools this repo integrates with but doesn't
+# vendor -- e.g. the Camofox stealth browser server that download_paper
+# (app/tools/literature_discovery.py) talks to over HTTP. Set it up
+# yourself per README.md; not part of this repo's own history.
+external/

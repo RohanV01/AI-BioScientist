@@ -27,11 +27,14 @@ Two tools:
     corpus itself (the flat DOI list) carries no OA/licensing metadata
     of its own and can't be trusted alone to decide this.
 
-Actually downloading/parsing full-text PDF bytes is a further step this
-tool doesn't do -- it resolves *which* tier a paper is available from
-and a link to it, which is what grounding a citation needs.
+A third tool, download_paper, does the actual full-text PDF acquisition:
+given DOIs from the two tools above, it drives the Camofox stealth
+browser through the real Sci-Hub UI (paste DOI, open, click save) and
+saves each resulting PDF to the shared project-local papers directory.
 """
 import asyncio
+import base64
+import re
 import subprocess
 from pathlib import Path
 from typing import Any
@@ -41,7 +44,6 @@ import httpx
 from claude_agent_sdk import create_sdk_mcp_server, tool
 
 from app.config import settings
-from app.tools.telegram_scihub import try_telegram_scihub_bot
 
 OPENALEX_URL = "https://api.openalex.org/works"
 
@@ -180,8 +182,8 @@ async def check_scihub_availability(args: dict[str, Any]) -> dict[str, Any]:
 
 # How many downloads run concurrently -- bounded rather than unbounded
 # asyncio.gather so a large result set (many discover_papers calls feeding
-# one download_paper call) doesn't hammer Sci-Doc-Hub/Camofox with dozens
-# of simultaneous requests at once.
+# one download_paper call) doesn't hammer Camofox with dozens of
+# simultaneous tab sessions at once.
 _DOWNLOAD_CONCURRENCY = 5
 
 
@@ -189,73 +191,42 @@ def _doi_to_filename(doi: str) -> str:
     return doi.replace("/", "_") + ".pdf"
 
 
-async def _try_sci_doc_hub(doi: str) -> bytes | None:
-    """Primary full-text source: the Sci-Doc-Hub MCP server
-    (https://github.com/JackKuo666/Sci-Hub-MCP-Server --
-    Vault/Open-Source-Projects/sci-doc-hub-mcp-server-2026-08-11.md).
-    Returns the PDF bytes, or None if unavailable/unreachable so the
-    caller falls back to Camofox.
-    """
-    if not settings.sci_doc_hub_mcp_url:
-        return None
-    try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            # PLACEHOLDER -- fill in the Sci-Doc-Hub MCP server's actual
-            # download endpoint/request shape once deployed.
-            resp = await client.get(
-                f"{settings.sci_doc_hub_mcp_url}",  # PLACEHOLDER endpoint path
-                params={"doi": doi},
-            )
-            resp.raise_for_status()
-            if "pdf" not in resp.headers.get("content-type", ""):
-                return None
-            return resp.content
-    except httpx.HTTPError:
-        return None
-
-
-# A Sci-Hub *landing page* embeds the PDF directly (<embed>/<iframe src=...>)
-# rather than triggering a real browser download -- confirmed against the
-# live sci-hub.ren UI (paste a DOI/URL into "enter your reference", click
-# "open", the resulting page just shows the PDF inline). So this reads the
-# embedded src straight out of the DOM instead of watching for a download
-# event.
-_PDF_SRC_SCRIPT = (
-    "(() => { const el = document.querySelector('embed, iframe'); "
-    "return el ? el.getAttribute('src') : null; })()"
-)
+# Live-verified (2026-08-22) against sci-hub.ren + Sci-Doc-Hub's own PDF
+# host (sci.bban.top): every landing page renders a "save" button (an
+# accessible <button> in the TOP-LEVEL page, not buried inside the
+# embedded PDF viewer) that triggers a genuine browser download when
+# clicked -- Camofox's Playwright download listener captures it
+# automatically (see external/camofox-browser/lib/downloads.js). This is
+# the same click a human would make, so it goes through the real browser
+# network stack: no bare-httpx GET (hits the host's 403 anti-bot check,
+# which the user said to leave unfixed) and no in-page fetch() (hits
+# CORS, since the PDF host doesn't send Access-Control-Allow-Origin for
+# sci-hub.ren's origin).
+_SAVE_BUTTON_RE = re.compile(r'button "([^"]*\b(?:save|download)\b[^"]*)" \[(e\d+)\]', re.IGNORECASE)
+_REF_INPUT_RE = re.compile(r'textbox "[^"]*reference[^"]*" \[(e\d+)\]', re.IGNORECASE)
+_OPEN_BUTTON_RE = re.compile(r'button "open"[^\n]*\[(e\d+)\]', re.IGNORECASE)
 
 
 async def _try_camofox(doi: str) -> bytes | None:
-    """Fallback full-text source when Sci-Doc-Hub fails/is unreachable:
-    Camofox stealth headless browser
+    """The full-text acquisition source for download_paper: Camofox
+    stealth headless browser
     (https://github.com/jo-inc/camofox-browser --
     Vault/AI-Tools/camofox-browser-stealth-headless-browser-2026-08-16.md).
 
-    Camofox is a generic browser-automation REST API, not a paper-download
-    endpoint, so this drives a real per-mirror tab lifecycle, trying each
-    configured Sci-Hub mirror (SCIHUB_MIRROR_URLS) in turn until one works:
-      1. POST /tabs -- open a tab navigated straight to {mirror}/{doi}.
-         Sci-Hub mirrors have historically resolved a DOI appended directly
-         to the domain, without needing the form at all.
-      2. POST /tabs/:id/evaluate -- read the embedded PDF's `src` straight
-         out of the DOM (see _PDF_SRC_SCRIPT) rather than guessing at a
-         click target.
-      3. If step 2 finds nothing, mirror this mirror's own reference form
-         instead (exactly the manual flow: type the DOI into the "enter
-         your reference" field, click "open"), then re-run step 2.
-      4. Once a PDF src is found, fetch it directly via httpx -- once it's
-         a raw file URL there's no more reason to route it back through
-         the browser.
-      5. DELETE /tabs/:id to clean up regardless of outcome, before moving
-         to the next mirror if this one didn't produce a PDF.
+    Drives the exact manual flow a human uses on sci-hub.ren: open the
+    site (or navigate straight to {mirror}/{doi}, which lands on the same
+    result page directly), click the page's own "save" button, then poll
+    Camofox's captured-downloads list for the resulting file. Tries each
+    configured Sci-Hub mirror (SCIHUB_MIRROR_URLS) in turn until one
+    produces a real PDF.
 
-    PLACEHOLDER caveats to verify against the deployed Camofox server's
-    live /openapi.json or /docs once CAMOFOX_API_URL is wired up for real
-    -- exact JSON field names (tab id, evaluate's result field, snapshot
-    shape) are written from the README's documented examples, not a live
-    response, and the reference-form element-matching heuristic
-    (_find_ref_near) needs confirming against one real snapshot.
+    Field names verified against a real local clone's server.js/openapi.json
+    (external/camofox-browser, 2026-08-20) and against a live end-to-end run
+    against sci-hub.ren (2026-08-22, see session notes): POST /tabs body
+    {userId, sessionKey, url} -> {tabId, url}; GET /tabs/:id/snapshot ->
+    {snapshot}; POST /tabs/:id/{type,click,wait}; GET
+    /tabs/:id/downloads?userId=...&includeData=true -> {downloads: [{id,
+    mimeType, bytes, dataBase64, failure, ...}]}; DELETE /tabs/:id.
 
     Returns the PDF bytes, or None if no configured mirror worked.
     """
@@ -274,100 +245,113 @@ async def _try_camofox(doi: str) -> bytes | None:
     return None
 
 
+_CAMOFOX_USER_ID = "ai-scientist-literature-agent"
+_DOWNLOAD_POLL_ATTEMPTS = 6
+_DOWNLOAD_POLL_INTERVAL_S = 1.0
+
+
 async def _camofox_try_mirror(client: httpx.AsyncClient, base: str, doi: str, mirror: str) -> bytes | None:
     session_key = f"paper-{doi.replace('/', '_')}-{mirror.split('//')[-1].replace('.', '_')}"
     tab_id: str | None = None
     try:
         create_resp = await client.post(
             f"{base}/tabs",
-            json={
-                "userId": "ai-scientist-literature-agent",
-                "sessionKey": session_key,
-                "url": f"{mirror}/{doi}",
-            },
+            json={"userId": _CAMOFOX_USER_ID, "sessionKey": session_key, "url": f"{mirror}/{doi}"},
         )
         create_resp.raise_for_status()
-        tab_id = create_resp.json()["id"]  # PLACEHOLDER -- confirm response field name
+        tab_id = create_resp.json()["tabId"]
 
-        pdf_url = await _camofox_find_pdf_src(client, base, tab_id)
-        if pdf_url is None:
-            pdf_url = await _camofox_use_reference_form(client, base, tab_id, doi)
-        if pdf_url is None:
-            return None
-
-        pdf_resp = await client.get(pdf_url if pdf_url.startswith("http") else f"https:{pdf_url}")
-        pdf_resp.raise_for_status()
-        if "pdf" not in pdf_resp.headers.get("content-type", ""):
-            return None
-        return pdf_resp.content
+        pdf_bytes = await _camofox_click_save_and_capture(client, base, tab_id)
+        if pdf_bytes is None:
+            # Direct {mirror}/{doi} didn't render a result page with a
+            # save button -- fall back to the manual form flow (type the
+            # DOI into "enter your reference", click "open") and retry.
+            if await _camofox_use_reference_form(client, base, tab_id, doi):
+                pdf_bytes = await _camofox_click_save_and_capture(client, base, tab_id)
+        return pdf_bytes
     except httpx.HTTPError:
         return None
     finally:
         if tab_id is not None:
             try:
-                await client.delete(f"{base}/tabs/{tab_id}")
+                await client.delete(f"{base}/tabs/{tab_id}", params={"userId": _CAMOFOX_USER_ID})
             except httpx.HTTPError:
                 pass
 
 
-async def _camofox_find_pdf_src(client: httpx.AsyncClient, base: str, tab_id: str) -> str | None:
-    resp = await client.post(
-        f"{base}/tabs/{tab_id}/evaluate",  # PLACEHOLDER -- confirm this endpoint's exact path/body shape
-        json={"script": _PDF_SRC_SCRIPT},
-    )
-    resp.raise_for_status()
-    return resp.json().get("result") or None  # PLACEHOLDER -- confirm response field name
-
-
-async def _camofox_use_reference_form(client: httpx.AsyncClient, base: str, tab_id: str, doi: str) -> str | None:
-    """Mirrors the manual sci-hub UI flow: type the DOI into the "enter
-    your reference" input, click "open", then re-check for an embedded
-    PDF. Used when navigating straight to {mirror}/{doi} didn't land on a
-    PDF directly.
-    """
-    snapshot_resp = await client.get(f"{base}/tabs/{tab_id}/snapshot")
+async def _camofox_click_save_and_capture(client: httpx.AsyncClient, base: str, tab_id: str) -> bytes | None:
+    snapshot_resp = await client.get(f"{base}/tabs/{tab_id}/snapshot", params={"userId": _CAMOFOX_USER_ID})
     snapshot_resp.raise_for_status()
-    snapshot_text = snapshot_resp.json().get("snapshot", "")  # PLACEHOLDER -- confirm field name
+    snapshot_text = snapshot_resp.json().get("snapshot", "")
 
-    input_ref = _find_ref_near(snapshot_text, "reference")
-    open_ref = _find_ref_near(snapshot_text, "open")
-    if input_ref is None or open_ref is None:
+    match = _SAVE_BUTTON_RE.search(snapshot_text)
+    if match is None:
         return None
+    save_ref = match.group(2)
 
-    await client.post(f"{base}/tabs/{tab_id}/type", json={"ref": input_ref, "text": f"https://doi.org/{doi}"})
-    await client.post(f"{base}/tabs/{tab_id}/click", json={"ref": open_ref})
-    # PLACEHOLDER -- confirm POST /tabs/:id/wait's actual param shape;
-    # this assumes a plain timeout wait for the new page to render.
-    await client.post(f"{base}/tabs/{tab_id}/wait", json={"timeoutMs": 3000})
+    await client.post(f"{base}/tabs/{tab_id}/click", json={"userId": _CAMOFOX_USER_ID, "ref": save_ref})
 
-    return await _camofox_find_pdf_src(client, base, tab_id)
+    for _ in range(_DOWNLOAD_POLL_ATTEMPTS):
+        await asyncio.sleep(_DOWNLOAD_POLL_INTERVAL_S)
+        downloads_resp = await client.get(
+            f"{base}/tabs/{tab_id}/downloads", params={"userId": _CAMOFOX_USER_ID, "includeData": "true"}
+        )
+        downloads_resp.raise_for_status()
+        downloads = downloads_resp.json().get("downloads", [])
+        if not downloads:
+            continue
+        entry = downloads[-1]
+        if entry.get("failure"):
+            return None
+        data_b64 = entry.get("dataBase64")
+        if data_b64:
+            return base64.b64decode(data_b64)
+    return None
 
 
-def _find_ref_near(snapshot_text: str, keyword: str) -> str | None:
-    """Best-effort match of a clickable/typeable element ref (e.g. "e3")
-    near given wording in a Camofox accessibility snapshot string.
-    PLACEHOLDER heuristic -- confirm against a real snapshot's exact
-    text/ref format.
+async def _camofox_use_reference_form(client: httpx.AsyncClient, base: str, tab_id: str, doi: str) -> bool:
+    """Mirrors the manual sci-hub UI flow: type the DOI into the "enter
+    your reference" input, click "open". Used when navigating straight to
+    {mirror}/{doi} didn't land on a result page with a save button.
+    Returns whether the form was found and submitted.
     """
-    import re
+    snapshot_resp = await client.get(f"{base}/tabs/{tab_id}/snapshot", params={"userId": _CAMOFOX_USER_ID})
+    snapshot_resp.raise_for_status()
+    snapshot_text = snapshot_resp.json().get("snapshot", "")
 
-    match = re.search(rf"\[\w+ (e\d+)\][^\n]*\b{re.escape(keyword)}\b", snapshot_text, re.IGNORECASE)
-    return match.group(1) if match else None
+    input_match = _REF_INPUT_RE.search(snapshot_text)
+    open_match = _OPEN_BUTTON_RE.search(snapshot_text)
+    if input_match is None or open_match is None:
+        return False
+    input_ref, open_ref = input_match.group(1), open_match.group(1)
+
+    await client.post(
+        f"{base}/tabs/{tab_id}/type",
+        json={"userId": _CAMOFOX_USER_ID, "ref": input_ref, "text": f"https://doi.org/{doi}", "submit": False},
+    )
+    await client.post(f"{base}/tabs/{tab_id}/click", json={"userId": _CAMOFOX_USER_ID, "ref": open_ref})
+    await client.post(f"{base}/tabs/{tab_id}/wait", json={"userId": _CAMOFOX_USER_ID, "timeout": 3000})
+    return True
 
 
 async def _download_one(doi: str, out_dir: Path, sem: asyncio.Semaphore) -> str:
-    async with sem:
-        pdf_bytes = await _try_sci_doc_hub(doi)
-        source = "Sci-Doc-Hub"
-        if pdf_bytes is None:
+    # Isolated per-DOI rather than letting an unexpected exception
+    # propagate up into the batch's asyncio.gather -- a bug/edge-case on
+    # one DOI's Camofox call must not cancel every other DOI's in-flight
+    # download (bit us for real when Tier 3/Telegram was still in the
+    # waterfall: an unhandled RPCError on one DOI silently dropped an
+    # already-successful download for a different DOI in the same batch,
+    # since gather() re-raises on the first exception without waiting for
+    # the rest).
+    try:
+        async with sem:
             pdf_bytes = await _try_camofox(doi)
             source = "Camofox"
-        if pdf_bytes is None:
-            pdf_bytes = await try_telegram_scihub_bot(doi)
-            source = "Telegram Sci-Hub bot"
+    except Exception as exc:
+        return f"- DOI {doi}: download failed with an unexpected error ({exc})."
 
     if pdf_bytes is None:
-        return f"- DOI {doi}: could not be downloaded (Sci-Doc-Hub, Camofox, and the Telegram Sci-Hub bot all failed)."
+        return f"- DOI {doi}: could not be downloaded (Camofox failed to retrieve a PDF for this DOI)."
 
     out_path = out_dir / _doi_to_filename(doi)
     out_path.write_bytes(pdf_bytes)
@@ -379,13 +363,14 @@ async def _download_one(doi: str, out_dir: Path, sem: asyncio.Semaphore) -> str:
     "Given a list of DOIs (from one or more discover_papers/"
     "check_scihub_availability calls -- pass every DOI collected across a "
     "whole research query, not just one batch), download each paper's "
-    "full-text PDF. Tries, per paper: (1) the Sci-Doc-Hub MCP server, (2) "
-    "the Camofox stealth browser against configured Sci-Hub mirrors, (3) "
-    "a Telegram Sci-Hub bot as a last resort. Downloads run concurrently "
-    "(bounded) so many papers don't download one at a time. Saves each "
-    "PDF into the shared project-local papers directory (same path for "
-    "every user of this repo, not a personal folder) and returns each "
-    "paper's path, or reports that no source could retrieve it.",
+    "full-text PDF via the Camofox stealth browser against configured "
+    "Sci-Hub mirrors (drives the real UI: paste the DOI, click open, "
+    "click the page's own save button, capture the resulting browser "
+    "download). Downloads run concurrently (bounded) so many papers don't "
+    "download one at a time. Saves each PDF into the shared project-local "
+    "papers directory (same path for every user of this repo, not a "
+    "personal folder) and returns each paper's path, or reports that it "
+    "could not be retrieved.",
     {"dois": list},
 )
 async def download_paper(args: dict[str, Any]) -> dict[str, Any]:
