@@ -34,17 +34,20 @@ saves each resulting PDF to the shared project-local papers directory.
 """
 import asyncio
 import base64
+import json
 import re
 import subprocess
 from pathlib import Path
 from typing import Any
 
+import anthropic
 import httpx
+import pymupdf
 
 from claude_agent_sdk import create_sdk_mcp_server, tool
 
 from app.config import settings
-from app.experiment_context import papers_dir, update_manifest_entry
+from app.experiment_context import findings_dir, papers_dir, update_manifest_entry
 
 OPENALEX_URL = "https://api.openalex.org/works"
 
@@ -430,8 +433,147 @@ async def download_paper(args: dict[str, Any]) -> dict[str, Any]:
     return {"content": [{"type": "text", "text": "\n".join(lines)}]}
 
 
+# Cap on how much extracted PDF text goes into the structured-extraction
+# prompt -- most papers fit comfortably; this just bounds the worst case
+# (a huge PDF) rather than sending an unbounded amount of text per call.
+_MAX_EXTRACTION_CHARS = 60_000
+
+_EXTRACTION_MODEL = "claude-sonnet-5"
+
+_EXTRACTION_PROMPT = """\
+Extract structured findings from this scientific paper's full text for a \
+research database. Return ONLY a JSON object (no markdown fences, no \
+commentary before or after) with exactly this shape:
+
+{{
+  "claims": [{{"claim": "...", "support": "a specific quote or section reference from the text below"}}],
+  "methods_summary": "...",
+  "key_results": "...",
+  "limitations": "..."
+}}
+
+Every claim's "support" must point to something that actually appears in \
+the text below -- never invent a finding, quote, or number that isn't \
+there. If the text is truncated or a section is unclear, say so in that \
+field rather than guessing.
+
+Paper text:
+{text}
+"""
+
+
+def _doi_to_finding_filename(doi: str) -> str:
+    return doi.replace("/", "_") + ".json"
+
+
+def _extract_pdf_text(pdf_path: Path) -> str:
+    doc = pymupdf.open(pdf_path)
+    try:
+        return "\n".join(page.get_text() for page in doc)
+    finally:
+        doc.close()
+
+
+def _parse_extraction_response(raw: str) -> dict:
+    # The prompt asks for bare JSON, but strip markdown fences defensively
+    # in case the model wraps it anyway.
+    text = raw.strip()
+    if text.startswith("```"):
+        text = text.split("\n", 1)[1] if "\n" in text else text
+        text = text.rsplit("```", 1)[0]
+    return json.loads(text)
+
+
+async def _extract_structured_findings(pdf_text: str) -> dict:
+    client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
+    resp = await client.messages.create(
+        model=_EXTRACTION_MODEL,
+        max_tokens=2000,
+        messages=[{"role": "user", "content": _EXTRACTION_PROMPT.format(text=pdf_text[:_MAX_EXTRACTION_CHARS])}],
+    )
+    raw = "".join(block.text for block in resp.content if hasattr(block, "text"))
+    return _parse_extraction_response(raw)
+
+
+def _format_findings_for_agent(doi: str, findings: dict) -> str:
+    lines = [f"Structured findings for DOI {doi} (extracted from the downloaded PDF):"]
+    for c in findings.get("claims", []):
+        lines.append(f"- Claim: {c.get('claim', '')}\n  Support: {c.get('support', '')}")
+    if findings.get("methods_summary"):
+        lines.append(f"Methods: {findings['methods_summary']}")
+    if findings.get("key_results"):
+        lines.append(f"Key results: {findings['key_results']}")
+    if findings.get("limitations"):
+        lines.append(f"Limitations: {findings['limitations']}")
+    return "\n".join(lines)
+
+
+@tool(
+    "read_paper",
+    "Given a DOI already downloaded via download_paper, extract its actual "
+    "content -- claims (each with a supporting quote/reference), a methods "
+    "summary, key results, and limitations -- so you can cite what a paper "
+    "genuinely says instead of guessing from its title. Persists the "
+    "structured findings into the current experiment's findings folder; "
+    "calling this again for the same DOI in the same experiment returns "
+    "the cached result instead of re-extracting.",
+    {"doi": str},
+)
+async def read_paper(args: dict[str, Any]) -> dict[str, Any]:
+    doi = _strip_doi_prefix(args["doi"])
+
+    pdir = papers_dir()
+    if pdir is None:
+        return {
+            "content": [{
+                "type": "text",
+                "text": "No experiment is currently in scope -- read_paper needs a PDF "
+                        "downloaded via download_paper within a live experiment.",
+            }]
+        }
+
+    pdf_path = pdir / _doi_to_filename(doi)
+    if not pdf_path.is_file():
+        return {"content": [{"type": "text", "text": f"No downloaded PDF found for DOI {doi} -- call download_paper first."}]}
+
+    fdir = findings_dir()
+    finding_path = fdir / _doi_to_finding_filename(doi)
+
+    # Dedup gate (Experiments plan): a DOI already read in this experiment
+    # doesn't get re-extracted -- that's a real Anthropic API call per DOI,
+    # not free.
+    if finding_path.is_file():
+        cached = json.loads(finding_path.read_text())
+        return {"content": [{"type": "text", "text": _format_findings_for_agent(doi, cached) + "\n(cached)"}]}
+
+    if not settings.anthropic_api_key:
+        return {
+            "content": [{
+                "type": "text",
+                "text": "ANTHROPIC_API_KEY is not configured -- read_paper needs it for "
+                        "structured extraction (separate from the master agent's own CLI "
+                        "auth). Set it in .env.",
+            }]
+        }
+
+    pdf_text = await asyncio.to_thread(_extract_pdf_text, pdf_path)
+    if not pdf_text.strip():
+        return {"content": [{"type": "text", "text": f"PDF for DOI {doi} contained no extractable text (scanned image, not real text)."}]}
+
+    try:
+        findings = await _extract_structured_findings(pdf_text)
+    except (anthropic.APIError, json.JSONDecodeError) as exc:
+        return {"content": [{"type": "text", "text": f"Structured extraction failed for DOI {doi}: {exc}"}]}
+
+    fdir.mkdir(parents=True, exist_ok=True)
+    finding_path.write_text(json.dumps(findings, indent=2))
+    update_manifest_entry(doi, status="read")
+
+    return {"content": [{"type": "text", "text": _format_findings_for_agent(doi, findings)}]}
+
+
 def build_literature_discovery_mcp_server():
     return create_sdk_mcp_server(
         name="literature_discovery",
-        tools=[discover_papers, check_scihub_availability, download_paper],
+        tools=[discover_papers, check_scihub_availability, download_paper, read_paper],
     )

@@ -16,6 +16,13 @@ dependencies = [
     "python-dotenv>=1.0,<2.0",
     "cryptography>=43.0,<44.0",
     "claude-agent-sdk>=0.2.139,<1.0",
+    # PDF text extraction (app/tools/literature_discovery.py's read_paper)
+    # and the direct Messages API for its one-shot structured-extraction
+    # call -- claude_agent_sdk above is for the master agent's own
+    # multi-turn loop (spawns the CLI as a subprocess), too heavy for a
+    # single per-paper extraction call.
+    "pymupdf>=1.24,<2.0",
+    "anthropic>=0.40,<1.0",
     # Wrapped, in-process bio libraries (docs/10-build-plan.md Phase 5's
     # bio.tools/GitHub triage) -- selected for being real, general-purpose,
     # actively-maintained packages, not single-paper research code.

@@ -67,7 +67,17 @@ TOOL_BUILDERS = {
     ),
     "literature_discovery": (
         "literature_discovery", build_literature_discovery_mcp_server,
-        ["mcp__literature_discovery__discover_papers", "mcp__literature_discovery__check_scihub_availability"],
+        [
+            "mcp__literature_discovery__discover_papers",
+            "mcp__literature_discovery__check_scihub_availability",
+            # download_paper/read_paper were registered on this MCP server
+            # (build_literature_discovery_mcp_server) but never listed here
+            # -- the live agent could never actually call them via chat,
+            # only through standalone/test invocations. Found and fixed
+            # while wiring read_paper (Experiments plan Phase 2).
+            "mcp__literature_discovery__download_paper",
+            "mcp__literature_discovery__read_paper",
+        ],
     ),
     "ensembl": ("ensembl", build_ensembl_mcp_server, ["mcp__ensembl__search_gene"]),
     "uniprot": ("uniprot", build_uniprot_mcp_server, ["mcp__uniprot__search_protein"]),

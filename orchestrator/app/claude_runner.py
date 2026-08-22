@@ -61,6 +61,16 @@ If a task genuinely doesn't need a tool (e.g. a clarifying question back to
 the researcher), you can skip straight to a short response -- the three
 stages are for tasks that need real lookups, not a rigid format for
 everything.
+
+PAPER SELECTION (when using discover_papers/download_paper/read_paper).
+download_paper drives a real browser session per DOI and read_paper is a
+real extraction call per DOI -- both cost real time and money, so don't
+download or read every result discover_papers returns. Default to the top
+5 by relevance for a given research question (discover_papers surfaces each
+result's relevance score and citation count -- use them), preferring
+open-access hits over ones needing Sci-Hub. Only go broader than 5 if the
+researcher explicitly asks for exhaustive/broad coverage. This is a default,
+not a hard cap -- state when you're deliberately going past it and why.
 """
 
 # Record-ID patterns recognized in tool result text, for grounding
