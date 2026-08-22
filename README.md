@@ -2,10 +2,6 @@
 
 **Open Source for Autonomous Discovery.**
 
-OpenBioLab is an open source agentic orchestrator connected to every research tool we can wire in, so you can solve real problems just by chatting on a Slack-style messaging platform (we use Mattermost, a self-hosted, open alternative). Ask a real research question in a chat window, like "find compounds active against EGFR" or "dock this ligand against 6LU7," and get back an answer with a live tool call behind every claim, not a hallucinated guess.
-
-We believe biosciences can be accelerated with AI. This is our attempt at Applied AI in service of that.
-
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)](orchestrator/pyproject.toml)
 [![Status: build in progress](https://img.shields.io/badge/status-build%20in%20progress-orange)](CHANGELOG.md)
@@ -16,12 +12,39 @@ We believe biosciences can be accelerated with AI. This is our attempt at Applie
   <sub><a href="docs/media/capability-demo.mp4">full-quality MP4</a> · built HTML to video, via <a href="https://github.com/heygen-com/hyperframes">HyperFrames</a>, real screenshots from a live run</sub>
 </p>
 
+## The problem
+
+Modern biology research is spread across dozens of disconnected tools: PubMed for
+literature, ChEMBL for compounds, UniProt and PDB for structure, Ensembl for
+genomics, ClinVar and gnomAD for variants, KEGG/Reactome/STRING for pathways,
+ClinicalTrials.gov and DailyMed for clinical/commercial data — and that's before
+counting the 33,000+ specialized tools cataloged in bio.tools. Answering one real
+research question ("is this target druggable, and what's already known about it?")
+means opening a dozen browser tabs, manually cross-referencing IDs between them,
+and trusting your own memory to assemble the answer. AI chatbots don't fix this —
+they make it worse, confidently stating biological "facts" with no way to verify
+where the claim came from.
+
+## The solution
+
+OpenBioLab is an open-source agentic orchestrator wired to real research tools and
+databases, reachable through a single Slack-style chat interface (Mattermost,
+self-hosted). Ask a real research question — *"find compounds active against
+EGFR"* or *"dock this ligand against 6LU7"* — and the agent plans a methodology,
+calls the actual tools needed (18+ live sources today: PubMed, ChEMBL, Open
+Targets, Ensembl, UniProt, ClinVar, gnomAD, PDB, AlphaFold, KEGG, Reactome,
+STRING, ClinicalTrials.gov, DailyMed, and more), and returns an answer with the
+record ID or computation tag behind every claim (`PMID 12345678`, `CHEMBL941`,
+`[vina:6LU7]`) — so you can verify it, not just trust it. Nothing is stated that a
+tool didn't actually return. Runs local-first, self-hosted, on your own machine or
+org infrastructure.
+
 ## What you can actually ask it today
 
 These map to tool sources that are wired and live-verified right now, not a roadmap:
 
-| Ask it... | 
-|---|---|
+| Ask it... |
+|---|
 | "What compounds are active against EGFR, and what's their mechanism?" |
 | "Dock this ligand SMILES against PDB structure 6LU7" |
 | "What's the predicted structure of this UniProt protein?" |
@@ -32,11 +55,11 @@ These map to tool sources that are wired and live-verified right now, not a road
 | "What pathways is this gene involved in?" |
 | "Find literature on this topic, including Sci-Hub-available full text where legal" |
 
-Every answer comes back with the record ID or computation tag inline (`PMID 12345678`, `CHEMBL941`, `[vina:6LU7]`) so you can verify it against the tool's own output. The agent is instructed to never state a detail a tool didn't actually return, even one it "recognizes."
-
 ## Research workflows this replaces today
 
-Zoomed out past the individual tool table, these are the actual multi-step research tasks the current tool set already covers end-to-end in one chat message, without opening a dozen tabs by hand:
+Zoomed out past the individual tool table, these are the actual multi-step
+research tasks the current tool set already covers end-to-end in one chat message,
+without opening a dozen tabs by hand:
 
 - **Target & mechanism research**: go from a gene or protein to its structure, pathways, interaction partners, and known drugs in one pass (Ensembl/UniProt → PDB/AlphaFold → KEGG/Reactome/STRING → Open Targets/ChEMBL).
 - **Drug discovery triage**: find active compounds, understand mechanism of action, and run a real molecular docking pose against a target structure, cross-referenced against trial status and label data for anything already approved.
@@ -46,9 +69,13 @@ Zoomed out past the individual tool table, these are the actual multi-step resea
 - **Microbiome composition analysis**: real diversity statistics computed locally on your own abundance data, no upload to a third-party service.
 - **Regulatory/commercial due diligence**: trial status and drug label lookups in one place, aimed at the commercial/pharma research persona specifically, not just academic literature search.
 
-## Getting started
+## How to use it
 
-**Prerequisites:** Docker + Docker Compose v2. That's it — this works the same way on **Mac, Linux, and Windows** (Docker Desktop on Mac/Windows, Docker Engine on Linux); every service, including the `claude` CLI itself, runs inside containers, so nothing OS-specific is required on the host. (The bootstrap script in step 3 needs *some* Python 3.9+ on the host too, but nothing else does.)
+**Prerequisites:** Docker + Docker Compose v2. That's it — this works the same way
+on **Mac, Linux, and Windows** (Docker Desktop on Mac/Windows, Docker Engine on
+Linux); every service, including the `claude` CLI itself, runs inside containers,
+so nothing OS-specific is required on the host. (The bootstrap script in step 3
+needs *some* Python 3.9+ on the host too, but nothing else does.)
 
 **1. Clone and configure**
 
@@ -100,6 +127,10 @@ Go to `http://localhost:8065`, log in with the admin credentials step 4 printed,
 **Optional bulk data:** none of the above requires it. If you have (or want to build) a local bibliographic/database corpus, see `data/README.md`. It's gitignored and every agent degrades gracefully without it (`docs/05-ux-behavior.md` §1).
 
 **BYO credentials:** metered tools (like Hugging Face) need your own API key. Add one with `orchestrator/scripts/add_credential.py`; it's encrypted at rest (`orchestrator/app/vault.py`) and never hardcoded to any one account.
+
+## Contributing
+
+Adding a new tool source is a same-day pull request, not a platform project — see [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ## Change history
 
