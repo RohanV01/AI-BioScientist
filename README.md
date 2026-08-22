@@ -106,6 +106,21 @@ Go to `http://localhost:8065`, log in with the admin credentials step 4 printed,
 2. `cd external/camofox-browser && npm install && npm start` -- first run downloads the Camoufox browser + GeoIP database (~300MB, a few minutes). Runs on `http://localhost:9377` by default.
 3. Set `CAMOFOX_API_URL=http://localhost:9377` (and `CAMOFOX_ACCESS_KEY` only if that deployment requires auth) plus `SCIHUB_MIRROR_URLS` (comma-separated Sci-Hub mirrors; list every one you know is currently working, since mirrors go down/get blocked independently) in `.env`.
 
+Every download is checked against the paper's own expected title/DOI (`_verify_pdf_content` in `literature_discovery.py`) before anything downstream trusts it -- a real browser download can succeed end-to-end while a Sci-Hub mirror quietly serves the wrong paper's PDF for a given DOI (seen live during testing). A flagged mismatch is reported in `download_paper`'s own result text, and `read_paper` refuses to extract "findings" from a file flagged that way.
+
+**Research experiments.** Every research investigation gets its own folder (`data/Experiments/<id>/`) and DB row -- control it with the `/experiment` Slash Command (`start ["name"]` / `end` / `status` / `conclude`), or just message `@orchestrator` and one opens automatically. Register the command once per Mattermost instance:
+```
+curl -X POST http://localhost:8065/api/v4/commands \
+  -H "Authorization: Bearer <your admin session token>" -H 'Content-Type: application/json' \
+  -d '{"team_id": "<your team id>", "trigger": "experiment", "method": "P",
+       "url": "<your orchestrator URL>/webhooks/mattermost/experiment",
+       "auto_complete": true, "display_name": "Experiment",
+       "description": "Controls the current research experiment for this channel"}'
+```
+Copy the response's own `token` field into `.env` as `MATTERMOST_EXPERIMENT_COMMAND_SECRET` (a separate value from `MATTERMOST_WEBHOOK_SECRET` -- Mattermost auto-generates one token per integration, no way to set a custom one).
+
+`read_paper`'s structured extraction and `/experiment conclude`'s synthesis run through a modular one-shot LLM backend (`orchestrator/app/llm_backend.py`), not tied to any single provider: it tries a real Anthropic API key (`ANTHROPIC_API_KEY`), then a local [LM Studio](https://lmstudio.ai) server (`LM_STUDIO_BASE_URL`), then falls back to the `claude` CLI's own subscription login from step 5 above -- so both features work with zero extra setup if you already logged in there. Set `LLM_BACKEND` in `.env` to pin one explicitly instead of the default `auto` fallback chain.
+
 ## Change history
 
 See [`CHANGELOG.md`](CHANGELOG.md).

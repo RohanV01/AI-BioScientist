@@ -14,11 +14,7 @@ decides when an experiment is actually concluded.
 import json
 from pathlib import Path
 
-import anthropic
-
-from app.config import settings
-
-_SYNTHESIS_MODEL = "claude-sonnet-5"
+from app.llm_backend import complete as llm_complete
 
 _CONCLUSION_PROMPT = """\
 You are synthesizing a final conclusion for a research experiment from \
@@ -69,16 +65,12 @@ async def synthesize_conclusion(findings: list[dict]) -> dict:
     """`findings` is read_paper's persisted output, one dict per paper (each
     stamped with its own "doi"). Returns {conclusion, supported_claims,
     contradictions} -- see _CONCLUSION_PROMPT for the exact shape. Raises
-    anthropic.APIError / json.JSONDecodeError on failure; the caller decides
-    how to report that.
+    app.llm_backend.LLMBackendError / json.JSONDecodeError on failure; the
+    caller decides how to report that.
     """
-    client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
-    resp = await client.messages.create(
-        model=_SYNTHESIS_MODEL,
-        max_tokens=3000,
-        messages=[{"role": "user", "content": _CONCLUSION_PROMPT.format(findings=json.dumps(findings, indent=2))}],
+    raw = await llm_complete(
+        _CONCLUSION_PROMPT.format(findings=json.dumps(findings, indent=2)), max_tokens=3000
     )
-    raw = "".join(block.text for block in resp.content if hasattr(block, "text"))
     return _parse_json_response(raw)
 
 

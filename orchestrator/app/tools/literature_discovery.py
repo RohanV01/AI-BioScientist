@@ -40,14 +40,15 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
-import anthropic
 import httpx
 import pymupdf
 
 from claude_agent_sdk import create_sdk_mcp_server, tool
 
 from app.config import settings
-from app.experiment_context import findings_dir, papers_dir, update_manifest_entry
+from app.experiment_context import findings_dir, load_manifest, papers_dir, update_manifest_entry
+from app.llm_backend import LLMBackendError
+from app.llm_backend import complete as llm_complete
 
 OPENALEX_URL = "https://api.openalex.org/works"
 
@@ -358,6 +359,78 @@ async def _camofox_use_reference_form(client: httpx.AsyncClient, base: str, tab_
     return True
 
 
+# Content-integrity check: live testing this session found a real case
+# where Camofox successfully downloaded a real PDF via a real browser
+# download, with no error anywhere in the pipeline, but the PDF's actual
+# content was a completely unrelated paper (a bad Sci-Hub mirror response
+# for that specific DOI) -- nothing before this point can catch that, since
+# every step up to here genuinely succeeded. Two cheap signals, no extra
+# API cost when a title's already cached from a prior discover_papers call:
+# (1) does the paper's own DOI appear printed in its first page(s), and
+# (2) does a majority of the expected title's distinctive words appear
+# there. Either passing counts as verified.
+_STOPWORDS = {
+    "the", "a", "an", "of", "in", "on", "for", "and", "or", "to", "with",
+    "from", "by", "at", "is", "as", "this", "that", "its", "into", "via",
+}
+_CONTENT_CHECK_HEAD_CHARS = 5000
+
+
+def _significant_words(title: str) -> set[str]:
+    words = re.findall(r"[A-Za-z0-9]+", title.lower())
+    return {w for w in words if len(w) > 3 and w not in _STOPWORDS}
+
+
+async def _expected_title(doi: str) -> str | None:
+    # Free if discover_papers already surfaced this DOI in the current
+    # experiment (app/experiment_context.py's manifest) -- only falls back
+    # to a live OpenAlex lookup when download_paper was called for a DOI
+    # nothing discovered first (e.g. via check_scihub_availability alone).
+    cached = load_manifest().get(doi, {}).get("title")
+    if cached:
+        return cached
+    async with httpx.AsyncClient(timeout=15.0) as client:
+        try:
+            resp = await client.get(
+                OPENALEX_URL, params={"filter": f"doi:{doi}", "select": "title", "per_page": 1}
+            )
+            resp.raise_for_status()
+            results = resp.json().get("results", [])
+            return results[0].get("title") if results else None
+        except httpx.HTTPError:
+            return None
+
+
+async def _verify_pdf_content(pdf_path: Path, doi: str) -> tuple[bool, str]:
+    """Returns (verified, reason). "Can't check" (no title available, e.g.
+    OpenAlex has no record for this DOI) counts as verified rather than a
+    false-positive mismatch -- this is a fraud/mistake detector, not a
+    requirement every legitimate DOI can satisfy.
+    """
+    text = await asyncio.to_thread(_extract_pdf_text, pdf_path)
+    head = text[:_CONTENT_CHECK_HEAD_CHARS].lower()
+
+    if doi.lower() in head:
+        return True, "the paper's own DOI appears printed in its text"
+
+    title = await _expected_title(doi)
+    if not title:
+        return True, "no title available to check against (OpenAlex has no record for this DOI)"
+
+    expected_words = _significant_words(title)
+    if not expected_words:
+        return True, "title had no distinctive words to check against"
+
+    matched = sum(1 for w in expected_words if w in head)
+    overlap = matched / len(expected_words)
+    if overlap >= 0.5:
+        return True, f"{overlap:.0%} of the expected title's distinctive words found in the PDF"
+    return False, (
+        f"only {overlap:.0%} of the expected title's distinctive words appear in the PDF's "
+        "text -- this downloaded file may not actually be the requested paper"
+    )
+
+
 async def _download_one(doi: str, out_dir: Path, sem: asyncio.Semaphore) -> str:
     # Paper-selection dedup gate (Experiments plan): if this DOI's PDF is
     # already on disk for the current experiment, don't re-hit Camofox for
@@ -387,7 +460,15 @@ async def _download_one(doi: str, out_dir: Path, sem: asyncio.Semaphore) -> str:
         return f"- DOI {doi}: could not be downloaded (Camofox failed to retrieve a PDF for this DOI)."
 
     out_path.write_bytes(pdf_bytes)
-    update_manifest_entry(doi, status="downloaded")
+
+    verified, reason = await _verify_pdf_content(out_path, doi)
+    update_manifest_entry(doi, status="downloaded", content_verified=verified, content_check=reason)
+    if not verified:
+        return (
+            f"- DOI {doi}: downloaded via {source} -> {out_path} -- "
+            f"⚠️ CONTENT MISMATCH WARNING: {reason}. Do not cite this file's "
+            f"content for DOI {doi} without manually confirming it's correct."
+        )
     return f"- DOI {doi}: downloaded via {source} -> {out_path}"
 
 
@@ -438,8 +519,6 @@ async def download_paper(args: dict[str, Any]) -> dict[str, Any]:
 # (a huge PDF) rather than sending an unbounded amount of text per call.
 _MAX_EXTRACTION_CHARS = 60_000
 
-_EXTRACTION_MODEL = "claude-sonnet-5"
-
 _EXTRACTION_PROMPT = """\
 Extract structured findings from this scientific paper's full text for a \
 research database. Return ONLY a JSON object (no markdown fences, no \
@@ -485,13 +564,9 @@ def _parse_extraction_response(raw: str) -> dict:
 
 
 async def _extract_structured_findings(pdf_text: str) -> dict:
-    client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
-    resp = await client.messages.create(
-        model=_EXTRACTION_MODEL,
-        max_tokens=2000,
-        messages=[{"role": "user", "content": _EXTRACTION_PROMPT.format(text=pdf_text[:_MAX_EXTRACTION_CHARS])}],
+    raw = await llm_complete(
+        _EXTRACTION_PROMPT.format(text=pdf_text[:_MAX_EXTRACTION_CHARS]), max_tokens=2000
     )
-    raw = "".join(block.text for block in resp.content if hasattr(block, "text"))
     return _parse_extraction_response(raw)
 
 
@@ -536,6 +611,20 @@ async def read_paper(args: dict[str, Any]) -> dict[str, Any]:
     if not pdf_path.is_file():
         return {"content": [{"type": "text", "text": f"No downloaded PDF found for DOI {doi} -- call download_paper first."}]}
 
+    # download_paper's content-integrity check (see _verify_pdf_content)
+    # flagged this file as a possible mismatch -- refuse to extract
+    # "findings" from a paper that may not actually be this DOI at all.
+    manifest_entry = load_manifest().get(doi, {})
+    if manifest_entry.get("content_verified") is False:
+        return {
+            "content": [{
+                "type": "text",
+                "text": f"Refusing to extract findings for DOI {doi}: download_paper flagged this "
+                        f"file's content as a possible mismatch ({manifest_entry.get('content_check', 'unknown reason')}). "
+                        "Re-download from a different mirror and confirm before reading.",
+            }]
+        }
+
     fdir = findings_dir()
     finding_path = fdir / _doi_to_finding_filename(doi)
 
@@ -546,23 +635,13 @@ async def read_paper(args: dict[str, Any]) -> dict[str, Any]:
         cached = json.loads(finding_path.read_text())
         return {"content": [{"type": "text", "text": _format_findings_for_agent(doi, cached) + "\n(cached)"}]}
 
-    if not settings.anthropic_api_key:
-        return {
-            "content": [{
-                "type": "text",
-                "text": "ANTHROPIC_API_KEY is not configured -- read_paper needs it for "
-                        "structured extraction (separate from the master agent's own CLI "
-                        "auth). Set it in .env.",
-            }]
-        }
-
     pdf_text = await asyncio.to_thread(_extract_pdf_text, pdf_path)
     if not pdf_text.strip():
         return {"content": [{"type": "text", "text": f"PDF for DOI {doi} contained no extractable text (scanned image, not real text)."}]}
 
     try:
         findings = await _extract_structured_findings(pdf_text)
-    except (anthropic.APIError, json.JSONDecodeError) as exc:
+    except (LLMBackendError, json.JSONDecodeError) as exc:
         return {"content": [{"type": "text", "text": f"Structured extraction failed for DOI {doi}: {exc}"}]}
 
     # Stamp the DOI into the persisted record itself -- the filename alone

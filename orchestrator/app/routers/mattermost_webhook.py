@@ -14,7 +14,6 @@ import logging
 from datetime import datetime, timezone
 from pathlib import Path
 
-import anthropic
 from fastapi import APIRouter, BackgroundTasks, Depends, Form, HTTPException
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -25,6 +24,7 @@ from app.db import async_session, get_db
 from app.experiment_context import current_experiment_dir
 from app.experiment_synthesis import format_conclusion_markdown, load_all_findings, synthesize_conclusion
 from app.grounding import Citation, create_response
+from app.llm_backend import LLMBackendError
 from app.mattermost_client import MattermostClient
 from app.models import Agent, Experiment, Org, Response, Task, ToolCall
 from app.output_rendering import build_response_attachment
@@ -345,7 +345,7 @@ async def _conclude_experiment_and_respond(experiment_id, agent_id: str, channel
 
             try:
                 conclusion = await synthesize_conclusion(findings)
-            except (anthropic.APIError, json.JSONDecodeError) as exc:
+            except (LLMBackendError, json.JSONDecodeError) as exc:
                 await mm.post_message(channel_id, f"Conclusion synthesis failed: {exc}")
                 return
 
@@ -400,8 +400,8 @@ async def mattermost_experiment_command(
     auto-opens an experiment on its own (_resolve_or_create_experiment) if
     none is open; this route is for explicit control, not a required step.
     """
-    if settings.mattermost_webhook_secret and token != settings.mattermost_webhook_secret:
-        raise HTTPException(status_code=403, detail="invalid webhook token")
+    if settings.mattermost_experiment_command_secret and token != settings.mattermost_experiment_command_secret:
+        raise HTTPException(status_code=403, detail="invalid slash command token")
 
     result = await db.execute(select(Agent).where(Agent.active.is_(True)).limit(1))
     agent = result.scalar_one_or_none()
@@ -483,11 +483,11 @@ async def mattermost_experiment_command(
         experiment = await _current_active()
         if experiment is None:
             return {"text": "No experiment is currently open in this channel.", "response_type": "ephemeral"}
-        if not settings.anthropic_api_key:
-            return {
-                "text": "ANTHROPIC_API_KEY is not configured -- conclusion synthesis needs it. Set it in .env.",
-                "response_type": "ephemeral",
-            }
+        # No pre-flight LLM-backend check here -- app/llm_backend.py's
+        # "auto" mode has multiple fallbacks (anthropic_api, lm_studio,
+        # claude_subscription), so whether one is usable can only really be
+        # known by trying; the background task below reports a clear error
+        # if every configured backend fails.
         fdir = Path(experiment.folder_path) / "findings"
         if not fdir.is_dir() or not any(fdir.glob("*.json")):
             return {
