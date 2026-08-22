@@ -9,10 +9,12 @@ agent run (Plan -> Execute -> Synthesize) happens in the background and
 posts to the channel as it goes: the stated methodology as soon as it's
 produced, then the final synthesized report once execution finishes.
 """
+import json
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
 
+import anthropic
 from fastapi import APIRouter, BackgroundTasks, Depends, Form, HTTPException
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -21,6 +23,7 @@ from app.claude_runner import run_agent
 from app.config import settings
 from app.db import async_session, get_db
 from app.experiment_context import current_experiment_dir
+from app.experiment_synthesis import format_conclusion_markdown, load_all_findings, synthesize_conclusion
 from app.grounding import Citation, create_response
 from app.mattermost_client import MattermostClient
 from app.models import Agent, Experiment, Org, Response, Task, ToolCall
@@ -91,7 +94,9 @@ async def _build_conversation_history(db: AsyncSession, experiment_id) -> list[s
     return history
 
 
-async def _run_agent_and_respond(task_id, agent_id: str, channel_id: str, user_message: str, experiment_id) -> None:
+async def _run_agent_and_respond(
+    task_id, agent_id: str, channel_id: str, user_message: str, experiment_id, post_id: str
+) -> None:
     """Runs in the background, after the webhook has already returned a
     receipt to Mattermost. Owns its own DB session -- the request-scoped
     one from the original call is closed by the time this runs."""
@@ -113,7 +118,11 @@ async def _run_agent_and_respond(task_id, agent_id: str, channel_id: str, user_m
             roster = await build_tool_roster(db, agent)
 
             async def on_plan(plan_text: str) -> None:
-                await mm.post_message(channel_id, f"**Plan:**\n{plan_text}")
+                # root_id threads this reply under the triggering message
+                # instead of posting a new top-level post -- previously
+                # always "" (every reply landed top-level regardless of how
+                # the researcher asked). See the Experiments plan's UX polish.
+                await mm.post_message(channel_id, f"**Plan:**\n{plan_text}", root_id=post_id)
 
             # Sets the contextvar in-process/in-Camofox tools (download_paper
             # etc, app/tools/literature_discovery.py) read via
@@ -137,6 +146,7 @@ async def _run_agent_and_respond(task_id, agent_id: str, channel_id: str, user_m
                     channel_id,
                     "Something went wrong answering this -- no response was produced. "
                     "This has been logged for review.",
+                    root_id=post_id,
                 )
                 await create_response(
                     db, task_id=task_id, body="(error: agent run raised an exception)",
@@ -229,7 +239,7 @@ async def _run_agent_and_respond(task_id, agent_id: str, channel_id: str, user_m
             )
             if requires_review:
                 attachment["pretext"] = "⚠️ **Requires expert review**"
-            posted = await mm.post_message(channel_id, "", attachments=[attachment])
+            posted = await mm.post_message(channel_id, "", attachments=[attachment], root_id=post_id)
             response.mattermost_message_id = posted.get("id")
 
             # FR-10, docs/10-build-plan.md Phase 4: the human-facing surface
@@ -300,7 +310,7 @@ async def mattermost_outgoing_webhook(
     await db.commit()
 
     background_tasks.add_task(
-        _run_agent_and_respond, task.id, str(agent.id), channel_id, text, experiment.id
+        _run_agent_and_respond, task.id, str(agent.id), channel_id, text, experiment.id, post_id
     )
 
     # Synchronous receipt only (docs/05-ux-behavior.md Section 1) -- the
@@ -309,20 +319,86 @@ async def mattermost_outgoing_webhook(
     return {"text": f"🔎 Looking into this, @{user_name} -- one moment...", "response_type": "in_channel"}
 
 
+async def _conclude_experiment_and_respond(experiment_id, agent_id: str, channel_id: str, user_id: str) -> None:
+    """Two-step synthesis (Experiments plan, Phase 3): reasons only over the
+    structured findings read_paper already extracted across this
+    experiment's whole lifetime (app/experiment_synthesis.py), not raw tool
+    text from one turn -- separate from the master agent's own per-message
+    SYNTHESIZE step in claude_runner.py. Runs in the background, same
+    pattern as _run_agent_and_respond, since the Anthropic call isn't
+    guaranteed to fit inside Mattermost's slash-command response window.
+    """
+    async with async_session() as db:
+        agent = await db.get(Agent, agent_id)
+        experiment = await db.get(Experiment, experiment_id)
+        if agent is None or experiment is None or not agent.encrypted_mattermost_bot_token:
+            logger.error("Cannot conclude experiment %s -- agent/experiment/bot token missing.", experiment_id)
+            return
+
+        bot_token = decrypt(agent.encrypted_mattermost_bot_token)
+        mm = MattermostClient(bot_token)
+        try:
+            findings = load_all_findings(Path(experiment.folder_path) / "findings")
+            if not findings:
+                await mm.post_message(channel_id, "No papers have been read yet in this experiment -- nothing to conclude.")
+                return
+
+            try:
+                conclusion = await synthesize_conclusion(findings)
+            except (anthropic.APIError, json.JSONDecodeError) as exc:
+                await mm.post_message(channel_id, f"Conclusion synthesis failed: {exc}")
+                return
+
+            conclusion_md = format_conclusion_markdown(conclusion)
+            (Path(experiment.folder_path) / "conclusion.md").write_text(conclusion_md)
+
+            # A synthetic Task represents this action so Response (which
+            # requires a task_id) has somewhere to attach -- not a real
+            # Mattermost thread reply, this action isn't triggered by one.
+            # provenance_type is "synthesis", not "grounded": this reasons
+            # over already-persisted findings files, not fresh ToolCall rows
+            # from a live agent turn, so it can't satisfy
+            # grounding.py's grounded-needs-a-ToolCall-backed-citation rule
+            # -- an honest label, not a workaround.
+            task = Task(
+                org_id=agent.org_id,
+                agent_id=agent.id,
+                experiment_id=experiment.id,
+                mattermost_thread_id=f"experiment-conclude-{experiment.id}",
+                requested_by_user_id=user_id,
+                status="completed",
+                raw_request="/experiment conclude",
+                completed_at=datetime.now(timezone.utc),
+            )
+            db.add(task)
+            await db.flush()
+
+            response = await create_response(db, task_id=task.id, body=conclusion_md, provenance_type="synthesis")
+            report_url = f"{settings.orchestrator_public_url}/reports/{response.id}"
+            attachment = build_response_attachment(conclusion_md, report_url)
+            posted = await mm.post_message(channel_id, "", attachments=[attachment])
+            response.mattermost_message_id = posted.get("id")
+            await db.commit()
+        finally:
+            await mm.aclose()
+
+
 @router.post("/webhooks/mattermost/experiment")
 async def mattermost_experiment_command(
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     token: str = Form(...),
     channel_id: str = Form(...),
+    user_id: str = Form(...),
     text: str = Form(""),
 ):
     """The explicit half of the experiment-boundary design (see the
-    Experiments plan): `/experiment start ["name"]` / `end` / `status`.
-    Registered as a Mattermost Slash Command -- same form-encoded POST shape
-    as the outgoing webhook above, confirmed against Mattermost's own docs.
-    A plain @orchestrator message still auto-opens an experiment on its own
-    (_resolve_or_create_experiment) if none is open; this route is for
-    explicit control, not a required step.
+    Experiments plan): `/experiment start ["name"]` / `end` / `status` /
+    `conclude`. Registered as a Mattermost Slash Command -- same
+    form-encoded POST shape as the outgoing webhook above, confirmed
+    against Mattermost's own docs. A plain @orchestrator message still
+    auto-opens an experiment on its own (_resolve_or_create_experiment) if
+    none is open; this route is for explicit control, not a required step.
     """
     if settings.mattermost_webhook_secret and token != settings.mattermost_webhook_secret:
         raise HTTPException(status_code=403, detail="invalid webhook token")
@@ -403,7 +479,30 @@ async def mattermost_experiment_command(
             "response_type": "ephemeral",
         }
 
+    if subcommand == "conclude":
+        experiment = await _current_active()
+        if experiment is None:
+            return {"text": "No experiment is currently open in this channel.", "response_type": "ephemeral"}
+        if not settings.anthropic_api_key:
+            return {
+                "text": "ANTHROPIC_API_KEY is not configured -- conclusion synthesis needs it. Set it in .env.",
+                "response_type": "ephemeral",
+            }
+        fdir = Path(experiment.folder_path) / "findings"
+        if not fdir.is_dir() or not any(fdir.glob("*.json")):
+            return {
+                "text": "No papers have been read yet in this experiment -- ask the agent to "
+                        "read_paper at least one downloaded PDF before concluding.",
+                "response_type": "ephemeral",
+            }
+        # Runs in the background, same pattern as _run_agent_and_respond --
+        # a real Anthropic API call over every finding in the experiment
+        # isn't guaranteed to fit inside Mattermost's slash-command response
+        # window.
+        background_tasks.add_task(_conclude_experiment_and_respond, experiment.id, str(agent.id), channel_id, user_id)
+        return {"text": "🧪 Synthesizing a conclusion from this experiment's findings -- one moment.", "response_type": "in_channel"}
+
     return {
-        "text": 'Usage: `/experiment start ["name"]`, `/experiment end`, `/experiment status`',
+        "text": 'Usage: `/experiment start ["name"]`, `/experiment end`, `/experiment status`, `/experiment conclude`',
         "response_type": "ephemeral",
     }

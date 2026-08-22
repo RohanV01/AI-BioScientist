@@ -565,6 +565,11 @@ async def read_paper(args: dict[str, Any]) -> dict[str, Any]:
     except (anthropic.APIError, json.JSONDecodeError) as exc:
         return {"content": [{"type": "text", "text": f"Structured extraction failed for DOI {doi}: {exc}"}]}
 
+    # Stamp the DOI into the persisted record itself -- the filename alone
+    # isn't a safe round-trip for a DOI containing more than one "/", and
+    # Phase 3's conclusion synthesis reads every findings/*.json without
+    # needing to un-mangle filenames.
+    findings["doi"] = doi
     fdir.mkdir(parents=True, exist_ok=True)
     finding_path.write_text(json.dumps(findings, indent=2))
     update_manifest_entry(doi, status="read")
