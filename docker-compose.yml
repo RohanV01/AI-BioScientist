@@ -60,6 +60,31 @@ services:
       - mm_config:/mattermost/config
       - mm_plugins:/mattermost/plugins
 
+  # Real gap found by battle-testing every pipeline with hard questions:
+  # literature_discovery.py's read_paper/download_paper (full-text paper
+  # extraction) silently degrade to "could not be downloaded" for every
+  # DOI without this -- it needs a real headless-browser service to fetch
+  # PDFs. Previously this only worked if a developer had *also* manually
+  # cloned the separate, gitignored external/camofox-browser project on
+  # their own machine -- meaning it silently didn't work for anyone else
+  # who just cloned this repo. Referencing the project's own published
+  # image (built from the same source, see
+  # https://github.com/jo-inc/camofox-browser) instead of a local build
+  # context makes this a required, always-on service that works
+  # out of the box for any user, with no separate clone/setup step.
+  camofox:
+    image: ghcr.io/jo-inc/camofox-browser:latest
+    container_name: openbiolab-camofox
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:9377:9377"
+    volumes:
+      # The image runs as root ($HOME=/root); its persistence plugin
+      # (session cookies/profiles across restarts) defaults to
+      # ~/.camofox/{cookies,uploads,profiles,traces} -- confirmed by
+      # reading lib/config.js in the image's own source, not guessed.
+      - camofox_data:/root/.camofox
+
   orchestrator:
     build: ./orchestrator
     container_name: openbiolab-orchestrator
@@ -67,25 +92,105 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      camofox:
+        condition: service_started
     environment:
       ORCHESTRATOR_DB_URL: "postgresql+asyncpg://aiscientist:${POSTGRES_PASSWORD:-dev_only_change_me}@postgres:5432/orchestrator"
       MATTERMOST_URL: "http://mattermost:8065"
       MATTERMOST_WEBHOOK_SECRET: ${MATTERMOST_WEBHOOK_SECRET:-}
+      # Real security gap found during the from-scratch clean-clone
+      # verification pass: mattermost_webhook.py's own auth check for this
+      # endpoint (mattermost_experiment_command) is "if a secret is
+      # configured, verify it -- if not, skip the check entirely" (same
+      # pattern MATTERMOST_WEBHOOK_SECRET above already uses). That's a
+      # reasonable local-dev default, but this var was never listed here at
+      # all, so no matter what a user set in .env, the /experiment slash
+      # command endpoint's auth was silently a no-op in every real
+      # docker-compose deployment -- anyone who found the orchestrator's
+      # /webhooks/mattermost/experiment URL could call it with any token
+      # (or none) and have it accepted as if it came from the real
+      # Mattermost instance.
+      MATTERMOST_EXPERIMENT_COMMAND_SECRET: ${MATTERMOST_EXPERIMENT_COMMAND_SECRET:-}
+      # Container-network hostname, not localhost -- same class of mistake
+      # already fixed twice this session for Mattermost's webhook/slash-
+      # command URLs. Overridable via .env for anyone running Camofox
+      # elsewhere (e.g. a separately-hosted instance).
+      CAMOFOX_API_URL: ${CAMOFOX_API_URL:-http://camofox:9377}
+      CAMOFOX_ACCESS_KEY: ${CAMOFOX_ACCESS_KEY:-}
+      # Real bug found live: literature_discovery.py's _try_camofox()
+      # requires *both* CAMOFOX_API_URL and SCIHUB_MIRROR_URLS to be set
+      # or it silently no-ops (returns None, surfaced to the user as a
+      # generic "Camofox failed" message with no indication it never
+      # actually tried). This var was in .env but was never passed
+      # through to the container at all -- Camofox itself could be
+      # perfectly healthy and every download would still silently fail.
+      SCIHUB_MIRROR_URLS: ${SCIHUB_MIRROR_URLS:-}
       # Two mutually exclusive ways to authenticate the `claude` CLI
       # (app/claude_runner.py) -- pick whichever you actually have:
       #  (a) API key: set ANTHROPIC_API_KEY below, nothing else to do.
       #  (b) Claude subscription (Pro/Max), no API key: leave this blank
       #      and instead run, once, after `docker compose up -d`:
-      #        docker compose exec orchestrator claude login
+      #        docker compose exec -it orchestrator claude auth login
       #      It prints a URL -- open it in any browser, on any machine, to
       #      approve. Credentials land in the claude_config volume below and
       #      persist across restarts/rebuilds; you won't be asked again.
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       CREDENTIAL_VAULT_KEY: ${CREDENTIAL_VAULT_KEY:-}
+      # Same gap as MATTERMOST_EXPERIMENT_COMMAND_SECRET above, lower
+      # severity (nothing insecure, just silently non-functional): all
+      # four of these are real, documented .env.example settings
+      # (app/llm_backend.py's provider selection for read_paper/experiment
+      # conclude) that were never wired through to the container at all --
+      # setting LM_STUDIO_BASE_URL in .env had no effect no matter what a
+      # user put there. "auto" mode still worked via ANTHROPIC_API_KEY or
+      # the claude CLI's own subscription fallback, which masked this.
+      ORCHESTRATOR_PUBLIC_URL: ${ORCHESTRATOR_PUBLIC_URL:-http://localhost:8000}
+      LLM_BACKEND: ${LLM_BACKEND:-auto}
+      LLM_MODEL: ${LLM_MODEL:-claude-sonnet-5}
+      # host.docker.internal, not localhost -- LM Studio normally runs on
+      # the host, not in this compose stack, same container-network
+      # addressing rule as every other host-run dependency in this file.
+      LM_STUDIO_BASE_URL: ${LM_STUDIO_BASE_URL:-}
+      LM_STUDIO_CHAT_MODEL: ${LM_STUDIO_CHAT_MODEL:-}
     volumes:
-      - claude_config:/home/orchestrator/.claude
+      # Mounts the whole home dir, not just .claude/ -- a second real bug
+      # found live: the CLI's auth (`claude auth login`) writes into
+      # .claude/, but its own general config/onboarding state lives in a
+      # SIBLING file, ~/.claude.json, which isn't under .claude/ at all.
+      # With only .claude/ mounted, that file silently reset to nothing on
+      # every container recreation, and a live agent run then completed
+      # with zero output and no error (not even a crash) instead of a real
+      # answer -- worse than fix #1's loud crash, since nothing surfaced it
+      # as a failure. Mounting the parent directory covers both files with
+      # one volume.
+      - orchestrator_home:/home/orchestrator
+      # app/config.py's experiments_dir/papers_download_dir default to
+      # "../data/..." -- relative to WORKDIR /app, that's /data. A real
+      # bug found live: pre-existing Experiment rows (created by an
+      # earlier host-run orchestrator, where "../data" correctly resolved
+      # against the host's orchestrator/ cwd) crashed the containerized
+      # agent with "Working directory does not exist" the moment a
+      # message landed in a channel with an already-open Experiment,
+      # since /data never existed in the container at all. Bind-mounting
+      # the repo's own data/ here makes the existing relative-path
+      # default resolve correctly in both the host-run and containerized
+      # cases, with no code change, and reuses the same host directory
+      # data/README.md already documents (Databases/, Experiments/,
+      # scihub.sql).
+      - ./data:/data
     ports:
       - "127.0.0.1:8000:8000"
+    # Previously undefined -- `docker compose ps` couldn't distinguish "the
+    # process is up" from "it's actually serving requests" for this service
+    # (postgres already had one). /health (app/main.py) is a plain liveness
+    # check, not a dependency check -- see docs/16-production-operations.md
+    # for what to check when this passes but the agent still isn't working.
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
 volumes:
   pg_data:
@@ -93,4 +198,5 @@ volumes:
   mm_logs:
   mm_config:
   mm_plugins:
-  claude_config:
+  orchestrator_home:
+  camofox_data:

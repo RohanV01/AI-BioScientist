@@ -289,19 +289,52 @@ def main() -> None:
         print("    outgoing webhook already exists.")
 
     write_env_var(ENV_FILE, "MATTERMOST_WEBHOOK_SECRET", webhook_token)
-    print("    wrote MATTERMOST_WEBHOOK_SECRET to .env -- restart the orchestrator container to pick it up:")
-    print("    docker compose up -d --force-recreate orchestrator")
+    print("    wrote MATTERMOST_WEBHOOK_SECRET to .env -- restart the orchestrator after seeding (see below).")
 
     print()
     print(
         f"Done. Team '{team_name}' at {mm_url}, admin '{admin_username}', bot 'echo-bot' confirmed working, "
         "Outgoing Webhook wired to the orchestrator, #grounding-log channel ready."
     )
-    print(
-        "Next: seed dev data (orchestrator/scripts/seed_dev_data.py "
-        f"--team-id {team_id} --bot-user-id {bot_user_id} --grounding-log-channel-id {grounding_log_channel_id}), "
-        "restart the orchestrator, then message '@orchestrator hello' in #town-square."
-    )
+    # README.md's Getting Started step 5 promises this line is "ready-to-run
+    # ... copy that exact line for the next step" -- it has to be the
+    # literal command a user pastes into their shell (docker compose exec
+    # ... prefix and all, the in-container script path, not this file's own
+    # host-relative path), not a descriptive sentence a human has to
+    # translate first. A prior version of this message printed a sentence
+    # instead of a command here -- exactly the kind of gap that only shows
+    # up when someone follows the README with no prior context, not when
+    # the person who wrote the script re-runs it from memory.
+    print("Next steps:")
+    if bot_token:
+        # Without --bot-token, the seeded Agent has no
+        # encrypted_mattermost_bot_token, and a live agent run then fails
+        # to post its response at all -- silently, from the researcher's
+        # point of view in Mattermost (the same "channel just goes quiet"
+        # symptom as a webhook secret mismatch, but only visible as
+        # "Agent ... has no bot token configured" in `docker compose logs
+        # orchestrator`, not anywhere in Mattermost itself). Found by
+        # actually tracing what --bot-token is used for downstream, not
+        # assumed from the flag's existence.
+        print(
+            f"  docker compose exec orchestrator python scripts/seed_dev_data.py "
+            f"--team-id {team_id} --bot-user-id {bot_user_id} --bot-token {bot_token} "
+            f"--grounding-log-channel-id {grounding_log_channel_id}"
+        )
+    else:
+        print(
+            "  WARNING: no bot token available to pass to seed_dev_data.py (echo-bot already had one "
+            "from a prior run, and Mattermost only shows a token once). Without --bot-token, the "
+            "seeded Agent can't post replies at all. Delete the existing token and re-run this script "
+            "(Mattermost admin console -> echo-bot -> Personal Access Tokens), then use:"
+        )
+        print(
+            f"  docker compose exec orchestrator python scripts/seed_dev_data.py "
+            f"--team-id {team_id} --bot-user-id {bot_user_id} --bot-token <the new token> "
+            f"--grounding-log-channel-id {grounding_log_channel_id}"
+        )
+    print("  docker compose up -d --force-recreate orchestrator")
+    print("Then message '@orchestrator hello' in #town-square.")
 
 
 if __name__ == "__main__":

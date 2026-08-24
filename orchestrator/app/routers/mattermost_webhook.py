@@ -9,19 +9,25 @@ agent run (Plan -> Execute -> Synthesize) happens in the background and
 posts to the channel as it goes: the stated methodology as soon as it's
 produced, then the final synthesized report once execution finishes.
 """
+import json
 import logging
 from datetime import datetime, timezone
+from pathlib import Path
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Form, HTTPException
-from sqlalchemy import select
+from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.claude_runner import run_agent
 from app.config import settings
 from app.db import async_session, get_db
+from app.experiment_context import current_experiment_dir
+from app.experiment_synthesis import format_conclusion_markdown, load_all_findings, synthesize_conclusion
 from app.grounding import Citation, create_response
+from app.llm_backend import LLMBackendError
 from app.mattermost_client import MattermostClient
-from app.models import Agent, Org, Task, ToolCall
+from app.models import Agent, Experiment, Org, Response, Task, ToolCall
 from app.output_rendering import build_response_attachment
 from app.tool_roster import build_tool_roster
 from app.vault import decrypt
@@ -35,13 +41,92 @@ router = APIRouter()
 EXPERT_REVIEW_COLOR = "#D72638"
 
 
-async def _run_agent_and_respond(task_id, agent_id: str, channel_id: str, user_message: str) -> None:
+async def _resolve_or_create_experiment(db: AsyncSession, org_id, agent_id, channel_id: str) -> Experiment:
+    """The current open Experiment for this Mattermost channel -- the most
+    recent status='active' row. Auto-creates one (name=None, shown to the
+    researcher as "Untitled experiment") if none exists, so a plain message
+    never has to wait on a /experiment start first. See the Experiments plan
+    -- this sidesteps Mattermost's outgoing-webhook payload having no
+    thread-root field at all (confirmed against Mattermost's own docs),
+    which ruled out inferring boundaries from thread structure.
+    """
+    result = await db.execute(
+        select(Experiment)
+        .where(Experiment.channel_id == channel_id, Experiment.status == "active")
+        .order_by(Experiment.created_at.desc())
+        .limit(1)
+    )
+    experiment = result.scalars().first()
+    if experiment is not None:
+        return experiment
+
+    experiment = Experiment(org_id=org_id, agent_id=agent_id, channel_id=channel_id, name=None, folder_path="")
+    db.add(experiment)
+    try:
+        await db.flush()  # assigns experiment.id before the folder path can use it
+    except IntegrityError:
+        # Two messages landing in the same brand-new channel close enough
+        # together can both see "no active experiment" above and both
+        # reach this insert -- a real TOCTOU race, confirmed live under
+        # concurrency testing (readiness item #6: 10 concurrent messages
+        # to one fresh channel produced 3 duplicate experiments before the
+        # migration a1b2c3d4e5f6's partial unique index existed). The
+        # loser's insert now fails the unique constraint instead of
+        # silently creating a duplicate; re-read the winner's row rather
+        # than erroring the whole request.
+        await db.rollback()
+        result = await db.execute(
+            select(Experiment)
+            .where(Experiment.channel_id == channel_id, Experiment.status == "active")
+            .order_by(Experiment.created_at.desc())
+            .limit(1)
+        )
+        experiment = result.scalars().first()
+        if experiment is not None:
+            return experiment
+        raise  # genuinely no winner found -- re-raise the original failure
+    folder = Path(settings.experiments_dir) / str(experiment.id)
+    folder.mkdir(parents=True, exist_ok=True)
+    experiment.folder_path = str(folder)
+    return experiment
+
+
+async def _build_conversation_history(db: AsyncSession, experiment_id) -> list[str]:
+    """Prior turns in this experiment, oldest first, as plain-text
+    "Researcher: ...\\nAgent: ..." entries -- see run_agent's
+    conversation_history param in claude_runner.py. Plain text, no
+    summarization/compaction yet; that's a later concern if transcripts get
+    long."""
+    result = await db.execute(
+        select(Task)
+        .where(Task.experiment_id == experiment_id, Task.status == "completed")
+        .order_by(Task.created_at)
+    )
+    prior_tasks = result.scalars().all()
+
+    history = []
+    for t in prior_tasks:
+        resp_result = await db.execute(
+            select(Response).where(Response.task_id == t.id).order_by(Response.created_at.desc()).limit(1)
+        )
+        resp = resp_result.scalars().first()
+        entry = f"Researcher: {t.raw_request}"
+        if resp is not None:
+            entry += f"\nAgent: {resp.body}"
+        history.append(entry)
+    return history
+
+
+async def _run_agent_and_respond(
+    task_id, agent_id: str, channel_id: str, user_message: str, experiment_id, post_id: str
+) -> None:
     """Runs in the background, after the webhook has already returned a
     receipt to Mattermost. Owns its own DB session -- the request-scoped
     one from the original call is closed by the time this runs."""
     async with async_session() as db:
         agent = await db.get(Agent, agent_id)
         task = await db.get(Task, task_id)
+        experiment = await db.get(Experiment, experiment_id)
         if agent is None or not agent.encrypted_mattermost_bot_token:
             logger.error("Agent %s has no bot token configured; cannot post response.", agent_id)
             if task is not None:
@@ -56,16 +141,35 @@ async def _run_agent_and_respond(task_id, agent_id: str, channel_id: str, user_m
             roster = await build_tool_roster(db, agent)
 
             async def on_plan(plan_text: str) -> None:
-                await mm.post_message(channel_id, f"**Plan:**\n{plan_text}")
+                # root_id threads this reply under the triggering message
+                # instead of posting a new top-level post -- previously
+                # always "" (every reply landed top-level regardless of how
+                # the researcher asked). See the Experiments plan's UX polish.
+                await mm.post_message(channel_id, f"**Plan:**\n{plan_text}", root_id=post_id)
+
+            # Sets the contextvar in-process/in-Camofox tools (download_paper
+            # etc, app/tools/literature_discovery.py) read via
+            # app/experiment_context.py -- set here, before run_agent, so it's
+            # active for the whole task tree run_agent spawns (contextvars
+            # propagate to child asyncio tasks created from within this one).
+            # See the Experiments plan.
+            conversation_history = await _build_conversation_history(db, experiment_id)
+            exp_dir = Path(experiment.folder_path) if experiment is not None else None
+            current_experiment_dir.set(exp_dir)
 
             try:
-                result = await run_agent(user_message, roster, on_plan=on_plan)
+                result = await run_agent(
+                    user_message, roster, on_plan=on_plan,
+                    conversation_history=conversation_history,
+                    cwd=experiment.folder_path if experiment is not None else None,
+                )
             except Exception:
                 logger.exception("Agent run failed for task %s", task_id)
                 await mm.post_message(
                     channel_id,
                     "Something went wrong answering this -- no response was produced. "
                     "This has been logged for review.",
+                    root_id=post_id,
                 )
                 await create_response(
                     db, task_id=task_id, body="(error: agent run raised an exception)",
@@ -158,7 +262,7 @@ async def _run_agent_and_respond(task_id, agent_id: str, channel_id: str, user_m
             )
             if requires_review:
                 attachment["pretext"] = "⚠️ **Requires expert review**"
-            posted = await mm.post_message(channel_id, "", attachments=[attachment])
+            posted = await mm.post_message(channel_id, "", attachments=[attachment], root_id=post_id)
             response.mattermost_message_id = posted.get("id")
 
             # FR-10, docs/10-build-plan.md Phase 4: the human-facing surface
@@ -214,9 +318,12 @@ async def mattermost_outgoing_webhook(
             detail="No active agent registered yet -- run scripts/seed_dev_data.py.",
         )
 
+    experiment = await _resolve_or_create_experiment(db, agent.org_id, agent.id, channel_id)
+
     task = Task(
         org_id=agent.org_id,
         agent_id=agent.id,
+        experiment_id=experiment.id,
         mattermost_thread_id=post_id,
         requested_by_user_id=user_id,
         status="running",
@@ -225,9 +332,200 @@ async def mattermost_outgoing_webhook(
     db.add(task)
     await db.commit()
 
-    background_tasks.add_task(_run_agent_and_respond, task.id, str(agent.id), channel_id, text)
+    background_tasks.add_task(
+        _run_agent_and_respond, task.id, str(agent.id), channel_id, text, experiment.id, post_id
+    )
 
     # Synchronous receipt only (docs/05-ux-behavior.md Section 1) -- the
     # plan and the final report are both posted asynchronously as the
     # background run produces them.
     return {"text": f"🔎 Looking into this, @{user_name} -- one moment...", "response_type": "in_channel"}
+
+
+async def _conclude_experiment_and_respond(experiment_id, agent_id: str, channel_id: str, user_id: str) -> None:
+    """Two-step synthesis (Experiments plan, Phase 3): reasons only over the
+    structured findings read_paper already extracted across this
+    experiment's whole lifetime (app/experiment_synthesis.py), not raw tool
+    text from one turn -- separate from the master agent's own per-message
+    SYNTHESIZE step in claude_runner.py. Runs in the background, same
+    pattern as _run_agent_and_respond, since the Anthropic call isn't
+    guaranteed to fit inside Mattermost's slash-command response window.
+    """
+    async with async_session() as db:
+        agent = await db.get(Agent, agent_id)
+        experiment = await db.get(Experiment, experiment_id)
+        if agent is None or experiment is None or not agent.encrypted_mattermost_bot_token:
+            logger.error("Cannot conclude experiment %s -- agent/experiment/bot token missing.", experiment_id)
+            return
+
+        bot_token = decrypt(agent.encrypted_mattermost_bot_token)
+        mm = MattermostClient(bot_token)
+        try:
+            findings = load_all_findings(Path(experiment.folder_path) / "findings")
+            if not findings:
+                await mm.post_message(channel_id, "No papers have been read yet in this experiment -- nothing to conclude.")
+                return
+
+            try:
+                conclusion = await synthesize_conclusion(findings)
+            except (LLMBackendError, json.JSONDecodeError) as exc:
+                await mm.post_message(channel_id, f"Conclusion synthesis failed: {exc}")
+                return
+
+            conclusion_md = format_conclusion_markdown(conclusion)
+            (Path(experiment.folder_path) / "conclusion.md").write_text(conclusion_md)
+
+            # A synthetic Task represents this action so Response (which
+            # requires a task_id) has somewhere to attach -- not a real
+            # Mattermost thread reply, this action isn't triggered by one.
+            # provenance_type is "synthesis", not "grounded": this reasons
+            # over already-persisted findings files, not fresh ToolCall rows
+            # from a live agent turn, so it can't satisfy
+            # grounding.py's grounded-needs-a-ToolCall-backed-citation rule
+            # -- an honest label, not a workaround.
+            task = Task(
+                org_id=agent.org_id,
+                agent_id=agent.id,
+                experiment_id=experiment.id,
+                mattermost_thread_id=f"experiment-conclude-{experiment.id}",
+                requested_by_user_id=user_id,
+                status="completed",
+                raw_request="/experiment conclude",
+                completed_at=datetime.now(timezone.utc),
+            )
+            db.add(task)
+            await db.flush()
+
+            response = await create_response(db, task_id=task.id, body=conclusion_md, provenance_type="synthesis")
+            report_url = f"{settings.orchestrator_public_url}/reports/{response.id}"
+            attachment = build_response_attachment(conclusion_md, report_url)
+            posted = await mm.post_message(channel_id, "", attachments=[attachment])
+            response.mattermost_message_id = posted.get("id")
+            await db.commit()
+        finally:
+            await mm.aclose()
+
+
+@router.post("/webhooks/mattermost/experiment")
+async def mattermost_experiment_command(
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+    token: str = Form(...),
+    channel_id: str = Form(...),
+    user_id: str = Form(...),
+    text: str = Form(""),
+):
+    """The explicit half of the experiment-boundary design (see the
+    Experiments plan): `/experiment start ["name"]` / `end` / `status` /
+    `conclude`. Registered as a Mattermost Slash Command -- same
+    form-encoded POST shape as the outgoing webhook above, confirmed
+    against Mattermost's own docs. A plain @orchestrator message still
+    auto-opens an experiment on its own (_resolve_or_create_experiment) if
+    none is open; this route is for explicit control, not a required step.
+    """
+    if settings.mattermost_experiment_command_secret and token != settings.mattermost_experiment_command_secret:
+        raise HTTPException(status_code=403, detail="invalid slash command token")
+
+    result = await db.execute(select(Agent).where(Agent.active.is_(True)).limit(1))
+    agent = result.scalar_one_or_none()
+    if agent is None:
+        raise HTTPException(
+            status_code=503, detail="No active agent registered yet -- run scripts/seed_dev_data.py."
+        )
+
+    parts = text.strip().split(maxsplit=1)
+    subcommand = parts[0].lower() if parts else "status"
+    arg = parts[1].strip() if len(parts) > 1 else ""
+
+    async def _current_active() -> Experiment | None:
+        r = await db.execute(
+            select(Experiment)
+            .where(Experiment.channel_id == channel_id, Experiment.status == "active")
+            .order_by(Experiment.created_at.desc())
+            .limit(1)
+        )
+        return r.scalars().first()
+
+    if subcommand == "start":
+        # Only one open experiment per channel -- starting a new one closes
+        # whatever was open (there should be at most one anyway, since every
+        # path that opens one checks for an existing active row first, but
+        # closing any stragglers here keeps that invariant even if it's ever
+        # violated).
+        r = await db.execute(
+            select(Experiment).where(Experiment.channel_id == channel_id, Experiment.status == "active")
+        )
+        for stale in r.scalars().all():
+            stale.status = "closed"
+            stale.closed_at = datetime.now(timezone.utc)
+
+        name = arg.strip('"').strip() or None
+        experiment = Experiment(org_id=agent.org_id, agent_id=agent.id, channel_id=channel_id, name=name, folder_path="")
+        db.add(experiment)
+        await db.flush()
+        folder = Path(settings.experiments_dir) / str(experiment.id)
+        folder.mkdir(parents=True, exist_ok=True)
+        experiment.folder_path = str(folder)
+        await db.commit()
+        label = name or "Untitled experiment"
+        return {"text": f"🧪 Started experiment **{label}** (`{experiment.id}`).", "response_type": "in_channel"}
+
+    if subcommand == "end":
+        experiment = await _current_active()
+        if experiment is None:
+            return {"text": "No experiment is currently open in this channel.", "response_type": "ephemeral"}
+        experiment.status = "closed"
+        experiment.closed_at = datetime.now(timezone.utc)
+        await db.commit()
+        label = experiment.name or "Untitled experiment"
+        return {"text": f"🧪 Closed experiment **{label}**.", "response_type": "in_channel"}
+
+    if subcommand == "status":
+        experiment = await _current_active()
+        if experiment is None:
+            return {
+                "text": "No experiment is currently open in this channel -- one will auto-open on your next message.",
+                "response_type": "ephemeral",
+            }
+        label = experiment.name or "Untitled experiment"
+        task_count_result = await db.execute(select(func.count(Task.id)).where(Task.experiment_id == experiment.id))
+        task_count = task_count_result.scalar_one()
+        papers_path = Path(experiment.folder_path) / "papers"
+        paper_count = len(list(papers_path.glob("*.pdf"))) if papers_path.is_dir() else 0
+        return {
+            "text": (
+                f"🧪 Current experiment: **{label}** (`{experiment.id}`)\n"
+                f"- Messages: {task_count}\n"
+                f"- Papers downloaded: {paper_count}\n"
+                f"- Folder: `{experiment.folder_path}`"
+            ),
+            "response_type": "ephemeral",
+        }
+
+    if subcommand == "conclude":
+        experiment = await _current_active()
+        if experiment is None:
+            return {"text": "No experiment is currently open in this channel.", "response_type": "ephemeral"}
+        # No pre-flight LLM-backend check here -- app/llm_backend.py's
+        # "auto" mode has multiple fallbacks (anthropic_api, lm_studio,
+        # claude_subscription), so whether one is usable can only really be
+        # known by trying; the background task below reports a clear error
+        # if every configured backend fails.
+        fdir = Path(experiment.folder_path) / "findings"
+        if not fdir.is_dir() or not any(fdir.glob("*.json")):
+            return {
+                "text": "No papers have been read yet in this experiment -- ask the agent to "
+                        "read_paper at least one downloaded PDF before concluding.",
+                "response_type": "ephemeral",
+            }
+        # Runs in the background, same pattern as _run_agent_and_respond --
+        # a real Anthropic API call over every finding in the experiment
+        # isn't guaranteed to fit inside Mattermost's slash-command response
+        # window.
+        background_tasks.add_task(_conclude_experiment_and_respond, experiment.id, str(agent.id), channel_id, user_id)
+        return {"text": "🧪 Synthesizing a conclusion from this experiment's findings -- one moment.", "response_type": "in_channel"}
+
+    return {
+        "text": 'Usage: `/experiment start ["name"]`, `/experiment end`, `/experiment status`, `/experiment conclude`',
+        "response_type": "ephemeral",
+    }

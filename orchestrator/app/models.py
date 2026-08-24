@@ -114,6 +114,34 @@ class Credential(Base):
     tool_source: Mapped["ToolSource"] = relationship(back_populates="credentials")
 
 
+class Experiment(Base):
+    """One research investigation -- the real unit "save this experiment's own
+    folder" refers to, above Task (docs/... -- see the Experiments plan). A
+    Mattermost channel's *current* experiment is resolved as the most recent
+    status='active' row for that channel_id; `/experiment start`/`end` control
+    it explicitly, and a plain message auto-creates one (name=None) if none is
+    open yet, so nothing is ever lost to a forgotten command.
+    """
+
+    __tablename__ = "experiment"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    org_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("org.id"), nullable=False)
+    agent_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("agent.id"), nullable=False)
+    channel_id: Mapped[str] = mapped_column(String, nullable=False)
+    name: Mapped[str | None] = mapped_column(String, nullable=True)
+    status: Mapped[str] = mapped_column(String, default="active")  # active|closed
+    # Resolved once at creation (data/Experiments/<id>) and stored rather than
+    # recomputed on read -- same precedent as Response.provenance_type.
+    folder_path: Mapped[str] = mapped_column(String, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    org: Mapped["Org"] = relationship()
+    agent: Mapped["Agent"] = relationship()
+    tasks: Mapped[list["Task"]] = relationship(back_populates="experiment")
+
+
 class Task(Base):
     """One delegated unit of work -- a Mattermost thread. `parent_task_id`
     models multi-agent flagship-pipeline hand-off (docs/06-data-model.md's
@@ -125,6 +153,10 @@ class Task(Base):
     org_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("org.id"), nullable=False)
     agent_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("agent.id"), nullable=False)
     parent_task_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("task.id"), nullable=True)
+    # Nullable for Alembic backfill safety, even on a fresh dev DB (same
+    # precedent as every other additive column in this file's migration
+    # history) -- every Task created going forward always gets one.
+    experiment_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("experiment.id"), nullable=True)
     mattermost_thread_id: Mapped[str] = mapped_column(String, nullable=False)
     requested_by_user_id: Mapped[str] = mapped_column(String, nullable=False)
     status: Mapped[str] = mapped_column(String, default="pending")  # pending|running|completed|failed
@@ -135,6 +167,7 @@ class Task(Base):
     org: Mapped["Org"] = relationship(back_populates="tasks")
     agent: Mapped["Agent"] = relationship(back_populates="tasks")
     parent_task: Mapped["Task | None"] = relationship(remote_side="Task.id")
+    experiment: Mapped["Experiment | None"] = relationship(back_populates="tasks")
     tool_calls: Mapped[list["ToolCall"]] = relationship(back_populates="task")
     responses: Mapped[list["Response"]] = relationship(back_populates="task")
 

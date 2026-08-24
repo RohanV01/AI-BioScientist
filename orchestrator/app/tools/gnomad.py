@@ -67,10 +67,17 @@ async def get_variant_frequency(args: dict[str, Any]) -> dict[str, Any]:
         resp.raise_for_status()
         data = resp.json()
         errors = data.get("errors") or []
-        if errors and any("not found" in e.get("message", "").lower() for e in errors):
+        # Both "not found" (well-formed variant_id, no such variant) and
+        # "invalid" (variant_id doesn't even match chrom-pos-ref-alt
+        # shape, e.g. an rsID or garbage string) are caller-input
+        # problems, not something to crash on -- same graceful message
+        # either way, since the caller can't act differently on the
+        # distinction and both mean "this ID doesn't resolve to data."
+        known_message = ("not found", "invalid")
+        if errors and any(any(m in e.get("message", "").lower() for m in known_message) for e in errors):
             return {
                 "content": [
-                    {"type": "text", "text": f"No gnomAD record found for variant {args['variant_id']!r} (GRCh38, gnomad_r4)."}
+                    {"type": "text", "text": f"No gnomAD record found for variant {args['variant_id']!r} (GRCh38, gnomad_r4) -- check it's chrom-pos-ref-alt format, not an rsID or HGVS notation."}
                 ]
             }
         if errors:

@@ -61,6 +61,16 @@ If a task genuinely doesn't need a tool (e.g. a clarifying question back to
 the researcher), you can skip straight to a short response -- the three
 stages are for tasks that need real lookups, not a rigid format for
 everything.
+
+PAPER SELECTION (when using discover_papers/download_paper/read_paper).
+download_paper drives a real browser session per DOI and read_paper is a
+real extraction call per DOI -- both cost real time and money, so don't
+download or read every result discover_papers returns. Default to the top
+5 by relevance for a given research question (discover_papers surfaces each
+result's relevance score and citation count -- use them), preferring
+open-access hits over ones needing Sci-Hub. Only go broader than 5 if the
+researcher explicitly asks for exhaustive/broad coverage. This is a default,
+not a hard cap -- state when you're deliberately going past it and why.
 """
 
 # Record-ID patterns recognized in tool result text, for grounding
@@ -132,6 +142,69 @@ RECORD_REF_PATTERNS: list[tuple[str, re.Pattern]] = [
     # receptor PDB ID itself is separately caught by the existing "PDB {}"
     # pattern above, since this tool's output also says "PDB <id>".
     ("Vina docking against {}", re.compile(r"\[vina:([A-Za-z0-9]+)\]")),
+    # Primer3 primer-pair design -- real local computation
+    # (app/tools/primer3.py), same methodological-citation pattern.
+    ("Primer3 design {}", re.compile(r"\[primer3:(\w+)\]")),
+    # pyhmmer Pfam-domain search against InterPro's HMM (app/tools/
+    # pyhmmer_search.py) -- real local computation on a fetched profile,
+    # same methodological-citation pattern.
+    ("pyhmmer search {}", re.compile(r"\[pyhmmer:(PF\d+)\]")),
+    # msprime coalescent simulation -- real local computation
+    # (app/tools/msprime.py), same methodological-citation pattern.
+    ("msprime {}", re.compile(r"\[msprime:(\w+)\]")),
+    # PLIP non-covalent interaction profile -- real local computation
+    # (app/tools/plip_interactions.py), same methodological-citation
+    # pattern as vina. The receptor PDB ID itself is separately caught by
+    # the existing "PDB {}" pattern above.
+    ("PLIP interaction profile for {}", re.compile(r"\[plip:([A-Za-z0-9]+)\]")),
+    # MHCflurry binding-affinity prediction -- real local model inference
+    # (app/tools/mhcflurry_binding.py), same methodological-citation
+    # pattern as huggingface.py's ESM2 tag.
+    ("MHCflurry prediction for {}", re.compile(r"\[mhcflurry:([\w*:.\-]+)\]")),
+    # Gene-set enrichment tools query a live external service (Enrichr,
+    # g:Profiler) but there's no single external record ID for an
+    # enrichment result, only the library/organism queried -- same
+    # methodological-citation convention as the wrapped-library tools.
+    ("gseapy/Enrichr against {}", re.compile(r"\[gseapy:([\w_]+)\]")),
+    ("g:Profiler against {}", re.compile(r"\[gprofiler:(\w+)\]")),
+    # Pyteomics peptide mass/fragment calculation -- real local
+    # computation (app/tools/pyteomics_mass.py), same methodological-
+    # citation pattern as scikit-bio/cobra/vina.
+    ("Pyteomics {}", re.compile(r"\[pyteomics:(\w+)\]")),
+    # MAFFT multiple sequence alignment (app/tools/msa.py, real subprocess-
+    # wrapped CLI) -- same methodological-citation pattern as the others.
+    # The upstream step that should run before piqtree/dendropy whenever
+    # the input sequences aren't already known to be aligned.
+    ("MAFFT alignment {}", re.compile(r"\[mafft:(\w+)\]")),
+    # Phylogenetics tools -- real local computation (app/tools/
+    # phylogenetics.py: piqtree ML tree inference, dendropy tree
+    # analysis), same methodological-citation pattern as the others.
+    ("piqtree ML tree {}", re.compile(r"\[piqtree:(\w+)\]")),
+    ("dendropy tree analysis {}", re.compile(r"\[dendropy:(\w+)\]")),
+    # PhyKIT tree statistics (real CLI, subprocess-wrapped) -- same
+    # methodological-citation pattern, the analytical payoff step after
+    # piqtree/dendropy build and analyze a tree.
+    ("PhyKIT tree statistic {}", re.compile(r"\[phykit:(\w+)\]")),
+    # sourmash MinHash comparison -- real local computation
+    # (app/tools/sourmash_compare.py), same methodological-citation pattern.
+    ("sourmash {}", re.compile(r"\[sourmash:(\w+)\]")),
+    # SolTranNet solubility prediction -- real local model inference
+    # (app/tools/soltrannet_solubility.py), same methodological-citation
+    # pattern as huggingface/mhcflurry.
+    ("SolTranNet prediction {}", re.compile(r"\[soltrannet:([0-9a-f]{8})\]")),
+    # eQuilibrator reaction thermodynamics -- real local computation
+    # (app/tools/equilibrator_thermo.py) against a bundled reference
+    # dataset, same methodological-citation pattern.
+    ("eQuilibrator {}", re.compile(r"\[equilibrator:(\w+)\]")),
+    # virtual_screening.py reuses vina_docking.py's own [vina:pdb_id] tag
+    # (same underlying computation, just batched) -- no new pattern needed.
+    # straindesign OptKnock result -- real local MILP computation
+    # (app/tools/straindesign_intervention.py), same methodological-
+    # citation pattern as cobra_fba's [cobra:model_id].
+    ("straindesign on {}", re.compile(r"\[straindesign:(\w+)\]")),
+    # NRP Calculator non-repetitive part design -- real local computation
+    # (app/tools/nrpcalc_design.py), same methodological-citation pattern.
+    ("NRP Calculator {}", re.compile(r"\[nrpcalc:(\w+)\]")),
 ]
 
 
@@ -172,7 +245,24 @@ async def run_agent(
     user_message: str,
     roster: ToolRoster,
     on_plan: Callable[[str], Awaitable[None]] | None = None,
+    conversation_history: list[str] | None = None,
+    cwd: str | None = None,
 ) -> RunnerResult:
+    # conversation_history: prior turns' plan+body text within the same
+    # Experiment (oldest first), plain-text, no summarization/compaction yet
+    # -- see the Experiments plan. Without this, every message was answered
+    # with zero memory of earlier turns in the same investigation, even
+    # ones seconds apart. Prepended into the prompt itself rather than a
+    # separate multi-turn API, since claude_agent_sdk's query() here is a
+    # fresh one-shot call each time (see docs/07-system-architecture.md).
+    prompt = user_message
+    if conversation_history:
+        transcript = "\n\n".join(conversation_history)
+        prompt = (
+            "Earlier turns in this experiment (for context -- the researcher's "
+            f"new message follows):\n\n{transcript}\n\n---\n\nNew message: {user_message}"
+        )
+
     options = ClaudeAgentOptions(
         system_prompt=MASTER_AGENT_SYSTEM_PROMPT,
         mcp_servers=roster.mcp_servers,
@@ -190,7 +280,10 @@ async def run_agent(
         strict_mcp_config=True,
         permission_mode="bypassPermissions",  # headless service, no human to prompt
         max_turns=10,
-        cwd=tempfile.mkdtemp(prefix="openbiolab-agent-"),
+        # The current Experiment's own folder when one's in scope (real,
+        # persisted -- see the Experiments plan), else the old throwaway
+        # tempdir for standalone/test calls with no experiment.
+        cwd=cwd or tempfile.mkdtemp(prefix="openbiolab-agent-"),
     )
 
     pending_calls: dict[str, dict] = {}
@@ -199,7 +292,7 @@ async def run_agent(
     final_text_parts: list[str] = []
     plan_announced = False
 
-    async for msg in query(prompt=user_message, options=options):
+    async for msg in query(prompt=prompt, options=options):
         if isinstance(msg, AssistantMessage):
             has_tool_use_this_message = any(isinstance(b, ToolUseBlock) for b in msg.content)
             for block in msg.content:

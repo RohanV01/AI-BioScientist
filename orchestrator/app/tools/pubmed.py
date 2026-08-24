@@ -41,7 +41,7 @@ async def search_articles(args: dict[str, Any]) -> dict[str, Any]:
         pmids = search_resp.json().get("esearchresult", {}).get("idlist", [])
 
         if not pmids:
-            return {"content": [{"type": "text", "text": "No PubMed results found for this query."}]}
+            return {"content": [{"type": "text", "text": "No PubMed results found for this query."}], "articles": []}
 
         summary_resp = await client.get(
             f"{EUTILS_BASE}/esummary.fcgi",

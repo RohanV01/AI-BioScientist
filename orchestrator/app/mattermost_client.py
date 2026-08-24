@@ -22,6 +22,15 @@ class MattermostClient:
         if attachments:
             payload["props"] = {"attachments": attachments}
         resp = await self._client.post("/api/v4/posts", json=payload)
+        if root_id and resp.status_code == 400:
+            # A root_id Mattermost rejects (the referenced post was deleted,
+            # or -- as hit live during testing -- never existed) must not
+            # take down the whole response pipeline; found the hard way
+            # when this raised uncaught mid-_run_agent_and_respond and lost
+            # the DB commit for an otherwise-successful agent run, not just
+            # the threading. Falls back to a top-level post instead.
+            payload["root_id"] = ""
+            resp = await self._client.post("/api/v4/posts", json=payload)
         resp.raise_for_status()
         return resp.json()
 

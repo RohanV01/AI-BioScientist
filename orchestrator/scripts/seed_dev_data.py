@@ -1,8 +1,19 @@
 """Seeds one Org + the one master Agent for local dev, matching whatever
 scripts/bootstrap_mattermost.py created (docs/10-build-plan.md). Also wires
-TOOL_BINDING rows for every tool source named --tools (default: pubmed),
-creating the ToolSource if it doesn't exist yet. Idempotent -- safe to
-re-run (updates the bot token/name/tool bindings if they changed).
+TOOL_BINDING rows for every tool source named --tools (default: every real
+tool source this script knows about -- see ALL_KNOWN_TOOLS below), creating
+the ToolSource if it doesn't exist yet. Idempotent -- safe to re-run
+(updates the bot token/name/tool bindings if they changed).
+
+The default used to be just "pubmed" -- a real gap for anyone following
+README.md's Getting Started end to end with no other guidance: the agent
+would come up able to answer exactly one kind of question, while every
+other capability the README itself advertises (docking, structure
+prediction, variant lookups, pathway analysis, ...) silently wasn't bound
+at all, with no error anywhere to say so. Binding every known tool source
+by default is what makes README's own "what you can actually ask it today"
+table true out of the box; pass --tools explicitly only to bind a
+deliberately narrower subset.
 
 There's exactly one Agent per org now (the architecture pivot, see
 07-system-architecture.md) -- this script no longer takes a --cluster
@@ -12,7 +23,7 @@ flag; "cluster" on the Agent model is vestigial post-pivot
 Usage:
   .venv/bin/python scripts/seed_dev_data.py \\
     --team-id <mattermost_team_id> --bot-user-id <bot_user_id> \\
-    --bot-token <bot_access_token> [--name "OpenBioLab"] [--tools pubmed]
+    --bot-token <bot_access_token> [--name "OpenBioLab"] [--tools pubmed,chembl,...]
 """
 import argparse
 import asyncio
@@ -62,9 +73,83 @@ KNOWN_TOOL_SOURCES = {
     # Wrapped local libraries (docs/10-build-plan.md Phase 5's bio.tools +
     # GitHub-repo triage) -- real in-process computation, no external API.
     "scikit_bio": ("microbiome", "free_public", "in-process:app.tools.scikit_bio", False, False),
+    # docs/12-biotools-triage-shortlist.md's Metagenomics / microbiology
+    # cluster (feature/metagenomics branch) -- real in-process MinHash
+    # comparison (sourmash), no external API for the computation. The
+    # rest of this cluster (eggNOG-mapper, CheckM2, MetaPhlAn) needs
+    # multi-GB reference databases or a heavy TensorFlow dependency chain,
+    # not pursued this pass -- see docs/10-build-plan.md for the finding.
+    "sourmash_compare": ("microbiome", "free_public", "in-process:app.tools.sourmash_compare", False, False),
     "biopandas_structure": ("structural_biology", "free_public", "in-process:app.tools.biopandas_structure", False, False),
     "cobra_fba": ("systems_biology", "free_public", "in-process:app.tools.cobra_fba", False, False),
     "vina_docking": ("drug_discovery", "free_public", "in-process:app.tools.vina_docking", False, False),
+    # docs/12-biotools-triage-shortlist.md's Sequence analysis fundamentals
+    # cluster (feature/sequence-analysis branch) -- both real in-process
+    # computation, no external API for the computation itself.
+    "primer3": ("sequence_analysis", "free_public", "in-process:app.tools.primer3", False, False),
+    "pyhmmer_search": ("sequence_analysis", "free_public", "in-process:app.tools.pyhmmer_search", False, False),
+    # Real gap found by battle-testing every pipeline with hard questions
+    # (docs/15-battle-test-report.md, Battle 7): phylogenetics.
+    # build_phylogenetic_tree assumes pre-aligned input and has no way to
+    # align raw sequences itself -- feeding it real, indel-bearing
+    # sequences silently corrupted a tree result instead of erroring.
+    # Real in-process wrap of the `mafft` CLI (installed via apt in
+    # Dockerfile), no external API for the computation itself.
+    "msa": ("sequence_analysis", "free_public", "in-process:app.tools.msa", False, False),
+    # docs/12-biotools-triage-shortlist.md's Population genetics cluster
+    # (feature/population-genetics branch) -- real in-process coalescent
+    # simulation (msprime + tskit), no external API for the computation.
+    "msprime": ("population_genetics", "free_public", "in-process:app.tools.msprime", False, False),
+    # docs/12-biotools-triage-shortlist.md's Structural biology / docking
+    # cluster (feature/structural-biology branch) -- real in-process PLIP
+    # analysis, no external API for the computation. Natural pair with
+    # vina_docking: Vina scores a pose, PLIP explains it.
+    "plip_interactions": ("structural_biology", "free_public", "in-process:app.tools.plip_interactions", False, False),
+    # docs/12-biotools-triage-shortlist.md's Immunoinformatics cluster
+    # (feature/immunoinformatics branch) -- real local model inference
+    # (pretrained pan-allele neural net, CPU-only), no external API.
+    "mhcflurry_binding": ("immunoinformatics", "free_public", "in-process:app.tools.mhcflurry_binding", False, False),
+    # docs/12-biotools-triage-shortlist.md's Transcriptomics cluster
+    # (feature/transcriptomics branch) -- both query real, live enrichment
+    # services (Enrichr, g:Profiler), independent backends kept as two
+    # tools deliberately so results can cross-check each other.
+    "gene_set_enrichment": ("transcriptomics", "free_public", "in-process:app.tools.gene_set_enrichment", False, False),
+    "gprofiler_enrichment": ("transcriptomics", "free_public", "in-process:app.tools.gprofiler_enrichment", False, False),
+    # docs/12-biotools-triage-shortlist.md's Proteomics cluster
+    # (feature/proteomics branch) -- real in-process mass calculation
+    # (Pyteomics), no external API. First proteomics coverage in the
+    # platform. mokapot (PSM rescoring) investigated and skipped -- it
+    # fundamentally needs real search-engine PSM output, which can't be
+    # honestly fabricated as a test input.
+    "pyteomics_mass": ("proteomics", "free_public", "in-process:app.tools.pyteomics_mass", False, False),
+    # docs/12-biotools-triage-shortlist.md's Phylogenetics cluster
+    # (feature/phylogenetics branch) -- this platform's first
+    # phylogenetics coverage. Real in-process ML tree inference
+    # (piqtree/IQ-TREE) + tree analysis (dendropy), no external API.
+    "phylogenetics": ("phylogenetics", "free_public", "in-process:app.tools.phylogenetics", False, False),
+    # docs/12-biotools-triage-shortlist.md's Cheminformatics cluster
+    # (feature/cheminformatics branch) -- real in-process computation,
+    # no external API for the prediction/calculation itself.
+    "soltrannet_solubility": ("drug_discovery", "free_public", "in-process:app.tools.soltrannet_solubility", False, False),
+    "equilibrator_thermo": ("drug_discovery", "free_public", "in-process:app.tools.equilibrator_thermo", False, False),
+    # Batch virtual screening -- completes the pipeline that was stuck at
+    # one-compound-at-a-time (ChEMBL -> Vina -> PLIP). Reuses
+    # vina_docking.py's own proven internals rather than the pyscreener
+    # package itself (which pulls in ray + openmm, a distributed-compute
+    # footprint disproportionate to chat-tool-scale batch docking).
+    "virtual_screening": ("drug_discovery", "free_public", "in-process:app.tools.virtual_screening", False, False),
+    # OptKnock strain design, built on cobrapy -- completes the
+    # metabolic-engineering pipeline (cobra_fba predicts growth,
+    # equilibrator_thermo checks feasibility, this proposes the
+    # intervention).
+    "straindesign_intervention": (
+        "systems_biology", "free_public", "in-process:app.tools.straindesign_intervention", False, False,
+    ),
+    # docs/12-biotools-triage-shortlist.md's Synthetic biology cluster
+    # (feature/synthetic-biology branch) -- real in-process combinatorial
+    # design (NRP Calculator), no external API. Platform's first
+    # synthetic-biology coverage.
+    "nrpcalc_design": ("synthetic_biology", "free_public", "in-process:app.tools.nrpcalc_design", False, False),
     # Placeholder only -- no app/tools/drugbank.py, no TOOL_BUILDERS entry.
     # User decision 2026-08-16: wire this once a real DrugBank credential
     # is available; until then this row just marks the intent in the
@@ -78,6 +163,14 @@ KNOWN_TOOL_SOURCES = {
     # signal a wrong guess), so this needs real API docs, not more
     # trial and error.
 }
+
+# Every tool source with a real builder, i.e. everything except the
+# not-yet-implemented placeholders (currently just drugbank) -- this is
+# the --tools default (see the module docstring above for why it isn't
+# still "pubmed").
+ALL_KNOWN_TOOLS = ",".join(
+    name for name, entry in KNOWN_TOOL_SOURCES.items() if entry[2] != "not-yet-implemented"
+)
 
 
 async def main(
@@ -170,7 +263,10 @@ if __name__ == "__main__":
     parser.add_argument("--bot-user-id", required=True)
     parser.add_argument("--bot-token", default="", help="Mattermost personal access token for this bot")
     parser.add_argument("--name", default="OpenBioLab")
-    parser.add_argument("--tools", default="pubmed", help="Comma-separated tool source names to bind")
+    parser.add_argument(
+        "--tools", default=ALL_KNOWN_TOOLS,
+        help="Comma-separated tool source names to bind (default: every known real tool source)",
+    )
     parser.add_argument(
         "--grounding-log-channel-id", default="",
         help="Mattermost channel ID for the #grounding-log audit channel (FR-10)",
