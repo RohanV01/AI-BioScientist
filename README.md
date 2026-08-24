@@ -2,11 +2,11 @@
 
 **Open source. Open science. A real intelligence, wired to real scientific tools, running real experiments.**
 
-At its core, OpenBioLab is one idea: connect an LLM to actual scientific tools — the same databases, structure predictors, docking engines, and simulators a working researcher already uses — and let it run genuine autonomous experiments, not just answer questions about them. Every step is a real tool call against a real result, chained into the kind of multi-step investigation that used to mean a dozen open tabs and an afternoon: gene → structure → pathway → known drugs, in one message.
+At its core, OpenBioLab is one idea: connect an LLM to actual scientific tools, the same databases, structure predictors, docking engines, and simulators a working researcher already uses, and let it run genuine autonomous experiments, not just answer questions about them. Every step is a real tool call against a real result, chained into the kind of multi-step investigation that used to mean a dozen open tabs and an afternoon: gene to structure to pathway to known drugs, in one message.
 
-It's fully open source (MIT) on purpose. Frontier AI-agent tooling for science has mostly shown up behind a paywall, inside one company's walled garden, or as a demo you can't actually run. OpenBioLab is the opposite bet: self-hostable by anyone, extensible by anyone, and free of any single vendor's lock-in — because democratizing serious scientific discovery means the tool that does it has to be something a grad student, an independent lab, or a researcher anywhere in the world can actually stand up themselves, not just something they read about. Open science needs open infrastructure; this is an attempt at that infrastructure.
+It's fully open source (MIT) on purpose. Frontier AI-agent tooling for science has mostly shown up behind a paywall, inside one company's walled garden, or as a demo you can't actually run. OpenBioLab is the opposite bet: self-hostable by anyone, extensible by anyone, and free of any single vendor's lock-in, because democratizing serious scientific discovery means the tool that does it has to be something a grad student, an independent lab, or a researcher anywhere in the world can actually stand up themselves, not just something they read about. Open science needs open infrastructure; this is an attempt at that infrastructure.
 
-Ask it a real research question in a chat window — "find compounds active against EGFR" or "dock this ligand against 6LU7" — and get back an answer with a live tool call behind every claim, not a hallucinated guess. Every response is `grounded` (backed by at least one real tool citation), `synthesis` (reasoning over grounded results, labeled as such), or `ungroundable` (the tools couldn't answer it, and it says so) — there's no fourth option where the model just states something it "recognizes."
+Ask it a real research question in a chat window, like "find compounds active against EGFR" or "dock this ligand against 6LU7", and get back an answer with a live tool call behind every claim, not a hallucinated guess. Every response is `grounded` (backed by at least one real tool citation), `synthesis` (reasoning over grounded results, labeled as such), or `ungroundable` (the tools couldn't answer it, and it says so): there's no fourth option where the model just states something it "recognizes."
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)](orchestrator/pyproject.toml)
@@ -18,48 +18,28 @@ Ask it a real research question in a chat window — "find compounds active agai
   <sub><a href="docs/media/capability-demo.mp4">full-quality MP4</a> · built HTML to video, via <a href="https://github.com/heygen-com/hyperframes">HyperFrames</a>, real screenshots from a live run</sub>
 </p>
 
-## What you can actually ask it today
+## Research workflows it can run autonomously
 
-These map to tool sources that are wired and live-verified right now, not a roadmap:
-
-| Ask it... | 
-|---|---|
-| "What compounds are active against EGFR, and what's their mechanism?" |
-| "Dock this ligand SMILES against PDB structure 6LU7" |
-| "What's the predicted structure of this UniProt protein?" |
-| "What's the alpha diversity of this microbiome abundance table?" |
-| "Run flux balance analysis on the E. coli core metabolic model" |
-| "What clinical trials exist for this drug, and what's on its label?" |
-| "What's known about this variant, pathogenicity and population frequency?" |
-| "What pathways is this gene involved in?" |
-| "Find literature on this topic, including Sci-Hub-available full text where legal" |
-
-Every answer comes back with the record ID or computation tag inline (`PMID 12345678`, `CHEMBL941`, `[vina:6LU7]`) so you can verify it against the tool's own output.
-
-## Research workflows this replaces today
-
-This is what "connecting an intelligence to real scientific tools" actually looks like end to end: not one lookup, but a chained, multi-step investigation the agent runs autonomously in a single message, the same way a researcher would move between tools by hand — except every hop is a real, verifiable tool call, not the model filling in the gaps from memory:
-
-- **Target & mechanism research**: go from a gene or protein to its structure, pathways, interaction partners, and known drugs in one pass (Ensembl/UniProt → PDB/AlphaFold → KEGG/Reactome/STRING → Open Targets/ChEMBL).
-- **Drug discovery triage**: find active compounds, understand mechanism of action, and run a real molecular docking pose against a target structure, cross-referenced against trial status and label data for anything already approved.
-- **Variant interpretation**: pull clinical significance and population allele frequency for the same variant side by side (ClinVar + gnomAD), the two numbers you need together to judge pathogenicity.
-- **Literature-grounded due diligence**: search PubMed and get a compliance-checked answer on legal full-text availability (open access vs. Sci-Hub, tier always disclosed), every claim citable back to a PMID or DOI.
-- **Systems-level modeling**: real flux balance analysis on a genome-scale metabolic model (an actual constraint-based optimization, not a pathway diagram).
-- **Microbiome composition analysis**: real diversity statistics computed locally on your own abundance data, no upload to a third-party service.
-- **Regulatory/commercial due diligence**: trial status and drug label lookups in one place, aimed at the commercial/pharma research persona specifically, not just academic literature search.
+- Target & mechanism research
+- Drug discovery triage
+- Variant interpretation
+- Literature-grounded due diligence
+- Systems-level modeling
+- Microbiome composition analysis
+- Regulatory/commercial due diligence
 
 ## Open by design, not just by license
 
 The MIT license is the easy part. What actually makes this open science infrastructure, not just open-source code:
 
-- **Runs on your own machine, under your own control.** Nothing about a research question you ask it has to leave your infrastructure — self-hosted Mattermost, your own Postgres, your own Docker stack. No API waits on a vendor's roadmap or a subscription tier to get access to a real capability.
+- **Runs on your own machine, under your own control.** Nothing about a research question you ask it has to leave your infrastructure -- self-hosted Mattermost, your own Postgres, your own Docker stack. No API waits on a vendor's roadmap or a subscription tier to get access to a real capability.
 - **The tool roster is a pattern anyone can extend**, not a fixed menu: a new scientific tool is a builder file plus a registration line (`CONTRIBUTING.md`'s documented recipe), the same shape every one of the 37 tools wired in today already follows. Every one of them is real, live-verified code, not a wrapper around a promise.
-- **Works with a Claude subscription, not just a metered API key** — the whole point of connecting an LLM to real tools shouldn't come with a second paywall on top of the first.
-- **Every claim is checkable against the exact tool call that produced it** — an open agent that can't show its work isn't meaningfully more trustworthy than a closed one. Grounding isn't a feature flag here; it's enforced in code (`app/grounding.py`) on every single response.
+- **Works with a Claude subscription, not just a metered API key** -- the whole point of connecting an LLM to real tools shouldn't come with a second paywall on top of the first.
+- **Every claim is checkable against the exact tool call that produced it** -- an open agent that can't show its work isn't meaningfully more trustworthy than a closed one. Grounding isn't a feature flag here; it's enforced in code (`app/grounding.py`) on every single response.
 
 ## Getting started
 
-**Prerequisites:** Docker + Docker Compose v2. That's it — this works the same way on **Mac, Linux, and Windows** (Docker Desktop on Mac/Windows, Docker Engine on Linux); every service, including the `claude` CLI itself, runs inside containers, so nothing OS-specific is required on the host. (The bootstrap script in step 4 needs *some* Python 3.9+ on the host too, but nothing else does.)
+**Prerequisites:** Docker + Docker Compose v2. That's it -- this works the same way on **Mac, Linux, and Windows** (Docker Desktop on Mac/Windows, Docker Engine on Linux); every service, including the `claude` CLI itself, runs inside containers, so nothing OS-specific is required on the host. (The bootstrap script in step 4 needs *some* Python 3.9+ on the host too, but nothing else does.)
 
 **1. Clone and configure**
 
@@ -90,24 +70,24 @@ already-stored credential permanently undecryptable, and there's no rotate-in-pl
 ```bash
 docker compose up -d
 ```
-Builds the orchestrator image (Node.js + `claude` CLI baked in — first run takes a few minutes) and starts Postgres, Mattermost, and the orchestrator together.
+Builds the orchestrator image (Node.js + `claude` CLI baked in -- first run takes a few minutes) and starts Postgres, Mattermost, and the orchestrator together.
 
-**3. Authenticate the agent** — pick whichever you actually have:
+**3. Authenticate the agent** -- pick whichever you actually have:
 - **Anthropic API key:** set `ANTHROPIC_API_KEY` in `.env`, then `docker compose up -d` again to pick it up. Nothing else to do.
 - **Claude subscription (Pro/Max), no API key:** leave `ANTHROPIC_API_KEY` blank and instead run, once:
   ```bash
   docker compose exec -it orchestrator claude auth login
   ```
-  It prints a URL + code — open it in a browser on any device (doesn't have to be this machine) and approve. Credentials land in the `orchestrator_home` Docker volume and persist across restarts; you won't be asked again unless you `docker compose down -v`.
+  It prints a URL + code -- open it in a browser on any device (doesn't have to be this machine) and approve. Credentials land in the `orchestrator_home` Docker volume and persist across restarts; you won't be asked again unless you `docker compose down -v`.
 
-**4. Bootstrap Mattermost** — creates the admin account, team, bot, and the webhook that wires the agent in (pure Python, same command on every OS, no bash/curl/jq needed):
+**4. Bootstrap Mattermost** -- creates the admin account, team, bot, and the webhook that wires the agent in (pure Python, same command on every OS, no bash/curl/jq needed):
 
 ```bash
 python scripts/bootstrap_mattermost.py
 ```
-Prints the generated admin password once (also saved to `.env`). Under "Next steps," it prints a ready-to-run `seed_dev_data.py` command with the real `--team-id`/`--bot-user-id`/`--bot-token`/`--grounding-log-channel-id` values filled in — copy that exact line for the next step. **Don't skip `--bot-token`**: without it the seeded agent has no way to post replies in Mattermost at all, and the failure is silent from the chat side (only visible in `docker compose logs orchestrator` as "Agent ... has no bot token configured").
+Prints the generated admin password once (also saved to `.env`). Under "Next steps," it prints a ready-to-run `seed_dev_data.py` command with the real `--team-id`/`--bot-user-id`/`--bot-token`/`--grounding-log-channel-id` values filled in -- copy that exact line for the next step. **Don't skip `--bot-token`**: without it the seeded agent has no way to post replies in Mattermost at all, and the failure is silent from the chat side (only visible in `docker compose logs orchestrator` as "Agent ... has no bot token configured").
 
-**5. Seed the agent's tool roster** — run inside the container (there's no host Python venv on a fresh clone), using the exact command step 4 printed:
+**5. Seed the agent's tool roster** -- run inside the container (there's no host Python venv on a fresh clone), using the exact command step 4 printed:
 
 ```bash
 docker compose exec orchestrator python scripts/seed_dev_data.py --team-id <...> --bot-user-id <...> --bot-token <...> --grounding-log-channel-id <...>
@@ -118,7 +98,7 @@ docker compose exec orchestrator python scripts/seed_dev_data.py --team-id <...>
 ```bash
 docker compose up -d --force-recreate orchestrator
 ```
-⚠️ Don't skip this — if the orchestrator container is still holding the old (or no) secret, `@orchestrator` messages get silently rejected (a 403 that never surfaces in Mattermost's UI at all — the channel just goes quiet). If step 7 below doesn't respond, this is the first thing to check.
+⚠️ Don't skip this -- if the orchestrator container is still holding the old (or no) secret, `@orchestrator` messages get silently rejected (a 403 that never surfaces in Mattermost's UI at all -- the channel just goes quiet). If step 7 below doesn't respond, this is the first thing to check.
 
 **7. Use it**
 
@@ -162,7 +142,7 @@ Copy the response's own `token` field into `.env` as `MATTERMOST_EXPERIMENT_COMM
 
 ## Contributing
 
-New tool sources, new workflow combos, bug reports — all welcome. `CONTRIBUTING.md` documents the exact recipe for wiring in a new scientific tool; if this project's mission (open, self-hostable, verifiable AI-driven science) resonates, the fastest way to help is adding one.
+New tool sources, new workflow combos, bug reports -- all welcome. `CONTRIBUTING.md` documents the exact recipe for wiring in a new scientific tool; if this project's mission (open, self-hostable, verifiable AI-driven science) resonates, the fastest way to help is adding one.
 
 ## Change history
 
