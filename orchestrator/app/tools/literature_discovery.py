@@ -127,8 +127,8 @@ async def discover_papers(args: dict[str, Any]) -> dict[str, Any]:
         # against it instead of re-fetching. No-op if no experiment is in
         # scope (see app/experiment_context.py).
         update_manifest_entry(
-            doi, title=title, is_oa=bool(oa.get("is_oa")), relevance_score=relevance,
-            cited_by_count=cited_by, status="discovered",
+            doi, title=title, is_oa=bool(oa.get("is_oa")), oa_url=oa.get("oa_url"),
+            relevance_score=relevance, cited_by_count=cited_by, status="discovered",
         )
     return {"content": [{"type": "text", "text": "\n".join(lines)}]}
 
@@ -446,6 +446,54 @@ async def _verify_pdf_content(pdf_path: Path, doi: str) -> tuple[bool, str]:
     )
 
 
+async def _oa_url_for(doi: str) -> str | None:
+    """The direct open-access PDF URL for this DOI, if OpenAlex has one --
+    reuses discover_papers' cached manifest entry (oa_url) when this DOI was
+    already surfaced in the current experiment; falls back to a live lookup
+    for a DOI download_paper is called on directly (e.g. via
+    check_scihub_availability alone, without a prior discover_papers call).
+    """
+    cached = load_manifest().get(doi, {})
+    if "oa_url" in cached:
+        return cached["oa_url"]
+    async with httpx.AsyncClient(timeout=15.0) as client:
+        try:
+            resp = await _openalex_get(
+                client, {"filter": f"doi:{doi}", "select": "open_access", "per_page": 1}
+            )
+            resp.raise_for_status()
+            results = resp.json().get("results", [])
+            return (results[0].get("open_access") or {}).get("oa_url") if results else None
+        except httpx.HTTPError:
+            return None
+
+
+async def _try_direct_oa_download(doi: str) -> bytes | None:
+    """Reliability improvement over routing every DOI through Camofox:
+    OpenAlex already tells us, for real open-access papers, exactly where
+    the publisher/repository serves the PDF -- a plain httpx GET against
+    that URL is faster, has nothing to do with Sci-Hub or a stealth
+    browser, and keeps working even if Camofox itself is misconfigured or
+    not running at all (the exact failure mode Battle 11 hit). Only papers
+    that are genuinely NOT open access still need the Camofox/Sci-Hub path
+    below. Returns None (not an error) for anything that isn't a clean,
+    real PDF response -- the caller falls back to Camofox either way.
+    """
+    url = await _oa_url_for(doi)
+    if not url:
+        return None
+    try:
+        async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
+            resp = await client.get(url)
+            resp.raise_for_status()
+            content_type = resp.headers.get("content-type", "")
+            if "pdf" not in content_type.lower() and not resp.content.startswith(b"%PDF"):
+                return None
+            return resp.content
+    except httpx.HTTPError:
+        return None
+
+
 async def _download_one(doi: str, out_dir: Path, sem: asyncio.Semaphore) -> str:
     # Paper-selection dedup gate (Experiments plan): if this DOI's PDF is
     # already on disk for the current experiment, don't re-hit Camofox for
@@ -464,15 +512,25 @@ async def _download_one(doi: str, out_dir: Path, sem: asyncio.Semaphore) -> str:
     # since gather() re-raises on the first exception without waiting for
     # the rest).
     try:
-        async with sem:
-            pdf_bytes = await _try_camofox(doi)
-            source = "Camofox"
+        pdf_bytes = await _try_direct_oa_download(doi)
+        source = "direct open-access download"
+        if pdf_bytes is None:
+            async with sem:
+                pdf_bytes = await _try_camofox(doi)
+                source = "Camofox"
     except Exception as exc:
         return f"- DOI {doi}: download failed with an unexpected error ({exc})."
 
     if pdf_bytes is None:
         update_manifest_entry(doi, status="skipped")
-        return f"- DOI {doi}: could not be downloaded (Camofox failed to retrieve a PDF for this DOI)."
+        camofox_configured = bool(settings.camofox_api_url and settings.scihub_mirror_urls)
+        reason = (
+            "Camofox failed to retrieve a PDF for this DOI (not found on any configured mirror)"
+            if camofox_configured
+            else "no direct open-access PDF was found, and Camofox is not configured "
+                 "(CAMOFOX_API_URL/SCIHUB_MIRROR_URLS) -- see README.md's full-text download section"
+        )
+        return f"- DOI {doi}: could not be downloaded ({reason})."
 
     out_path.write_bytes(pdf_bytes)
 
