@@ -57,6 +57,21 @@ def _strip_doi_prefix(doi: str) -> str:
     return doi.removeprefix("https://doi.org/").removeprefix("http://doi.org/").strip()
 
 
+async def _openalex_get(client: httpx.AsyncClient, params: dict[str, Any]) -> httpx.Response:
+    """GET against OPENALEX_URL with one retry on 429 -- OpenAlex's
+    anonymous-pool rate limit kicks in under load and self-clears within
+    its own advertised `retryAfter` window (seen in practice: ~30s), so a
+    single wait-and-retry turns a transient rate limit into a real result
+    instead of a tool failure. Any other status is left to the caller's
+    own resp.raise_for_status()."""
+    resp = await client.get(OPENALEX_URL, params=params)
+    if resp.status_code == 429:
+        retry_after = min(float(resp.json().get("retryAfter", 5)), 30.0)
+        await asyncio.sleep(retry_after)
+        resp = await client.get(OPENALEX_URL, params=params)
+    return resp
+
+
 @tool(
     "discover_papers",
     "Search all of scholarship (OpenAlex -- every field, not just "
@@ -70,9 +85,9 @@ def _strip_doi_prefix(doi: str) -> str:
 async def discover_papers(args: dict[str, Any]) -> dict[str, Any]:
     max_results = min(int(args.get("max_results", 10)), 25)
     async with httpx.AsyncClient(timeout=20.0) as client:
-        resp = await client.get(
-            OPENALEX_URL,
-            params={
+        resp = await _openalex_get(
+            client,
+            {
                 "search": args["query"],
                 "per_page": max_results,
                 # relevance_score/cited_by_count are real OpenAlex fields
@@ -146,9 +161,9 @@ async def _openalex_oa_batch(dois: list[str]) -> dict[str, dict]:
     if not dois:
         return {}
     async with httpx.AsyncClient(timeout=20.0) as client:
-        resp = await client.get(
-            OPENALEX_URL,
-            params={"filter": "doi:" + "|".join(dois), "select": "doi,open_access", "per_page": len(dois)},
+        resp = await _openalex_get(
+            client,
+            {"filter": "doi:" + "|".join(dois), "select": "doi,open_access", "per_page": len(dois)},
         )
         resp.raise_for_status()
         results = resp.json().get("results", [])
@@ -391,8 +406,8 @@ async def _expected_title(doi: str) -> str | None:
         return cached
     async with httpx.AsyncClient(timeout=15.0) as client:
         try:
-            resp = await client.get(
-                OPENALEX_URL, params={"filter": f"doi:{doi}", "select": "title", "per_page": 1}
+            resp = await _openalex_get(
+                client, {"filter": f"doi:{doi}", "select": "title", "per_page": 1}
             )
             resp.raise_for_status()
             results = resp.json().get("results", [])

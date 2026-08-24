@@ -31,6 +31,22 @@ from typing import Any
 
 import httpx
 from claude_agent_sdk import create_sdk_mcp_server, tool
+
+# Real bug found+fixed while building the E2E dock -> analyze-interactions
+# chain (this module -> plip_interactions.py, the platform's own core
+# workflow): `vina`'s and `openbabel`'s Python bindings are both
+# SWIG-generated, and whichever one is imported *first* in a process
+# claims the shared libpython SWIG type-registration runtime. Importing
+# `vina` first leaves `openbabel` (which PLIP depends on) with a
+# corrupted runtime -- not a Python exception, an unrecoverable
+# `terminate called after throwing an instance of 'swig::stop_iteration'`
+# that aborts the whole orchestrator process the next time PLIP runs,
+# however much later that is and regardless of which tool the agent
+# calls first. Importing `openbabel` before `vina` here (this module is
+# guaranteed to load before any docking call can happen) fixes the
+# registration order for the whole process, however the agent later
+# invokes plip_interactions.
+import openbabel  # noqa: F401 -- import order matters, see comment above; not otherwise used here
 from meeko import MoleculePreparation, PDBQTWriterLegacy, Polymer, ResidueChemTemplates
 from rdkit import Chem
 from rdkit.Chem import AllChem
