@@ -2,6 +2,9 @@
 .env
 .env.*
 !.env.example
+
+# Local working notes — not for the repo history
+notes/
 *.env.local
 
 # Bulk local data — never committed (data/README.md explains what goes here and how to get it)
