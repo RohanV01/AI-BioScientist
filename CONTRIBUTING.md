@@ -44,11 +44,23 @@ If your tool needs a paid/metered key, don't hardcode it. Follow the Hugging Fac
 `orchestrator/tests/` has two layers, both real/live (no mocking):
 
 - **Per-tool tests** (`tests/test_<tool>.py`, one per tool in `app/tools/`) — hit the real
-  external API or run the real local computation each tool wraps. Run the whole set from
-  `orchestrator/`:
+  external API or run the real local computation each tool wraps. For a quick check of one or two
+  files during development:
   ```
-  .venv/bin/python -m pytest
+  .venv/bin/python -m pytest tests/test_your_tool.py
   ```
+  For the **full suite**, use `--forked` (each test runs in its own subprocess) and `--reruns 2`
+  (auto-retries a failing test before reporting it, since most failures here are a live API being
+  momentarily rate-limited or slow, not a real regression — see the flakiness note below):
+  ```
+  .venv/bin/python -m pytest --forked --reruns 2 --reruns-delay 5
+  ```
+  `--forked` matters here specifically because several tools load real native/ML libraries
+  (RDKit, torch, OpenBabel, IQ-TREE — see `vina_docking`, `mhcflurry_binding`, `phylogenetics`,
+  `plip_interactions`, `soltrannet_solubility`) that can accumulate enough memory footprint across
+  a single long-running process to abort the whole run partway through on a memory-constrained
+  machine; forking isolates each test's footprint and contains a crash to that one test instead of
+  taking down everything after it.
 - **Cross-tool E2E tests** (`tests/e2e/test_combo*.py`, `@pytest.mark.e2e`) — chain several tools
   together the way the master agent actually would (e.g. target ID → structure → docking →
   interaction analysis), checking that one tool's output is actually usable as the next one's
@@ -72,12 +84,6 @@ set to in `.env`. Set `LLM_BACKEND=lm_studio` with `LM_STUDIO_BASE_URL`/`LM_STUD
 pointed at a running local LM Studio server to run those tests without spending API credits — see
 `.env.example` for the full var list.
 
-**A note on this machine's resource footprint**: several tools (`vina_docking`, `mhcflurry_binding`,
-`phylogenetics`, `plip_interactions`, `soltrannet_solubility`) load real native/ML libraries
-(RDKit, torch, OpenBabel, IQ-TREE). On a memory-constrained dev machine, running the *entire*
-233+-test suite in one process can occasionally abort partway through under cumulative memory
-pressure from all of those libraries being resident at once (not any single test's bug) — if that
-happens, running in smaller batches (e.g. per-cluster) works around it.
 
 ## The open backlog — pick a cluster, build in parallel
 

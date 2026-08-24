@@ -76,6 +76,19 @@ dev = [
     "pytest>=8.3,<9.0",
     "pytest-asyncio>=0.24,<1.0",
     "ruff>=0.7,<1.0",
+    # --forked (pytest-forked) runs each test in its own subprocess --
+    # isolates the native-library memory footprint per test (RDKit, torch,
+    # OpenBabel, IQ-TREE...) instead of it accumulating across a single
+    # long-running process, and contains a crash in one test to that one
+    # test instead of aborting the whole run. Use for a full-suite run;
+    # slower than a normal run (every test pays fresh import cost), so not
+    # the default for a quick single-file check during development.
+    "pytest-forked>=1.6,<2.0",
+    # --reruns N retries a failing test up to N times before reporting it
+    # failed -- this suite hits real public APIs (NCBI, EBI, RCSB,
+    # OpenAlex...) on every case, so a transient rate limit/timeout is
+    # expected noise, not a regression signal. See CONTRIBUTING.md.
+    "pytest-rerunfailures>=14,<17",
 ]
 
 [tool.pytest.ini_options]
