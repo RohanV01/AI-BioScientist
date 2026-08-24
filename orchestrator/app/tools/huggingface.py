@@ -30,9 +30,7 @@ HF_ROUTER_URL = "https://router.huggingface.co/hf-inference/models"
 ESM2_MODEL = "facebook/esm2_t12_35M_UR50D"
 
 
-def build_huggingface_mcp_server(api_key: str):
-    headers = {"Authorization": f"Bearer {api_key}"}
-
+def _build_predict_masked_residue_tool(headers: dict[str, str]):
     @tool(
         "predict_masked_residue",
         "Given a protein sequence with exactly one position replaced by "
@@ -79,4 +77,10 @@ def build_huggingface_mcp_server(api_key: str):
             lines.append(f"- {p.get('token_str', '?')}: probability {p.get('score', 0):.4f}")
         return {"content": [{"type": "text", "text": "\n".join(lines)}]}
 
+    return predict_masked_residue
+
+
+def build_huggingface_mcp_server(api_key: str):
+    headers = {"Authorization": f"Bearer {api_key}"}
+    predict_masked_residue = _build_predict_masked_residue_tool(headers)
     return create_sdk_mcp_server(name="huggingface", tools=[predict_masked_residue])

@@ -142,6 +142,64 @@ RECORD_REF_PATTERNS: list[tuple[str, re.Pattern]] = [
     # receptor PDB ID itself is separately caught by the existing "PDB {}"
     # pattern above, since this tool's output also says "PDB <id>".
     ("Vina docking against {}", re.compile(r"\[vina:([A-Za-z0-9]+)\]")),
+    # Primer3 primer-pair design -- real local computation
+    # (app/tools/primer3.py), same methodological-citation pattern.
+    ("Primer3 design {}", re.compile(r"\[primer3:(\w+)\]")),
+    # pyhmmer Pfam-domain search against InterPro's HMM (app/tools/
+    # pyhmmer_search.py) -- real local computation on a fetched profile,
+    # same methodological-citation pattern.
+    ("pyhmmer search {}", re.compile(r"\[pyhmmer:(PF\d+)\]")),
+    # msprime coalescent simulation -- real local computation
+    # (app/tools/msprime.py), same methodological-citation pattern.
+    ("msprime {}", re.compile(r"\[msprime:(\w+)\]")),
+    # PLIP non-covalent interaction profile -- real local computation
+    # (app/tools/plip_interactions.py), same methodological-citation
+    # pattern as vina. The receptor PDB ID itself is separately caught by
+    # the existing "PDB {}" pattern above.
+    ("PLIP interaction profile for {}", re.compile(r"\[plip:([A-Za-z0-9]+)\]")),
+    # MHCflurry binding-affinity prediction -- real local model inference
+    # (app/tools/mhcflurry_binding.py), same methodological-citation
+    # pattern as huggingface.py's ESM2 tag.
+    ("MHCflurry prediction for {}", re.compile(r"\[mhcflurry:([\w*:.\-]+)\]")),
+    # Gene-set enrichment tools query a live external service (Enrichr,
+    # g:Profiler) but there's no single external record ID for an
+    # enrichment result, only the library/organism queried -- same
+    # methodological-citation convention as the wrapped-library tools.
+    ("gseapy/Enrichr against {}", re.compile(r"\[gseapy:([\w_]+)\]")),
+    ("g:Profiler against {}", re.compile(r"\[gprofiler:(\w+)\]")),
+    # Pyteomics peptide mass/fragment calculation -- real local
+    # computation (app/tools/pyteomics_mass.py), same methodological-
+    # citation pattern as scikit-bio/cobra/vina.
+    ("Pyteomics {}", re.compile(r"\[pyteomics:(\w+)\]")),
+    # Phylogenetics tools -- real local computation (app/tools/
+    # phylogenetics.py: piqtree ML tree inference, dendropy tree
+    # analysis), same methodological-citation pattern as the others.
+    ("piqtree ML tree {}", re.compile(r"\[piqtree:(\w+)\]")),
+    ("dendropy tree analysis {}", re.compile(r"\[dendropy:(\w+)\]")),
+    # PhyKIT tree statistics (real CLI, subprocess-wrapped) -- same
+    # methodological-citation pattern, the analytical payoff step after
+    # piqtree/dendropy build and analyze a tree.
+    ("PhyKIT tree statistic {}", re.compile(r"\[phykit:(\w+)\]")),
+    # sourmash MinHash comparison -- real local computation
+    # (app/tools/sourmash_compare.py), same methodological-citation pattern.
+    ("sourmash {}", re.compile(r"\[sourmash:(\w+)\]")),
+    # SolTranNet solubility prediction -- real local model inference
+    # (app/tools/soltrannet_solubility.py), same methodological-citation
+    # pattern as huggingface/mhcflurry.
+    ("SolTranNet prediction {}", re.compile(r"\[soltrannet:([0-9a-f]{8})\]")),
+    # eQuilibrator reaction thermodynamics -- real local computation
+    # (app/tools/equilibrator_thermo.py) against a bundled reference
+    # dataset, same methodological-citation pattern.
+    ("eQuilibrator {}", re.compile(r"\[equilibrator:(\w+)\]")),
+    # virtual_screening.py reuses vina_docking.py's own [vina:pdb_id] tag
+    # (same underlying computation, just batched) -- no new pattern needed.
+    # straindesign OptKnock result -- real local MILP computation
+    # (app/tools/straindesign_intervention.py), same methodological-
+    # citation pattern as cobra_fba's [cobra:model_id].
+    ("straindesign on {}", re.compile(r"\[straindesign:(\w+)\]")),
+    # NRP Calculator non-repetitive part design -- real local computation
+    # (app/tools/nrpcalc_design.py), same methodological-citation pattern.
+    ("NRP Calculator {}", re.compile(r"\[nrpcalc:(\w+)\]")),
 ]
 
 

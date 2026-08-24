@@ -33,6 +33,11 @@ async def search_gene(args: dict[str, Any]) -> dict[str, Any]:
             f"{ENSEMBL_URL}/xrefs/symbol/{species}/{symbol}",
             params={"content-type": "application/json"},
         )
+        # Ensembl 404s (rather than returning []) when the symbol/species
+        # combination doesn't resolve to anything, e.g. a symbol containing
+        # a "/" -- treat that the same as an empty xref list.
+        if xref_resp.status_code == 404:
+            return {"content": [{"type": "text", "text": f"No Ensembl gene found for symbol {symbol!r} in {species}."}]}
         xref_resp.raise_for_status()
         gene_ids = [x["id"] for x in xref_resp.json() if x.get("type") == "gene"]
         if not gene_ids:

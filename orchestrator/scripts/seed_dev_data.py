@@ -62,9 +62,75 @@ KNOWN_TOOL_SOURCES = {
     # Wrapped local libraries (docs/10-build-plan.md Phase 5's bio.tools +
     # GitHub-repo triage) -- real in-process computation, no external API.
     "scikit_bio": ("microbiome", "free_public", "in-process:app.tools.scikit_bio", False, False),
+    # docs/12-biotools-triage-shortlist.md's Metagenomics / microbiology
+    # cluster (feature/metagenomics branch) -- real in-process MinHash
+    # comparison (sourmash), no external API for the computation. The
+    # rest of this cluster (eggNOG-mapper, CheckM2, MetaPhlAn) needs
+    # multi-GB reference databases or a heavy TensorFlow dependency chain,
+    # not pursued this pass -- see docs/10-build-plan.md for the finding.
+    "sourmash_compare": ("microbiome", "free_public", "in-process:app.tools.sourmash_compare", False, False),
     "biopandas_structure": ("structural_biology", "free_public", "in-process:app.tools.biopandas_structure", False, False),
     "cobra_fba": ("systems_biology", "free_public", "in-process:app.tools.cobra_fba", False, False),
     "vina_docking": ("drug_discovery", "free_public", "in-process:app.tools.vina_docking", False, False),
+    # docs/12-biotools-triage-shortlist.md's Sequence analysis fundamentals
+    # cluster (feature/sequence-analysis branch) -- both real in-process
+    # computation, no external API for the computation itself.
+    "primer3": ("sequence_analysis", "free_public", "in-process:app.tools.primer3", False, False),
+    "pyhmmer_search": ("sequence_analysis", "free_public", "in-process:app.tools.pyhmmer_search", False, False),
+    # docs/12-biotools-triage-shortlist.md's Population genetics cluster
+    # (feature/population-genetics branch) -- real in-process coalescent
+    # simulation (msprime + tskit), no external API for the computation.
+    "msprime": ("population_genetics", "free_public", "in-process:app.tools.msprime", False, False),
+    # docs/12-biotools-triage-shortlist.md's Structural biology / docking
+    # cluster (feature/structural-biology branch) -- real in-process PLIP
+    # analysis, no external API for the computation. Natural pair with
+    # vina_docking: Vina scores a pose, PLIP explains it.
+    "plip_interactions": ("structural_biology", "free_public", "in-process:app.tools.plip_interactions", False, False),
+    # docs/12-biotools-triage-shortlist.md's Immunoinformatics cluster
+    # (feature/immunoinformatics branch) -- real local model inference
+    # (pretrained pan-allele neural net, CPU-only), no external API.
+    "mhcflurry_binding": ("immunoinformatics", "free_public", "in-process:app.tools.mhcflurry_binding", False, False),
+    # docs/12-biotools-triage-shortlist.md's Transcriptomics cluster
+    # (feature/transcriptomics branch) -- both query real, live enrichment
+    # services (Enrichr, g:Profiler), independent backends kept as two
+    # tools deliberately so results can cross-check each other.
+    "gene_set_enrichment": ("transcriptomics", "free_public", "in-process:app.tools.gene_set_enrichment", False, False),
+    "gprofiler_enrichment": ("transcriptomics", "free_public", "in-process:app.tools.gprofiler_enrichment", False, False),
+    # docs/12-biotools-triage-shortlist.md's Proteomics cluster
+    # (feature/proteomics branch) -- real in-process mass calculation
+    # (Pyteomics), no external API. First proteomics coverage in the
+    # platform. mokapot (PSM rescoring) investigated and skipped -- it
+    # fundamentally needs real search-engine PSM output, which can't be
+    # honestly fabricated as a test input.
+    "pyteomics_mass": ("proteomics", "free_public", "in-process:app.tools.pyteomics_mass", False, False),
+    # docs/12-biotools-triage-shortlist.md's Phylogenetics cluster
+    # (feature/phylogenetics branch) -- this platform's first
+    # phylogenetics coverage. Real in-process ML tree inference
+    # (piqtree/IQ-TREE) + tree analysis (dendropy), no external API.
+    "phylogenetics": ("phylogenetics", "free_public", "in-process:app.tools.phylogenetics", False, False),
+    # docs/12-biotools-triage-shortlist.md's Cheminformatics cluster
+    # (feature/cheminformatics branch) -- real in-process computation,
+    # no external API for the prediction/calculation itself.
+    "soltrannet_solubility": ("drug_discovery", "free_public", "in-process:app.tools.soltrannet_solubility", False, False),
+    "equilibrator_thermo": ("drug_discovery", "free_public", "in-process:app.tools.equilibrator_thermo", False, False),
+    # Batch virtual screening -- completes the pipeline that was stuck at
+    # one-compound-at-a-time (ChEMBL -> Vina -> PLIP). Reuses
+    # vina_docking.py's own proven internals rather than the pyscreener
+    # package itself (which pulls in ray + openmm, a distributed-compute
+    # footprint disproportionate to chat-tool-scale batch docking).
+    "virtual_screening": ("drug_discovery", "free_public", "in-process:app.tools.virtual_screening", False, False),
+    # OptKnock strain design, built on cobrapy -- completes the
+    # metabolic-engineering pipeline (cobra_fba predicts growth,
+    # equilibrator_thermo checks feasibility, this proposes the
+    # intervention).
+    "straindesign_intervention": (
+        "systems_biology", "free_public", "in-process:app.tools.straindesign_intervention", False, False,
+    ),
+    # docs/12-biotools-triage-shortlist.md's Synthetic biology cluster
+    # (feature/synthetic-biology branch) -- real in-process combinatorial
+    # design (NRP Calculator), no external API. Platform's first
+    # synthetic-biology coverage.
+    "nrpcalc_design": ("synthetic_biology", "free_public", "in-process:app.tools.nrpcalc_design", False, False),
     # Placeholder only -- no app/tools/drugbank.py, no TOOL_BUILDERS entry.
     # User decision 2026-08-16: wire this once a real DrugBank credential
     # is available; until then this row just marks the intent in the

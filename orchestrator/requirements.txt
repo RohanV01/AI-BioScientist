@@ -24,6 +24,27 @@ rdkit>=2026.3,<2027.0
 vina>=1.2,<2.0
 meeko>=0.7,<1.0
 gemmi>=0.7,<1.0
+primer3-py>=2.0,<3.0
+pyhmmer>=0.12,<1.0
+msprime>=1.3,<2.0
+plip>=3.0,<4.0
+# mhcflurry and soltrannet depend on torch -- install CPU-only torch FIRST
+# to avoid pulling the full CUDA toolkit:
+#   pip install torch --index-url https://download.pytorch.org/whl/cpu
+# mhcflurry also needs a one-time model download after installing:
+#   mhcflurry-downloads fetch models_class1_pan
+mhcflurry>=2.0,<3.0
+gseapy>=1.3,<2.0
+gprofiler-official>=1.0,<2.0
+pyteomics>=4.7,<5.0
+piqtree>=0.7,<1.0
+dendropy>=5.0,<6.0
+phykit>=2.0,<3.0
+sourmash>=4.8,<5.0
+soltrannet>=1.0,<2.0
+equilibrator-api>=0.6,<1.0
+straindesign>=1.19,<2.0
+nrpcalc>=1.7,<2.0
 
 # dev/test
 pytest>=8.3,<9.0

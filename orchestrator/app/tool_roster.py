@@ -33,19 +33,34 @@ from app.tools.clinvar import build_clinvar_mcp_server
 from app.tools.cobra_fba import build_cobra_fba_mcp_server
 from app.tools.dailymed import build_dailymed_mcp_server
 from app.tools.ensembl import build_ensembl_mcp_server
+from app.tools.equilibrator_thermo import build_equilibrator_thermo_mcp_server
+from app.tools.gene_set_enrichment import build_gene_set_enrichment_mcp_server
 from app.tools.gnomad import build_gnomad_mcp_server
+from app.tools.gprofiler_enrichment import build_gprofiler_enrichment_mcp_server
 from app.tools.huggingface import build_huggingface_mcp_server
 from app.tools.kegg import build_kegg_mcp_server
 from app.tools.literature_discovery import build_literature_discovery_mcp_server
+from app.tools.mhcflurry_binding import build_mhcflurry_binding_mcp_server
+from app.tools.msprime import build_msprime_mcp_server
+from app.tools.nrpcalc_design import build_nrpcalc_design_mcp_server
 from app.tools.ontologies import build_ontologies_mcp_server
 from app.tools.open_targets import build_open_targets_mcp_server
 from app.tools.pdb import build_pdb_mcp_server
+from app.tools.phylogenetics import build_phylogenetics_mcp_server
+from app.tools.plip_interactions import build_plip_interactions_mcp_server
+from app.tools.primer3 import build_primer3_mcp_server
 from app.tools.pubmed import build_pubmed_mcp_server
+from app.tools.pyhmmer_search import build_pyhmmer_search_mcp_server
+from app.tools.pyteomics_mass import build_pyteomics_mass_mcp_server
 from app.tools.reactome import build_reactome_mcp_server
 from app.tools.scikit_bio import build_scikit_bio_mcp_server
+from app.tools.soltrannet_solubility import build_soltrannet_solubility_mcp_server
+from app.tools.sourmash_compare import build_sourmash_compare_mcp_server
+from app.tools.straindesign_intervention import build_straindesign_intervention_mcp_server
 from app.tools.string_db import build_string_mcp_server
 from app.tools.uniprot import build_uniprot_mcp_server
 from app.tools.vina_docking import build_vina_docking_mcp_server
+from app.tools.virtual_screening import build_virtual_screening_mcp_server
 from app.vault import decrypt
 
 # Tool source names whose builder takes an api_key positional arg instead
@@ -102,6 +117,61 @@ TOOL_BUILDERS = {
         ["mcp__cobra_fba__search_metabolic_models", "mcp__cobra_fba__run_flux_balance_analysis"],
     ),
     "vina_docking": ("vina_docking", build_vina_docking_mcp_server, ["mcp__vina_docking__dock_ligand"]),
+    "equilibrator_thermo": (
+        "equilibrator_thermo", build_equilibrator_thermo_mcp_server,
+        ["mcp__equilibrator_thermo__estimate_reaction_gibbs_energy"],
+    ),
+    "gene_set_enrichment": (
+        "gene_set_enrichment", build_gene_set_enrichment_mcp_server,
+        ["mcp__gene_set_enrichment__enrich_gene_set"],
+    ),
+    "gprofiler_enrichment": (
+        "gprofiler_enrichment", build_gprofiler_enrichment_mcp_server,
+        ["mcp__gprofiler_enrichment__profile_gene_list"],
+    ),
+    "mhcflurry_binding": (
+        "mhcflurry_binding", build_mhcflurry_binding_mcp_server,
+        ["mcp__mhcflurry_binding__predict_mhc_binding"],
+    ),
+    "msprime": ("msprime", build_msprime_mcp_server, ["mcp__msprime__simulate_coalescent_diversity"]),
+    "nrpcalc_design": (
+        "nrpcalc_design", build_nrpcalc_design_mcp_server,
+        ["mcp__nrpcalc_design__design_nonrepetitive_parts"],
+    ),
+    "phylogenetics": (
+        "phylogenetics", build_phylogenetics_mcp_server,
+        [
+            "mcp__phylogenetics__build_phylogenetic_tree",
+            "mcp__phylogenetics__analyze_tree",
+            "mcp__phylogenetics__compute_tree_statistics",
+        ],
+    ),
+    "plip_interactions": (
+        "plip_interactions", build_plip_interactions_mcp_server,
+        ["mcp__plip_interactions__profile_ligand_interactions"],
+    ),
+    "primer3": ("primer3", build_primer3_mcp_server, ["mcp__primer3__design_pcr_primers"]),
+    "pyhmmer_search": ("pyhmmer_search", build_pyhmmer_search_mcp_server, ["mcp__pyhmmer_search__search_pfam_domain"]),
+    "pyteomics_mass": (
+        "pyteomics_mass", build_pyteomics_mass_mcp_server,
+        ["mcp__pyteomics_mass__calculate_peptide_mass"],
+    ),
+    "soltrannet_solubility": (
+        "soltrannet_solubility", build_soltrannet_solubility_mcp_server,
+        ["mcp__soltrannet_solubility__predict_aqueous_solubility"],
+    ),
+    "sourmash_compare": (
+        "sourmash_compare", build_sourmash_compare_mcp_server,
+        ["mcp__sourmash_compare__compare_sequence_similarity"],
+    ),
+    "straindesign_intervention": (
+        "straindesign_intervention", build_straindesign_intervention_mcp_server,
+        ["mcp__straindesign_intervention__design_strain_intervention"],
+    ),
+    "virtual_screening": (
+        "virtual_screening", build_virtual_screening_mcp_server,
+        ["mcp__virtual_screening__batch_dock_ligands"],
+    ),
 }
 
 

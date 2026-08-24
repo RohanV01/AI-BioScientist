@@ -33,6 +33,42 @@ dependencies = [
     "vina>=1.2,<2.0",
     "meeko>=0.7,<1.0",
     "gemmi>=0.7,<1.0",  # meeko's chemtempgen submodule needs this at import time but doesn't declare it
+    "primer3-py>=2.0,<3.0",
+    "pyhmmer>=0.12,<1.0",
+    "msprime>=1.3,<2.0",
+    "plip>=3.0,<4.0",
+    # mhcflurry depends on torch, which by default pulls the full CUDA
+    # toolkit (~2GB+, and prone to flaky downloads) even though this
+    # tool only needs CPU inference. Install CPU-only torch FIRST:
+    #   uv pip install torch --index-url https://download.pytorch.org/whl/cpu
+    # then `uv pip install mhcflurry` reuses it instead of pulling CUDA.
+    # Also requires a one-time model download after installing:
+    #   .venv/bin/mhcflurry-downloads fetch models_class1_pan
+    "mhcflurry>=2.0,<3.0",
+    "gseapy>=1.3,<2.0",
+    "gprofiler-official>=1.0,<2.0",
+    "pyteomics>=4.7,<5.0",
+    "piqtree>=0.7,<1.0",
+    "dendropy>=5.0,<6.0",
+    # CLI-first, no clean library API (its service classes read a tree
+    # file and print(), not a function returning a value) -- wrapped via
+    # subprocess in app/tools/phylogenetics.py's compute_tree_statistics.
+    "phykit>=2.0,<3.0",
+    "sourmash>=4.8,<5.0",
+    # soltrannet also depends on torch -- install CPU-only torch first
+    # (see mhcflurry's note above) to avoid pulling the full CUDA
+    # toolkit; it reuses the CPU wheel if already installed for mhcflurry.
+    "soltrannet>=1.0,<2.0",
+    "equilibrator-api>=0.6,<1.0",
+    # virtual_screening.py deliberately does NOT depend on the pyscreener
+    # package -- it pulls in ray + openmm (~36 packages, distributed-compute
+    # scale) for what this platform needs as simple batched Vina calls.
+    # Reuses vina_docking.py's own internals instead; no new dependency.
+    "straindesign>=1.19,<2.0",  # pulls pyscipopt (MILP solver), clean install
+    # NOT added here: pegg (Synthetic biology candidate) -- hard-pins
+    # scikit-learn==1.1.1, which would downgrade this venv's scikit-learn
+    # (needed at >=1.9 by mhcflurry) and break an already-shipped tool.
+    "nrpcalc>=1.7,<2.0",
 ]
 
 [project.optional-dependencies]
@@ -40,6 +76,14 @@ dev = [
     "pytest>=8.3,<9.0",
     "pytest-asyncio>=0.24,<1.0",
     "ruff>=0.7,<1.0",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+pythonpath = ["."]
+testpaths = ["tests"]
+markers = [
+    "e2e: slow, multi-tool end-to-end chains (see orchestrator/tests/e2e/)",
 ]
 
 [build-system]
