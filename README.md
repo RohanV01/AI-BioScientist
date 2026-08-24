@@ -1,5 +1,11 @@
 # OpenBioLab
 
+<p align="center">
+  <img src="docs/media/capability-demo.gif" alt="OpenBioLab capability demo" width="720">
+  <br>
+  <sub><a href="docs/media/capability-demo.mp4">full-quality MP4</a> · built HTML to video, via <a href="https://github.com/heygen-com/hyperframes">HyperFrames</a>, real screenshots from a live run</sub>
+</p>
+
 **Open source. Open science. A real intelligence, wired to real scientific tools, running real experiments.**
 
 At its core, OpenBioLab is one idea: connect an LLM to actual scientific tools, the same databases, structure predictors, docking engines, and simulators a working researcher already uses, and let it run genuine autonomous experiments, not just answer questions about them. Every step is a real tool call against a real result, chained into the kind of multi-step investigation that used to mean a dozen open tabs and an afternoon: gene to structure to pathway to known drugs, in one message.
@@ -11,12 +17,6 @@ Ask it a real research question in a chat window, like "find compounds active ag
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)](orchestrator/pyproject.toml)
 [![Status: build in progress](https://img.shields.io/badge/status-build%20in%20progress-orange)](CHANGELOG.md)
-
-<p align="center">
-  <img src="docs/media/capability-demo.gif" alt="OpenBioLab capability demo" width="720">
-  <br>
-  <sub><a href="docs/media/capability-demo.mp4">full-quality MP4</a> · built HTML to video, via <a href="https://github.com/heygen-com/hyperframes">HyperFrames</a>, real screenshots from a live run</sub>
-</p>
 
 ## Research workflows it can run autonomously
 
