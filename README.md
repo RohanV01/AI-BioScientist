@@ -117,23 +117,35 @@ Go to `http://localhost:8065`, log in with the admin credentials step 4 printed,
 
 **BYO credentials:** metered tools (like Hugging Face) need your own API key. Add one with `orchestrator/scripts/add_credential.py`; it's encrypted at rest (`orchestrator/app/vault.py`) and never hardcoded to any one account.
 
-**Optional: full-text paper downloads.** `download_paper` (`orchestrator/app/tools/literature_discovery.py`) uses the [Camofox stealth browser](https://github.com/jo-inc/camofox-browser) to actually fetch PDFs -- optional and independently configured in `.env`; without it set, discovery/citation still works, downloading full-text PDFs just doesn't. It drives the real Sci-Hub UI (paste the DOI, click open, click the page's own save button) and captures the resulting browser download, so it needs no API keys or scraping workarounds beyond a running Camofox server:
-1. `git clone https://github.com/jo-inc/camofox-browser external/camofox-browser` (gitignored -- a local dependency clone, not vendored into this repo's history).
-2. `cd external/camofox-browser && npm install && npm start` -- first run downloads the Camoufox browser + GeoIP database (~300MB, a few minutes). Runs on `http://localhost:9377` by default.
-3. Set `CAMOFOX_API_URL=http://localhost:9377` (and `CAMOFOX_ACCESS_KEY` only if that deployment requires auth) plus `SCIHUB_MIRROR_URLS` (comma-separated Sci-Hub mirrors; list every one you know is currently working, since mirrors go down/get blocked independently) in `.env`.
+**Full-text paper downloads work out of the box.** `download_paper` (`orchestrator/app/tools/literature_discovery.py`) tries a direct open-access download first (no browser involved) and falls back to the [Camofox stealth browser](https://github.com/jo-inc/camofox-browser) for genuinely paywalled DOIs, driving the real Sci-Hub UI (paste the DOI, click open, click the page's own save button) and capturing the resulting browser download. `docker compose up -d` already starts Camofox as its own service (`ghcr.io/jo-inc/camofox-browser`, no separate clone/install step needed) -- `.env.example`'s defaults point the orchestrator at it correctly. The only thing worth customizing is `SCIHUB_MIRROR_URLS` in `.env` (comma-separated Sci-Hub mirrors; list every one you know is currently working, since mirrors go down/get blocked independently) -- `.env.example` ships a reasonable starting list already.
 
 Every download is checked against the paper's own expected title/DOI (`_verify_pdf_content` in `literature_discovery.py`) before anything downstream trusts it -- a real browser download can succeed end-to-end while a Sci-Hub mirror quietly serves the wrong paper's PDF for a given DOI (seen live during testing). A flagged mismatch is reported in `download_paper`'s own result text, and `read_paper` refuses to extract "findings" from a file flagged that way.
 
 **Research experiments.** Every research investigation gets its own folder (`data/Experiments/<id>/`) and DB row -- control it with the `/experiment` Slash Command (`start ["name"]` / `end` / `status` / `conclude`), or just message `@orchestrator` and one opens automatically. Register the command once per Mattermost instance:
-```
+```bash
+# 1. Get a session token by logging in as the admin account step 4 created
+#    (same login-endpoint trick bootstrap_mattermost.py itself uses --
+#    the token comes back in the response's Token header, not the body).
+ADMIN_TOKEN=$(curl -si -X POST http://localhost:8065/api/v4/users/login \
+  -d '{"login_id": "admin", "password": "<the admin password step 4 printed>"}' \
+  | grep -i '^Token:' | tr -d '\r' | cut -d' ' -f2)
+
+# 2. Get your team id (also printed by step 4, if you still have that output).
+TEAM_ID=$(curl -s http://localhost:8065/api/v4/teams/name/openbiolab \
+  -H "Authorization: Bearer $ADMIN_TOKEN" | python3 -c "import json,sys; print(json.load(sys.stdin)['id'])")
+
+# 3. Register the command. url is the orchestrator's container-network
+#    address (Mattermost calls it via Docker's internal DNS, the same
+#    "orchestrator" hostname bootstrap_mattermost.py's own webhook uses) --
+#    not localhost, even though you reach Mattermost itself at localhost.
 curl -X POST http://localhost:8065/api/v4/commands \
-  -H "Authorization: Bearer <your admin session token>" -H 'Content-Type: application/json' \
-  -d '{"team_id": "<your team id>", "trigger": "experiment", "method": "P",
-       "url": "<your orchestrator URL>/webhooks/mattermost/experiment",
-       "auto_complete": true, "display_name": "Experiment",
-       "description": "Controls the current research experiment for this channel"}'
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' \
+  -d "{\"team_id\": \"$TEAM_ID\", \"trigger\": \"experiment\", \"method\": \"P\",
+       \"url\": \"http://orchestrator:8000/webhooks/mattermost/experiment\",
+       \"auto_complete\": true, \"display_name\": \"Experiment\",
+       \"description\": \"Controls the current research experiment for this channel\"}"
 ```
-Copy the response's own `token` field into `.env` as `MATTERMOST_EXPERIMENT_COMMAND_SECRET` (a separate value from `MATTERMOST_WEBHOOK_SECRET` -- Mattermost auto-generates one token per integration, no way to set a custom one).
+Copy the response's own `token` field into `.env` as `MATTERMOST_EXPERIMENT_COMMAND_SECRET` (a separate value from `MATTERMOST_WEBHOOK_SECRET` -- Mattermost auto-generates one token per integration, no way to set a custom one), then `docker compose up -d --force-recreate orchestrator` to pick it up.
 
 `read_paper`'s structured extraction and `/experiment conclude`'s synthesis run through a modular one-shot LLM backend (`orchestrator/app/llm_backend.py`), not tied to any single provider: it tries a real Anthropic API key (`ANTHROPIC_API_KEY`), then a local [LM Studio](https://lmstudio.ai) server (`LM_STUDIO_BASE_URL`), then falls back to the `claude` CLI's own subscription login from step 5 above -- so both features work with zero extra setup if you already logged in there. Set `LLM_BACKEND` in `.env` to pin one explicitly instead of the default `auto` fallback chain.
 
