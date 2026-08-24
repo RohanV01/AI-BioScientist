@@ -16,6 +16,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Form, HTTPException
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.claude_runner import run_agent
@@ -61,7 +62,29 @@ async def _resolve_or_create_experiment(db: AsyncSession, org_id, agent_id, chan
 
     experiment = Experiment(org_id=org_id, agent_id=agent_id, channel_id=channel_id, name=None, folder_path="")
     db.add(experiment)
-    await db.flush()  # assigns experiment.id before the folder path can use it
+    try:
+        await db.flush()  # assigns experiment.id before the folder path can use it
+    except IntegrityError:
+        # Two messages landing in the same brand-new channel close enough
+        # together can both see "no active experiment" above and both
+        # reach this insert -- a real TOCTOU race, confirmed live under
+        # concurrency testing (readiness item #6: 10 concurrent messages
+        # to one fresh channel produced 3 duplicate experiments before the
+        # migration a1b2c3d4e5f6's partial unique index existed). The
+        # loser's insert now fails the unique constraint instead of
+        # silently creating a duplicate; re-read the winner's row rather
+        # than erroring the whole request.
+        await db.rollback()
+        result = await db.execute(
+            select(Experiment)
+            .where(Experiment.channel_id == channel_id, Experiment.status == "active")
+            .order_by(Experiment.created_at.desc())
+            .limit(1)
+        )
+        experiment = result.scalars().first()
+        if experiment is not None:
+            return experiment
+        raise  # genuinely no winner found -- re-raise the original failure
     folder = Path(settings.experiments_dir) / str(experiment.id)
     folder.mkdir(parents=True, exist_ok=True)
     experiment.folder_path = str(folder)
