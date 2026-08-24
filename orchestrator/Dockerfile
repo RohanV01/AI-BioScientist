@@ -74,8 +74,17 @@ RUN mhcflurry-downloads fetch models_class1_pan
 
 USER root
 COPY --chown=orchestrator:orchestrator . .
+RUN chmod +x docker-entrypoint.sh
 USER orchestrator
 
 EXPOSE 8000
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Real gap found by the from-scratch clean-clone verification pass: a
+# genuinely fresh Postgres volume has no schema at all -- nothing ever ran
+# `alembic upgrade head` automatically, and it wasn't documented as a
+# manual step either, so scripts/seed_dev_data.py crashed on its very
+# first query against a real fresh database. docker-entrypoint.sh runs the
+# migration (a no-op once already at head, safe on every restart) before
+# starting uvicorn, so this can't be forgotten regardless of what any doc
+# says.
+ENTRYPOINT ["./docker-entrypoint.sh"]
