@@ -6,11 +6,9 @@
 
 <p align="center">
   <img src="docs/media/capability-demo.gif" alt="OpenBioLab capability demo" width="720">
-  <br>
-  <sub><a href="docs/media/capability-demo.mp4">full-quality MP4</a> · built HTML to video, via <a href="https://github.com/heygen-com/hyperframes">HyperFrames</a>, real screenshots from a live run</sub>
 </p>
 
-OpenBioLab connects an LLM to real scientific tools, the databases, structure predictors, docking engines, and simulators a working researcher already uses, and lets it run genuine autonomous experiments instead of just answering questions about them. It's fully open source (MIT) and self-hostable by design: frontier AI-agent tooling for science has mostly shown up behind a paywall or a walled garden, and democratizing real scientific discovery means a grad student, an independent lab, or a researcher anywhere in the world has to be able to stand this up themselves. Every response is `grounded` in a real tool citation, labeled `synthesis`, or explicitly `ungroundable`: there's no fourth option where the model states something it just "recognizes."
+OpenBioLab connects an LLM to real scientific tools, the databases, structure predictors, docking engines, and simulators a working researcher already uses, and lets it run genuine autonomous experiments instead of just answering questions about them, through a chat interface on [Mattermost](https://mattermost.com) (self-hosted, open source). It's fully open source (MIT) and self-hostable by design: frontier AI-agent tooling for science has mostly shown up behind a paywall or a walled garden, and democratizing real scientific discovery means a grad student, an independent lab, or a researcher anywhere in the world has to be able to stand this up themselves. Every response is `grounded` in a real tool citation, labeled `synthesis`, or explicitly `ungroundable`: there's no fourth option where the model states something it just "recognizes."
 
 ## How it works
 
