@@ -39,6 +39,46 @@ If your tool needs a paid/metered key, don't hardcode it. Follow the Hugging Fac
 - Add your tool's name to `CREDENTIALED_BUILDERS` in `app/tool_roster.py` — `build_tool_roster()` will look up that org's `Credential` row, decrypt it (`app/vault.py`, Fernet-encrypted at rest), and pass it to your builder. No credential configured yet means the tool stays bound-but-inert (no crash, just silently unavailable) — same mechanism that makes the DrugBank placeholder harmless.
 - `scripts/add_credential.py` is the CLI any org uses to add or rotate their own key for your tool. Nothing here is hardcoded to one person's account — that's the point.
 
+## Running tests
+
+`orchestrator/tests/` has two layers, both real/live (no mocking):
+
+- **Per-tool tests** (`tests/test_<tool>.py`, one per tool in `app/tools/`) — hit the real
+  external API or run the real local computation each tool wraps. Run the whole set from
+  `orchestrator/`:
+  ```
+  .venv/bin/python -m pytest
+  ```
+- **Cross-tool E2E tests** (`tests/e2e/test_combo*.py`, `@pytest.mark.e2e`) — chain several tools
+  together the way the master agent actually would (e.g. target ID → structure → docking →
+  interaction analysis), checking that one tool's output is actually usable as the next one's
+  input, not just that each tool works alone. Slower (real multi-step chains) — run them
+  separately:
+  ```
+  .venv/bin/python -m pytest -m e2e
+  ```
+  Every E2E run saves its raw tool outputs and a pass/fail verdict per hand-off check to
+  `tests/e2e/results/<combo-name>/<timestamp>/` (gitignored) — check there before re-running one
+  to see exactly what a prior run produced.
+
+**Expect occasional failures unrelated to your change** — these tests hit real public APIs
+(NCBI, EBI, RCSB, OpenAlex, KEGG, STRING, etc.), so a rate limit or a slow response shows up as a
+test failure that has nothing to do with the code. Re-run the specific failing test before
+assuming it's a regression.
+
+**Local model, not `ANTHROPIC_API_KEY`**: any test that exercises `app/llm_backend.py` (used by
+`read_paper` extraction and `/experiment conclude` synthesis) will use whatever `LLM_BACKEND` is
+set to in `.env`. Set `LLM_BACKEND=lm_studio` with `LM_STUDIO_BASE_URL`/`LM_STUDIO_CHAT_MODEL`
+pointed at a running local LM Studio server to run those tests without spending API credits — see
+`.env.example` for the full var list.
+
+**A note on this machine's resource footprint**: several tools (`vina_docking`, `mhcflurry_binding`,
+`phylogenetics`, `plip_interactions`, `soltrannet_solubility`) load real native/ML libraries
+(RDKit, torch, OpenBabel, IQ-TREE). On a memory-constrained dev machine, running the *entire*
+233+-test suite in one process can occasionally abort partway through under cumulative memory
+pressure from all of those libraries being resident at once (not any single test's bug) — if that
+happens, running in smaller batches (e.g. per-cluster) works around it.
+
 ## The open backlog — pick a cluster, build in parallel
 
 `docs/12-biotools-triage-shortlist.md` has 100+ already-triaged candidate tools, organized into 11 capability clusters (structural biology, sequence analysis, phylogenetics, transcriptomics, population genetics, metagenomics, cheminformatics, immunoinformatics, proteomics, synthetic biology, other) plus one cross-cutting infrastructure gap. Each cluster has its own branch, so work on different clusters doesn't collide:
