@@ -1,10 +1,12 @@
 # OpenBioLab
 
-**Open Source for Autonomous Discovery.**
+**Open source. Open science. A real intelligence, wired to real scientific tools, running real experiments.**
 
-OpenBioLab is an open source agentic orchestrator connected to every research tool we can wire in, so you can solve real problems just by chatting on a Slack-style messaging platform (we use Mattermost, a self-hosted, open alternative). Ask a real research question in a chat window, like "find compounds active against EGFR" or "dock this ligand against 6LU7," and get back an answer with a live tool call behind every claim, not a hallucinated guess.
+At its core, OpenBioLab is one idea: connect an LLM to actual scientific tools — the same databases, structure predictors, docking engines, and simulators a working researcher already uses — and let it run genuine autonomous experiments, not just answer questions about them. Every step is a real tool call against a real result, chained into the kind of multi-step investigation that used to mean a dozen open tabs and an afternoon: gene → structure → pathway → known drugs, in one message.
 
-We believe biosciences can be accelerated with AI. This is our attempt at Applied AI in service of that.
+It's fully open source (MIT) on purpose. Frontier AI-agent tooling for science has mostly shown up behind a paywall, inside one company's walled garden, or as a demo you can't actually run. OpenBioLab is the opposite bet: self-hostable by anyone, extensible by anyone, and free of any single vendor's lock-in — because democratizing serious scientific discovery means the tool that does it has to be something a grad student, an independent lab, or a researcher anywhere in the world can actually stand up themselves, not just something they read about. Open science needs open infrastructure; this is an attempt at that infrastructure.
+
+Ask it a real research question in a chat window — "find compounds active against EGFR" or "dock this ligand against 6LU7" — and get back an answer with a live tool call behind every claim, not a hallucinated guess. Every response is `grounded` (backed by at least one real tool citation), `synthesis` (reasoning over grounded results, labeled as such), or `ungroundable` (the tools couldn't answer it, and it says so) — there's no fourth option where the model just states something it "recognizes."
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)](orchestrator/pyproject.toml)
@@ -32,11 +34,11 @@ These map to tool sources that are wired and live-verified right now, not a road
 | "What pathways is this gene involved in?" |
 | "Find literature on this topic, including Sci-Hub-available full text where legal" |
 
-Every answer comes back with the record ID or computation tag inline (`PMID 12345678`, `CHEMBL941`, `[vina:6LU7]`) so you can verify it against the tool's own output. The agent is instructed to never state a detail a tool didn't actually return, even one it "recognizes."
+Every answer comes back with the record ID or computation tag inline (`PMID 12345678`, `CHEMBL941`, `[vina:6LU7]`) so you can verify it against the tool's own output.
 
 ## Research workflows this replaces today
 
-Zoomed out past the individual tool table, these are the actual multi-step research tasks the current tool set already covers end-to-end in one chat message, without opening a dozen tabs by hand:
+This is what "connecting an intelligence to real scientific tools" actually looks like end to end: not one lookup, but a chained, multi-step investigation the agent runs autonomously in a single message, the same way a researcher would move between tools by hand — except every hop is a real, verifiable tool call, not the model filling in the gaps from memory:
 
 - **Target & mechanism research**: go from a gene or protein to its structure, pathways, interaction partners, and known drugs in one pass (Ensembl/UniProt → PDB/AlphaFold → KEGG/Reactome/STRING → Open Targets/ChEMBL).
 - **Drug discovery triage**: find active compounds, understand mechanism of action, and run a real molecular docking pose against a target structure, cross-referenced against trial status and label data for anything already approved.
@@ -45,6 +47,15 @@ Zoomed out past the individual tool table, these are the actual multi-step resea
 - **Systems-level modeling**: real flux balance analysis on a genome-scale metabolic model (an actual constraint-based optimization, not a pathway diagram).
 - **Microbiome composition analysis**: real diversity statistics computed locally on your own abundance data, no upload to a third-party service.
 - **Regulatory/commercial due diligence**: trial status and drug label lookups in one place, aimed at the commercial/pharma research persona specifically, not just academic literature search.
+
+## Open by design, not just by license
+
+The MIT license is the easy part. What actually makes this open science infrastructure, not just open-source code:
+
+- **Runs on your own machine, under your own control.** Nothing about a research question you ask it has to leave your infrastructure — self-hosted Mattermost, your own Postgres, your own Docker stack. No API waits on a vendor's roadmap or a subscription tier to get access to a real capability.
+- **The tool roster is a pattern anyone can extend**, not a fixed menu: a new scientific tool is a builder file plus a registration line (`CONTRIBUTING.md`'s documented recipe), the same shape every one of the 37 tools wired in today already follows. Every one of them is real, live-verified code, not a wrapper around a promise.
+- **Works with a Claude subscription, not just a metered API key** — the whole point of connecting an LLM to real tools shouldn't come with a second paywall on top of the first.
+- **Every claim is checkable against the exact tool call that produced it** — an open agent that can't show its work isn't meaningfully more trustworthy than a closed one. Grounding isn't a feature flag here; it's enforced in code (`app/grounding.py`) on every single response.
 
 ## Getting started
 
@@ -148,6 +159,10 @@ curl -X POST http://localhost:8065/api/v4/commands \
 Copy the response's own `token` field into `.env` as `MATTERMOST_EXPERIMENT_COMMAND_SECRET` (a separate value from `MATTERMOST_WEBHOOK_SECRET` -- Mattermost auto-generates one token per integration, no way to set a custom one), then `docker compose up -d --force-recreate orchestrator` to pick it up.
 
 `read_paper`'s structured extraction and `/experiment conclude`'s synthesis run through a modular one-shot LLM backend (`orchestrator/app/llm_backend.py`), not tied to any single provider: it tries a real Anthropic API key (`ANTHROPIC_API_KEY`), then a local [LM Studio](https://lmstudio.ai) server (`LM_STUDIO_BASE_URL`), then falls back to the `claude` CLI's own subscription login from step 5 above -- so both features work with zero extra setup if you already logged in there. Set `LLM_BACKEND` in `.env` to pin one explicitly instead of the default `auto` fallback chain.
+
+## Contributing
+
+New tool sources, new workflow combos, bug reports — all welcome. `CONTRIBUTING.md` documents the exact recipe for wiring in a new scientific tool; if this project's mission (open, self-hostable, verifiable AI-driven science) resonates, the fastest way to help is adding one.
 
 ## Change history
 
