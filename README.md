@@ -48,7 +48,7 @@ Zoomed out past the individual tool table, these are the actual multi-step resea
 
 ## Getting started
 
-**Prerequisites:** Docker + Docker Compose v2. That's it — this works the same way on **Mac, Linux, and Windows** (Docker Desktop on Mac/Windows, Docker Engine on Linux); every service, including the `claude` CLI itself, runs inside containers, so nothing OS-specific is required on the host. (The bootstrap script in step 3 needs *some* Python 3.9+ on the host too, but nothing else does.)
+**Prerequisites:** Docker + Docker Compose v2. That's it — this works the same way on **Mac, Linux, and Windows** (Docker Desktop on Mac/Windows, Docker Engine on Linux); every service, including the `claude` CLI itself, runs inside containers, so nothing OS-specific is required on the host. (The bootstrap script in step 4 needs *some* Python 3.9+ on the host too, but nothing else does.)
 
 **1. Clone and configure**
 
