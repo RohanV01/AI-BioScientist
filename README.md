@@ -1,22 +1,43 @@
 # OpenBioLab
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)](orchestrator/pyproject.toml)
+[![Status: build in progress](https://img.shields.io/badge/status-build%20in%20progress-orange)](CHANGELOG.md)
+
 <p align="center">
   <img src="docs/media/capability-demo.gif" alt="OpenBioLab capability demo" width="720">
   <br>
   <sub><a href="docs/media/capability-demo.mp4">full-quality MP4</a> · built HTML to video, via <a href="https://github.com/heygen-com/hyperframes">HyperFrames</a>, real screenshots from a live run</sub>
 </p>
 
-**Open source. Open science. A real intelligence, wired to real scientific tools, running real experiments.**
+OpenBioLab connects an LLM to real scientific tools, the databases, structure predictors, docking engines, and simulators a working researcher already uses, and lets it run genuine autonomous experiments instead of just answering questions about them. It's fully open source (MIT) and self-hostable by design: frontier AI-agent tooling for science has mostly shown up behind a paywall or a walled garden, and democratizing real scientific discovery means a grad student, an independent lab, or a researcher anywhere in the world has to be able to stand this up themselves. Every response is `grounded` in a real tool citation, labeled `synthesis`, or explicitly `ungroundable`: there's no fourth option where the model states something it just "recognizes."
 
-At its core, OpenBioLab is one idea: connect an LLM to actual scientific tools, the same databases, structure predictors, docking engines, and simulators a working researcher already uses, and let it run genuine autonomous experiments, not just answer questions about them. Every step is a real tool call against a real result, chained into the kind of multi-step investigation that used to mean a dozen open tabs and an afternoon: gene to structure to pathway to known drugs, in one message.
+## How it works
 
-It's fully open source (MIT) on purpose. Frontier AI-agent tooling for science has mostly shown up behind a paywall, inside one company's walled garden, or as a demo you can't actually run. OpenBioLab is the opposite bet: self-hostable by anyone, extensible by anyone, and free of any single vendor's lock-in, because democratizing serious scientific discovery means the tool that does it has to be something a grad student, an independent lab, or a researcher anywhere in the world can actually stand up themselves, not just something they read about. Open science needs open infrastructure; this is an attempt at that infrastructure.
+```mermaid
+flowchart TB
+    U["Researcher<br/>(Mattermost chat)"] -->|"@orchestrator &lt;question&gt;"| W["Outgoing Webhook"]
+    W --> O["FastAPI Orchestrator"]
+    O -->|"create Task + Experiment"| DB[("Postgres")]
+    O -->|"receipt: 'Looking into this, @user -- one moment...'"| U
 
-Ask it a real research question in a chat window, like "find compounds active against EGFR" or "dock this ligand against 6LU7", and get back an answer with a live tool call behind every claim, not a hallucinated guess. Every response is `grounded` (backed by at least one real tool citation), `synthesis` (reasoning over grounded results, labeled as such), or `ungroundable` (the tools couldn't answer it, and it says so): there's no fourth option where the model just states something it "recognizes."
+    O -.->|"background run"| A["Master Agent<br/>(claude CLI via claude_agent_sdk)"]
+    A -->|"1. PLAN"| PL["Plan posted to channel"]
+    A -->|"2. EXECUTE -- real tool calls"| T["Tool Roster<br/>37 in-process MCP servers"]
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)](orchestrator/pyproject.toml)
-[![Status: build in progress](https://img.shields.io/badge/status-build%20in%20progress-orange)](CHANGELOG.md)
+    T --> EXT["External APIs<br/>PubMed · ChEMBL · UniProt · PDB · KEGG · ..."]
+    T --> LOC["Local computation<br/>AutoDock Vina · COBRApy FBA · MAFFT · ..."]
+    EXT --> A
+    LOC --> A
+
+    A -->|"3. SYNTHESIZE"| G["Grounding Enforcement<br/>grounded / synthesis / ungroundable"]
+    G --> DB
+    G -->|"response + inline citations"| U
+    G -->|"audit summary"| GL["#grounding-log channel"]
+    G -->|"full report link"| R["Report endpoint"]
+```
+
+Every factual claim in step 3 must trace back to an actual tool result from step 2, never restated from the model's own memory, and `app/grounding.py` enforces this structurally: a response can't be persisted as `grounded` without at least one real citation attached.
 
 ## Research workflows it can run autonomously
 
