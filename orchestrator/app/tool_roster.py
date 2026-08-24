@@ -96,7 +96,10 @@ TOOL_BUILDERS = {
         ],
     ),
     "ensembl": ("ensembl", build_ensembl_mcp_server, ["mcp__ensembl__search_gene"]),
-    "uniprot": ("uniprot", build_uniprot_mcp_server, ["mcp__uniprot__search_protein"]),
+    "uniprot": (
+        "uniprot", build_uniprot_mcp_server,
+        ["mcp__uniprot__search_protein", "mcp__uniprot__get_sequence"],
+    ),
     "clinvar": ("clinvar", build_clinvar_mcp_server, ["mcp__clinvar__search_variants"]),
     "gnomad": ("gnomad", build_gnomad_mcp_server, ["mcp__gnomad__get_variant_frequency"]),
     "ontologies": ("ontologies", build_ontologies_mcp_server, ["mcp__ontologies__search_ontology_term"]),

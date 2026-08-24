@@ -1,6 +1,6 @@
 """Real tests for app/tools/uniprot.py -- no mocking, hits the real
 UniProt REST API."""
-from app.tools.uniprot import search_protein
+from app.tools.uniprot import get_sequence, search_protein
 
 
 async def text_of(result):
@@ -39,3 +39,27 @@ async def test_organism_filter_narrows_results():
     result = await search_protein.handler({"query": "hemoglobin", "organism": "Homo sapiens", "max_results": 2})
     text = await text_of(result)
     assert "UniProt" in text
+
+
+async def test_get_sequence_happy_path_returns_real_egfr_sequence():
+    # P00533 is human EGFR -- a stable, well-known accession.
+    result = await get_sequence.handler({"accession": "P00533"})
+    text = await text_of(result)
+    assert "P00533" in text
+    assert "aa:" in text
+    # Real EGFR sequence starts with this signal-peptide prefix.
+    assert "MRPSGTAGAALLALLAALCPASRA" in text
+
+
+async def test_get_sequence_malformed_accession_reports_error_not_crash():
+    result = await get_sequence.handler({"accession": "not-a-real-accession-format!!"})
+    text = await text_of(result)
+    assert "not a valid UniProt accession format" in text
+
+
+async def test_get_sequence_wellformed_but_nonexistent_accession_reports_error():
+    # Q00000 is well-formed (passes UniProt's own format check) but
+    # unassigned, so UniProt itself returns 404, not 400.
+    result = await get_sequence.handler({"accession": "Q00000"})
+    text = await text_of(result)
+    assert "No UniProt entry found" in text
