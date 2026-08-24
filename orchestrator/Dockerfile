@@ -27,8 +27,6 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
-
 # permission_mode="bypassPermissions" in claude_runner.py maps to the CLI's
 # --dangerously-skip-permissions, which the CLI refuses to run as root/UID 0
 # outside a declared sandbox. Run as a real non-root user instead of setting
@@ -63,8 +61,20 @@ USER orchestrator
 # build time (e.g. an offline/air-gapped build), don't fail the whole
 # image build over one optional tool -- it'll just fall back to
 # downloading on first real use instead, same as before this fix.
+#
+# Deliberately BEFORE `COPY . .` below, not after: these two RUN steps
+# only need the packages installed above, not the app source, so putting
+# them ahead of the source copy means an ordinary code change (which
+# invalidates every layer from COPY . . onward) never busts this ~1.5GB
+# download's cache. Found live: an incremental rebuild after a routine
+# app-code change re-downloaded both from scratch, ~15+ minutes for
+# nothing, purely because this used to sit after `COPY . .`.
 RUN python3 -c "from equilibrator_api import ComponentContribution; ComponentContribution()" || true
 RUN mhcflurry-downloads fetch models_class1_pan
+
+USER root
+COPY --chown=orchestrator:orchestrator . .
+USER orchestrator
 
 EXPOSE 8000
 
