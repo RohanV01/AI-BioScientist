@@ -87,19 +87,19 @@ Builds the orchestrator image (Node.js + `claude` CLI baked in — first run tak
   ```bash
   docker compose exec -it orchestrator claude auth login
   ```
-  It prints a URL + code — open it in a browser on any device (doesn't have to be this machine) and approve. Credentials land in the `claude_config` Docker volume and persist across restarts; you won't be asked again unless you `docker compose down -v`.
+  It prints a URL + code — open it in a browser on any device (doesn't have to be this machine) and approve. Credentials land in the `orchestrator_home` Docker volume and persist across restarts; you won't be asked again unless you `docker compose down -v`.
 
 **4. Bootstrap Mattermost** — creates the admin account, team, bot, and the webhook that wires the agent in (pure Python, same command on every OS, no bash/curl/jq needed):
 
 ```bash
 python scripts/bootstrap_mattermost.py
 ```
-Prints the generated admin password once (also saved to `.env`). Its final line of output is a ready-to-run `seed_dev_data.py` command with the real `--team-id`/`--bot-user-id`/`--grounding-log-channel-id` values filled in — copy that exact line for the next step.
+Prints the generated admin password once (also saved to `.env`). Under "Next steps," it prints a ready-to-run `seed_dev_data.py` command with the real `--team-id`/`--bot-user-id`/`--bot-token`/`--grounding-log-channel-id` values filled in — copy that exact line for the next step. **Don't skip `--bot-token`**: without it the seeded agent has no way to post replies in Mattermost at all, and the failure is silent from the chat side (only visible in `docker compose logs orchestrator` as "Agent ... has no bot token configured").
 
-**5. Seed the agent's tool roster** — run inside the container (there's no host Python venv on a fresh clone):
+**5. Seed the agent's tool roster** — run inside the container (there's no host Python venv on a fresh clone), using the exact command step 4 printed:
 
 ```bash
-docker compose exec orchestrator python scripts/seed_dev_data.py --team-id <...> --bot-user-id <...> --grounding-log-channel-id <...>
+docker compose exec orchestrator python scripts/seed_dev_data.py --team-id <...> --bot-user-id <...> --bot-token <...> --grounding-log-channel-id <...>
 ```
 
 **6. Restart the orchestrator** to pick up the webhook secret bootstrap just wrote to `.env`:

@@ -1,8 +1,19 @@
 """Seeds one Org + the one master Agent for local dev, matching whatever
 scripts/bootstrap_mattermost.py created (docs/10-build-plan.md). Also wires
-TOOL_BINDING rows for every tool source named --tools (default: pubmed),
-creating the ToolSource if it doesn't exist yet. Idempotent -- safe to
-re-run (updates the bot token/name/tool bindings if they changed).
+TOOL_BINDING rows for every tool source named --tools (default: every real
+tool source this script knows about -- see ALL_KNOWN_TOOLS below), creating
+the ToolSource if it doesn't exist yet. Idempotent -- safe to re-run
+(updates the bot token/name/tool bindings if they changed).
+
+The default used to be just "pubmed" -- a real gap for anyone following
+README.md's Getting Started end to end with no other guidance: the agent
+would come up able to answer exactly one kind of question, while every
+other capability the README itself advertises (docking, structure
+prediction, variant lookups, pathway analysis, ...) silently wasn't bound
+at all, with no error anywhere to say so. Binding every known tool source
+by default is what makes README's own "what you can actually ask it today"
+table true out of the box; pass --tools explicitly only to bind a
+deliberately narrower subset.
 
 There's exactly one Agent per org now (the architecture pivot, see
 07-system-architecture.md) -- this script no longer takes a --cluster
@@ -12,7 +23,7 @@ flag; "cluster" on the Agent model is vestigial post-pivot
 Usage:
   .venv/bin/python scripts/seed_dev_data.py \\
     --team-id <mattermost_team_id> --bot-user-id <bot_user_id> \\
-    --bot-token <bot_access_token> [--name "OpenBioLab"] [--tools pubmed]
+    --bot-token <bot_access_token> [--name "OpenBioLab"] [--tools pubmed,chembl,...]
 """
 import argparse
 import asyncio
@@ -153,6 +164,14 @@ KNOWN_TOOL_SOURCES = {
     # trial and error.
 }
 
+# Every tool source with a real builder, i.e. everything except the
+# not-yet-implemented placeholders (currently just drugbank) -- this is
+# the --tools default (see the module docstring above for why it isn't
+# still "pubmed").
+ALL_KNOWN_TOOLS = ",".join(
+    name for name, entry in KNOWN_TOOL_SOURCES.items() if entry[2] != "not-yet-implemented"
+)
+
 
 async def main(
     team_id: str, bot_user_id: str, bot_token: str, name: str, tool_names: list[str],
@@ -244,7 +263,10 @@ if __name__ == "__main__":
     parser.add_argument("--bot-user-id", required=True)
     parser.add_argument("--bot-token", default="", help="Mattermost personal access token for this bot")
     parser.add_argument("--name", default="OpenBioLab")
-    parser.add_argument("--tools", default="pubmed", help="Comma-separated tool source names to bind")
+    parser.add_argument(
+        "--tools", default=ALL_KNOWN_TOOLS,
+        help="Comma-separated tool source names to bind (default: every known real tool source)",
+    )
     parser.add_argument(
         "--grounding-log-channel-id", default="",
         help="Mattermost channel ID for the #grounding-log audit channel (FR-10)",
