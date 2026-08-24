@@ -41,6 +41,7 @@ from app.tools.huggingface import build_huggingface_mcp_server
 from app.tools.kegg import build_kegg_mcp_server
 from app.tools.literature_discovery import build_literature_discovery_mcp_server
 from app.tools.mhcflurry_binding import build_mhcflurry_binding_mcp_server
+from app.tools.msa import build_msa_mcp_server
 from app.tools.msprime import build_msprime_mcp_server
 from app.tools.nrpcalc_design import build_nrpcalc_design_mcp_server
 from app.tools.ontologies import build_ontologies_mcp_server
@@ -133,6 +134,7 @@ TOOL_BUILDERS = {
         "mhcflurry_binding", build_mhcflurry_binding_mcp_server,
         ["mcp__mhcflurry_binding__predict_mhc_binding"],
     ),
+    "msa": ("msa", build_msa_mcp_server, ["mcp__msa__align_sequences"]),
     "msprime": ("msprime", build_msprime_mcp_server, ["mcp__msprime__simulate_coalescent_diversity"]),
     "nrpcalc_design": (
         "nrpcalc_design", build_nrpcalc_design_mcp_server,

@@ -60,6 +60,31 @@ services:
       - mm_config:/mattermost/config
       - mm_plugins:/mattermost/plugins
 
+  # Real gap found by battle-testing every pipeline with hard questions:
+  # literature_discovery.py's read_paper/download_paper (full-text paper
+  # extraction) silently degrade to "could not be downloaded" for every
+  # DOI without this -- it needs a real headless-browser service to fetch
+  # PDFs. Previously this only worked if a developer had *also* manually
+  # cloned the separate, gitignored external/camofox-browser project on
+  # their own machine -- meaning it silently didn't work for anyone else
+  # who just cloned this repo. Referencing the project's own published
+  # image (built from the same source, see
+  # https://github.com/jo-inc/camofox-browser) instead of a local build
+  # context makes this a required, always-on service that works
+  # out of the box for any user, with no separate clone/setup step.
+  camofox:
+    image: ghcr.io/jo-inc/camofox-browser:latest
+    container_name: openbiolab-camofox
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:9377:9377"
+    volumes:
+      # The image runs as root ($HOME=/root); its persistence plugin
+      # (session cookies/profiles across restarts) defaults to
+      # ~/.camofox/{cookies,uploads,profiles,traces} -- confirmed by
+      # reading lib/config.js in the image's own source, not guessed.
+      - camofox_data:/root/.camofox
+
   orchestrator:
     build: ./orchestrator
     container_name: openbiolab-orchestrator
@@ -67,10 +92,26 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      camofox:
+        condition: service_started
     environment:
       ORCHESTRATOR_DB_URL: "postgresql+asyncpg://aiscientist:${POSTGRES_PASSWORD:-dev_only_change_me}@postgres:5432/orchestrator"
       MATTERMOST_URL: "http://mattermost:8065"
       MATTERMOST_WEBHOOK_SECRET: ${MATTERMOST_WEBHOOK_SECRET:-}
+      # Container-network hostname, not localhost -- same class of mistake
+      # already fixed twice this session for Mattermost's webhook/slash-
+      # command URLs. Overridable via .env for anyone running Camofox
+      # elsewhere (e.g. a separately-hosted instance).
+      CAMOFOX_API_URL: ${CAMOFOX_API_URL:-http://camofox:9377}
+      CAMOFOX_ACCESS_KEY: ${CAMOFOX_ACCESS_KEY:-}
+      # Real bug found live: literature_discovery.py's _try_camofox()
+      # requires *both* CAMOFOX_API_URL and SCIHUB_MIRROR_URLS to be set
+      # or it silently no-ops (returns None, surfaced to the user as a
+      # generic "Camofox failed" message with no indication it never
+      # actually tried). This var was in .env but was never passed
+      # through to the container at all -- Camofox itself could be
+      # perfectly healthy and every download would still silently fail.
+      SCIHUB_MIRROR_URLS: ${SCIHUB_MIRROR_URLS:-}
       # Two mutually exclusive ways to authenticate the `claude` CLI
       # (app/claude_runner.py) -- pick whichever you actually have:
       #  (a) API key: set ANTHROPIC_API_KEY below, nothing else to do.
@@ -118,3 +159,4 @@ volumes:
   mm_config:
   mm_plugins:
   orchestrator_home:
+  camofox_data:

@@ -77,6 +77,14 @@ KNOWN_TOOL_SOURCES = {
     # computation, no external API for the computation itself.
     "primer3": ("sequence_analysis", "free_public", "in-process:app.tools.primer3", False, False),
     "pyhmmer_search": ("sequence_analysis", "free_public", "in-process:app.tools.pyhmmer_search", False, False),
+    # Real gap found by battle-testing every pipeline with hard questions
+    # (docs/15-battle-test-report.md, Battle 7): phylogenetics.
+    # build_phylogenetic_tree assumes pre-aligned input and has no way to
+    # align raw sequences itself -- feeding it real, indel-bearing
+    # sequences silently corrupted a tree result instead of erroring.
+    # Real in-process wrap of the `mafft` CLI (installed via apt in
+    # Dockerfile), no external API for the computation itself.
+    "msa": ("sequence_analysis", "free_public", "in-process:app.tools.msa", False, False),
     # docs/12-biotools-triage-shortlist.md's Population genetics cluster
     # (feature/population-genetics branch) -- real in-process coalescent
     # simulation (msprime + tskit), no external API for the computation.

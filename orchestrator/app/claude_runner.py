@@ -171,6 +171,11 @@ RECORD_REF_PATTERNS: list[tuple[str, re.Pattern]] = [
     # computation (app/tools/pyteomics_mass.py), same methodological-
     # citation pattern as scikit-bio/cobra/vina.
     ("Pyteomics {}", re.compile(r"\[pyteomics:(\w+)\]")),
+    # MAFFT multiple sequence alignment (app/tools/msa.py, real subprocess-
+    # wrapped CLI) -- same methodological-citation pattern as the others.
+    # The upstream step that should run before piqtree/dendropy whenever
+    # the input sequences aren't already known to be aligned.
+    ("MAFFT alignment {}", re.compile(r"\[mafft:(\w+)\]")),
     # Phylogenetics tools -- real local computation (app/tools/
     # phylogenetics.py: piqtree ML tree inference, dendropy tree
     # analysis), same methodological-citation pattern as the others.

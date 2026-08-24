@@ -40,9 +40,16 @@ ALLOWED_LIBRARIES = {
     "enrichment analysis via gseapy against the live Enrichr service to "
     "find which pathways/processes/diseases are statistically "
     "over-represented in the list. library must be one of: "
-    f"{', '.join(ALLOWED_LIBRARIES)}. Returns the top enriched terms with "
-    "p-values and the overlapping genes. Never state a term or p-value "
-    "this tool didn't actually return.",
+    f"{', '.join(ALLOWED_LIBRARIES)} -- defaults to 'kegg' if omitted. If "
+    "cross-checking against gprofiler_enrichment.profile_gene_list for the "
+    "same gene list, leave library at its 'kegg' default (or explicitly "
+    "pass 'kegg') rather than switching to a GO library: g:Profiler pools "
+    "GO+KEGG+WikiPathways+more by default, so comparing this tool's "
+    "GO-only result against it isn't apples-to-apples and can look like a "
+    "real disagreement when it's really a different library scope. "
+    "Returns the top enriched terms with p-values and the overlapping "
+    "genes. Never state a term or p-value this tool didn't actually "
+    "return.",
     {"genes": list, "library": str, "max_results": int},
 )
 async def enrich_gene_set(args: dict[str, Any]) -> dict[str, Any]:
