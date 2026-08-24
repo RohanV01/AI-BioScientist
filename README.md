@@ -55,8 +55,24 @@ Zoomed out past the individual tool table, these are the actual multi-step resea
 ```bash
 git clone https://github.com/RohanV01/AI-BioScientist.git
 cd AI-BioScientist
-cp .env.example .env        # edit if you want a non-default Postgres password
+cp .env.example .env
 ```
+
+Generate two real secrets and paste them into `.env` (`.env.example` ships a placeholder
+password and a blank vault key on purpose -- a checked-in shared default is fine for a
+five-minute local trial, but not for anything another person can reach):
+
+```bash
+# POSTGRES_PASSWORD -- replaces the public dev_only_change_me default
+openssl rand -base64 24
+
+# CREDENTIAL_VAULT_KEY -- required before adding any BYO credential (see "BYO credentials" below)
+python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+```
+
+Keep `CREDENTIAL_VAULT_KEY` somewhere durable outside `.env` too -- losing it makes every
+already-stored credential permanently undecryptable, and there's no rotate-in-place migration yet
+(re-adding each credential from scratch is the only recovery path).
 
 **2. Bring up the stack**
 
