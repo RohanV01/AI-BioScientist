@@ -98,6 +98,19 @@ services:
       ORCHESTRATOR_DB_URL: "postgresql+asyncpg://aiscientist:${POSTGRES_PASSWORD:-dev_only_change_me}@postgres:5432/orchestrator"
       MATTERMOST_URL: "http://mattermost:8065"
       MATTERMOST_WEBHOOK_SECRET: ${MATTERMOST_WEBHOOK_SECRET:-}
+      # Real security gap found during the from-scratch clean-clone
+      # verification pass: mattermost_webhook.py's own auth check for this
+      # endpoint (mattermost_experiment_command) is "if a secret is
+      # configured, verify it -- if not, skip the check entirely" (same
+      # pattern MATTERMOST_WEBHOOK_SECRET above already uses). That's a
+      # reasonable local-dev default, but this var was never listed here at
+      # all, so no matter what a user set in .env, the /experiment slash
+      # command endpoint's auth was silently a no-op in every real
+      # docker-compose deployment -- anyone who found the orchestrator's
+      # /webhooks/mattermost/experiment URL could call it with any token
+      # (or none) and have it accepted as if it came from the real
+      # Mattermost instance.
+      MATTERMOST_EXPERIMENT_COMMAND_SECRET: ${MATTERMOST_EXPERIMENT_COMMAND_SECRET:-}
       # Container-network hostname, not localhost -- same class of mistake
       # already fixed twice this session for Mattermost's webhook/slash-
       # command URLs. Overridable via .env for anyone running Camofox
@@ -123,6 +136,22 @@ services:
       #      persist across restarts/rebuilds; you won't be asked again.
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       CREDENTIAL_VAULT_KEY: ${CREDENTIAL_VAULT_KEY:-}
+      # Same gap as MATTERMOST_EXPERIMENT_COMMAND_SECRET above, lower
+      # severity (nothing insecure, just silently non-functional): all
+      # four of these are real, documented .env.example settings
+      # (app/llm_backend.py's provider selection for read_paper/experiment
+      # conclude) that were never wired through to the container at all --
+      # setting LM_STUDIO_BASE_URL in .env had no effect no matter what a
+      # user put there. "auto" mode still worked via ANTHROPIC_API_KEY or
+      # the claude CLI's own subscription fallback, which masked this.
+      ORCHESTRATOR_PUBLIC_URL: ${ORCHESTRATOR_PUBLIC_URL:-http://localhost:8000}
+      LLM_BACKEND: ${LLM_BACKEND:-auto}
+      LLM_MODEL: ${LLM_MODEL:-claude-sonnet-5}
+      # host.docker.internal, not localhost -- LM Studio normally runs on
+      # the host, not in this compose stack, same container-network
+      # addressing rule as every other host-run dependency in this file.
+      LM_STUDIO_BASE_URL: ${LM_STUDIO_BASE_URL:-}
+      LM_STUDIO_CHAT_MODEL: ${LM_STUDIO_CHAT_MODEL:-}
     volumes:
       # Mounts the whole home dir, not just .claude/ -- a second real bug
       # found live: the CLI's auth (`claude auth login`) writes into
