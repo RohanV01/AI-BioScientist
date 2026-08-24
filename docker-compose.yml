@@ -151,6 +151,17 @@ services:
       - ./data:/data
     ports:
       - "127.0.0.1:8000:8000"
+    # Previously undefined -- `docker compose ps` couldn't distinguish "the
+    # process is up" from "it's actually serving requests" for this service
+    # (postgres already had one). /health (app/main.py) is a plain liveness
+    # check, not a dependency check -- see docs/16-production-operations.md
+    # for what to check when this passes but the agent still isn't working.
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
 volumes:
   pg_data:
