@@ -76,14 +76,38 @@ services:
       #  (a) API key: set ANTHROPIC_API_KEY below, nothing else to do.
       #  (b) Claude subscription (Pro/Max), no API key: leave this blank
       #      and instead run, once, after `docker compose up -d`:
-      #        docker compose exec orchestrator claude login
+      #        docker compose exec -it orchestrator claude auth login
       #      It prints a URL -- open it in any browser, on any machine, to
       #      approve. Credentials land in the claude_config volume below and
       #      persist across restarts/rebuilds; you won't be asked again.
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       CREDENTIAL_VAULT_KEY: ${CREDENTIAL_VAULT_KEY:-}
     volumes:
-      - claude_config:/home/orchestrator/.claude
+      # Mounts the whole home dir, not just .claude/ -- a second real bug
+      # found live: the CLI's auth (`claude auth login`) writes into
+      # .claude/, but its own general config/onboarding state lives in a
+      # SIBLING file, ~/.claude.json, which isn't under .claude/ at all.
+      # With only .claude/ mounted, that file silently reset to nothing on
+      # every container recreation, and a live agent run then completed
+      # with zero output and no error (not even a crash) instead of a real
+      # answer -- worse than fix #1's loud crash, since nothing surfaced it
+      # as a failure. Mounting the parent directory covers both files with
+      # one volume.
+      - orchestrator_home:/home/orchestrator
+      # app/config.py's experiments_dir/papers_download_dir default to
+      # "../data/..." -- relative to WORKDIR /app, that's /data. A real
+      # bug found live: pre-existing Experiment rows (created by an
+      # earlier host-run orchestrator, where "../data" correctly resolved
+      # against the host's orchestrator/ cwd) crashed the containerized
+      # agent with "Working directory does not exist" the moment a
+      # message landed in a channel with an already-open Experiment,
+      # since /data never existed in the container at all. Bind-mounting
+      # the repo's own data/ here makes the existing relative-path
+      # default resolve correctly in both the host-run and containerized
+      # cases, with no code change, and reuses the same host directory
+      # data/README.md already documents (Databases/, Experiments/,
+      # scihub.sql).
+      - ./data:/data
     ports:
       - "127.0.0.1:8000:8000"
 
@@ -93,4 +117,4 @@ volumes:
   mm_logs:
   mm_config:
   mm_plugins:
-  claude_config:
+  orchestrator_home:

@@ -26,7 +26,19 @@ COPY . .
 # --dangerously-skip-permissions, which the CLI refuses to run as root/UID 0
 # outside a declared sandbox. Run as a real non-root user instead of setting
 # IS_SANDBOX=1, since this is a persistent service, not a throwaway sandbox.
-RUN useradd --create-home --uid 1000 orchestrator && chown -R orchestrator:orchestrator /app
+# Real bug found live: docker-compose.yml mounts the `claude_config` named
+# volume at ~/.claude for `claude auth login`'s persisted credentials, but
+# since this Dockerfile never created that directory, a fresh volume's
+# mount point defaults to root ownership -- the orchestrator user (below)
+# could read it but not write to it, so `claude auth login` completed the
+# OAuth flow successfully yet silently failed to save the resulting
+# credentials file, leaving `claude auth status` reporting loggedIn=false
+# with no error surfaced anywhere. Creating it here, owned by the right
+# user, before the volume ever mounts, is what makes Docker copy that
+# ownership into the fresh volume instead of defaulting to root.
+RUN useradd --create-home --uid 1000 orchestrator \
+    && mkdir -p /home/orchestrator/.claude \
+    && chown -R orchestrator:orchestrator /app /home/orchestrator
 USER orchestrator
 
 EXPOSE 8000

@@ -69,7 +69,7 @@ Builds the orchestrator image (Node.js + `claude` CLI baked in — first run tak
 - **Anthropic API key:** set `ANTHROPIC_API_KEY` in `.env`, then `docker compose up -d` again to pick it up. Nothing else to do.
 - **Claude subscription (Pro/Max), no API key:** leave `ANTHROPIC_API_KEY` blank and instead run, once:
   ```bash
-  docker compose exec orchestrator claude login
+  docker compose exec -it orchestrator claude auth login
   ```
   It prints a URL + code — open it in a browser on any device (doesn't have to be this machine) and approve. Credentials land in the `claude_config` Docker volume and persist across restarts; you won't be asked again unless you `docker compose down -v`.
 
