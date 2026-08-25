@@ -147,6 +147,45 @@ batch screening `virtual_screening.py` already handles well. Worth reconsidering
 against a structure with no known pocket" turns out to be a real, recurring ask -- not built
 speculatively here.
 
+## Phase 1.6 -- NVIDIA NIM hosted inference (new integration path, unlocks real AlphaFold folding)
+
+A fifth integration path beyond `docs/12`'s PIP/CLONE/DATA/GPU legend: **NIM** (NVIDIA Inference
+Microservices, hosted at `build.nvidia.com`) -- a REST API + API key, same shape and same
+BYO-credential pattern already live for `huggingface` (`CREDENTIALED_BUILDERS` in
+`tool_roster.py`, `scripts/add_credential.py`, `app/vault.py`'s Fernet-encrypted storage). No
+local GPU, no VRAM budgeting, no Phase 6 cloud-compute decision -- an org brings its own free-tier
+NVIDIA API key the same way they'd bring a Hugging Face token today.
+
+This directly reopens the reasoning behind several "GPU-heavy" deferrals: the constraint driving
+those was *local* GPU memory. A hosted endpoint sidesteps that entirely, the same "check a hosted
+Inference API before defaulting to local/cloud GPU" principle `docs/07-system-architecture.md`
+already names for Hugging Face.
+
+**The concrete gap this closes -- real AlphaFold folding, not just AlphaFold DB lookup.** The
+existing `alphafold` tool source (`orchestrator/app/tools/alphafold.py`) is explicit in its own
+docstring: *"Structure lookup only ... no folding inference"* -- it can only return a
+precomputed structure for a UniProt accession AlphaFold DB already has. It cannot fold a novel
+sequence, a point mutant, a synthetic construct, or anything not already in UniProt. NVIDIA's NIM
+catalog hosts AlphaFold2 (and OpenFold2, ESMFold) as callable endpoints -- wiring one closes this
+exact gap. Concretely: add a second tool, `fold_sequence(sequence: str) -> structure`, to the
+existing `alphafold` tool source (or a new `alphafold_nim` source if the credentialed-builder shape
+doesn't fit cleanly alongside the unauthenticated DB-lookup tool -- decide once the real API
+contract is in hand), following the `huggingface`-style credentialed pattern.
+
+**Also worth wiring via this same path** once the NIM contract is confirmed: RFdiffusion,
+ProteinMPNN, and DiffDock all have NIM-hosted variants -- offering both a local-GPU path (Phase 1.5,
+for a self-hoster with hardware) and a hosted path (this phase, for anyone without a GPU at all) is
+worth doing for RFdiffusion/ProteinMPNN specifically, since Phase 1.5 already justified why they're
+worth having; DiffDock stays a judgment call per Phase 1.5's own reasoning regardless of which path
+delivers it.
+
+**Before building**: NVIDIA's exact request/response schema for each bio-specific NIM endpoint
+needs to be verified against their current API docs at build time, not assumed from this plan --
+the same discipline this session applied to Camofox's actual API shape (`_try_camofox`'s docstring
+in `literature_discovery.py` cites the exact source file and date the contract was confirmed
+against). Do not guess the JSON shape and ship it; confirm it first, the same way every other tool
+in this codebase was built against a real, checked API response.
+
 ## Phase 2 -- CLONE tools, new Dockerfile plumbing per tool (~39 tools)
 
 Same recipe, plus a `Dockerfile` `RUN apt-get install` or build-from-source step per tool (the
@@ -242,6 +281,36 @@ practice later, revisit -- but don't build against that assumption speculatively
 See "Phase 1.5" above for the four GPU tools that *do* fill a genuinely new capability (not another
 way to dock) and are realistic on modest local hardware: ProteinMPNN, RFdiffusion, ProtGPT2,
 ChromBPNet.
+
+## Newly identified gaps -- outside the original docs/12 scope
+
+`docs/12-biotools-triage-shortlist.md` was scoped to "bio.tools + GitHub Repo Triage" -- downloadable
+packages and CLI tools -- and explicitly excluded "pure database/web-portal entries with no
+downloadable code or API." That exclusion swept out a real category it shouldn't have: sources with
+a genuine, free, unauthenticated REST API and no download at all, the exact same shape as
+`pubmed.py`/`chembl.py`/`pdb.py`/`ensembl.py` already live in this codebase. A fresh scan against
+what's actually already wired turned up real gaps in that category, worth a pass of their own,
+same PIP-tier effort as this session's `uniprot.get_sequence` addition (a builder file, no new
+architecture):
+
+| Source | Gap it closes | Why it's not already covered |
+|---|---|---|
+| **PubChem** (PUG-REST, free, unauthenticated) | Broader compound/bioassay database than ChEMBL's bioactivity-curated scope -- different compound coverage, includes PubChem BioAssay screening data | `chembl.py` is bioactivity-focused; PubChem is a different, complementary compound universe entirely |
+| **Europe PMC** (free REST API) | Full-text search across a broader source set than PubMed alone -- preprints (bioRxiv/medRxiv), grant/patent links, and free full-text availability signals PubMed doesn't carry | `pubmed.py` only queries NCBI's own index; Europe PMC indexes preprints PubMed doesn't |
+| **Ensembl VEP** (Variant Effect Predictor, free REST API, same host as the existing `ensembl.py`) | Predicts the functional consequence of a variant that *isn't* already in ClinVar -- missense/nonsense/splice-site impact, SIFT/PolyPhen scores | `clinvar.py` and `gnomad.py` only answer "what's already known about this variant" (clinical significance, population frequency) -- neither predicts consequence for a novel/hypothetical variant, a real gap for anything not yet curated in ClinVar |
+| **Human Phenotype Ontology (HPO)** (free REST API, `hpo.jax.org`) | Structured phenotype-to-gene/disease associations (e.g. "which genes cause this specific clinical phenotype") | `ontologies.py`'s generic OLS-backed search covers term lookup/definitions across many ontologies but not HPO's specific gene/disease association graph |
+| **PharmGKB** (free REST API) | Pharmacogenomics: drug-gene-variant interactions (e.g. "does this variant change how this patient metabolizes this drug") | `dailymed.py` covers drug labels; nothing covers gene-drug-variant interaction data, a distinct and clinically real question |
+| **openFDA** (FDA's own free REST API, adverse-event/FAERS data) | Real-world adverse-event reports for a drug -- a different, complementary signal to `dailymed.py`'s label text | Label data says what a drug is approved to claim; FAERS says what's actually been reported in practice -- genuinely different data, not a duplicate |
+
+Each of these is genuinely PIP-tier effort (a builder file wrapping `httpx` calls, no package
+install, no Dockerfile change) -- worth folding into Phase 1 rather than treating as a separate
+wave, once someone actually verifies each API's current contract (rate limits, auth requirements,
+response shape) the same way every existing external-API tool in this codebase already was.
+
+This list is a first pass, not exhaustive -- flagged honestly as such rather than presented as a
+complete inventory. If wiring one of these surfaces adjacent sources worth adding (the same way
+`get_sequence` surfaced from battle-testing, not from a pre-planned list), extend this table rather
+than treating it as closed.
 
 ## Acceptance criteria (per tool, no exceptions)
 
