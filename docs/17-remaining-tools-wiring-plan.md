@@ -37,7 +37,7 @@ Within a phase, tools are grouped by capability cluster (matching `CONTRIBUTING.
 `feature/*` branches) so a contributor picking up a cluster can work through it without
 context-switching between unrelated domains.
 
-## Phase 1 -- PIP tools, no new Dockerfile plumbing (~52 tools)
+## Phase 1 -- PIP tools, no new Dockerfile plumbing (34 tools)
 
 The fastest, lowest-risk wave. Every tool here is `pip install <package>` plus a builder file --
 no `apt-get`, no compiled binary, no new base-image layer. Estimate: 2-4 hours per tool including
@@ -124,6 +124,29 @@ CLONE-path tool moved to Phase 2 below -- recount confirms 34 PIP-path tools her
 earlier rough estimate assumed; the difference is mostly cheminformatics and metagenomics skewing
 more CLONE-heavy than expected on closer read.)
 
+## Phase 1.5 -- Local-GPU tools, genuinely new capabilities (4 tools)
+
+Not "GPU-heavy, deferred" -- these four specifically don't overlap with anything already live or
+already planned, unlike the docking-adjacent GPU tools removed below, and are realistic on modest
+consumer hardware (checked against a 16GB RAM / 6GB VRAM card, e.g. an RTX 3050): none of them need
+cloud GPU or the Phase 6 compute-layer decision, just a GPU passed through to the orchestrator
+container (a `docker-compose.yml`/`Dockerfile` change, not new architecture).
+
+| Tool | Adds | Why it's not redundant |
+|---|---|---|
+| ProteinMPNN | Inverse protein design: given a 3D backbone, design a sequence that folds into it | Nothing else designs sequences from structure -- `vina_docking` docks a molecule against an *existing* protein, this is a different direction entirely |
+| RFdiffusion | Generates novel protein backbones from scratch or around a motif | Nothing else generates new protein structures at all |
+| ProtGPT2 | Generative protein language model (writes plausible novel sequences) | Distinct from `huggingface`'s masked-residue prediction and the planned AbLang (antibody-specific) -- this is unconditional/general sequence generation |
+| ChromBPNet | Predicts chromatin accessibility from DNA sequence | Regulatory genomics has zero coverage today -- not adjacent to any existing tool |
+
+DiffDock/FABind (small-molecule blind docking) deliberately left out of this wave: their only real
+differentiator over the already-live `vina_docking` + the planned `Fpocket` (pocket detection,
+Phase 2) is not needing a predefined binding pocket, which is a genuine but narrower use case, not
+a clear win, and DiffDock in particular is far slower per-compound than Vina, unsuitable for the
+batch screening `virtual_screening.py` already handles well. Worth reconsidering only if "dock
+against a structure with no known pocket" turns out to be a real, recurring ask -- not built
+speculatively here.
+
 ## Phase 2 -- CLONE tools, new Dockerfile plumbing per tool (~39 tools)
 
 Same recipe, plus a `Dockerfile` `RUN apt-get install` or build-from-source step per tool (the
@@ -202,10 +225,23 @@ worth a dedicated plan of its own** (a real file-upload path through Mattermost/
 storage, and a "which of these tools applies to this file type" dispatch) -- not something to
 half-solve tool-by-tool here.
 
-**GPU-heavy**: DiffDock, RFdiffusion, ProteinMPNN, OpenFold, ProtGPT2, DiffDock-PP, FlowDock,
-FABind, ChromBPNet. Deferred to `docs/07-system-architecture.md`'s Phase 6 compute-layer decision
-(the same "check Hugging Face's Inference API before defaulting to NVIDIA Platform/cloud GPU"
-question already flagged there) -- not attempted here.
+**GPU-heavy, deferred**: **OpenFold** only. AlphaFold2-scale attention memory (roughly quadratic in
+sequence length) genuinely needs 12GB+ VRAM for real protein lengths -- a consumer card like a 3050
+(6GB) can't reliably run it, and the platform already has real structure prediction via the
+existing `alphafold` tool source (AlphaFold DB lookup). Deferred to
+`docs/07-system-architecture.md`'s Phase 6 compute-layer decision (the same "check Hugging Face's
+Inference API before defaulting to NVIDIA Platform/cloud GPU" question already flagged there).
+
+**Removed from the shortlist entirely, not deferred**: **DiffDock-PP** and **FlowDock** (deep-learning
+protein-protein docking) -- genuinely redundant, not just GPU-gated. `LightDock` (Phase 1) and
+`HADDOCK3` (Phase 2) already cover protein-protein docking, need no GPU, and are more proven at
+scale. Keeping both a classical and a deep-learning path for the exact same capability isn't worth
+the GPU dependency here. If a real accuracy gap between the classical tools and these shows up in
+practice later, revisit -- but don't build against that assumption speculatively.
+
+See "Phase 1.5" above for the four GPU tools that *do* fill a genuinely new capability (not another
+way to dock) and are realistic on modest local hardware: ProteinMPNN, RFdiffusion, ProtGPT2,
+ChromBPNet.
 
 ## Acceptance criteria (per tool, no exceptions)
 
