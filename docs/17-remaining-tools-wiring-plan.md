@@ -88,11 +88,11 @@ so roughly 25-40 tools per contributor-week at a sustainable pace, not a sprint.
 | Tool | Adds |
 |---|---|
 | SCANPY | Field-standard Python scRNA-seq toolkit (QC, clustering, trajectory, DE) -- **DATA-gated in practice**: real capability, but needs an actual expression matrix input; wire the tool now, note the same data-ingestion caveat as the DATA-gated list below applies to how *useful* it is until a matrix-upload story exists |
-| pyComBat | Batch-effect correction |
-| scVelo | RNA velocity (cell-state transition dynamics) |
-| HunFlair (flair) | Biomedical NER from free text -- real near-term win: auto-tag entities in PubMed/OpenAlex results, no data-ingestion dependency at all |
-| OmniPath | Integrated signaling pathways + ligand-receptor cell communication (distinct from STRING/KEGG/Reactome, which this platform already has) |
-| BUSCO | Genome/transcriptome/proteome assembly completeness scoring |
+| pyComBat | Batch-effect correction. **Live 2026-08-26 as `pycombat_correction`**, verified against a synthetic matrix with a known, deliberate batch offset (not just "ran without crashing"). |
+| scVelo | RNA velocity (cell-state transition dynamics) -- not attempted this pass (time budget); genuinely DATA-gated (needs spliced/unspliced count matrices from real scRNA-seq, not a synthetic-input case like pyComBat). |
+| HunFlair (flair) | Biomedical NER from free text -- real near-term win: auto-tag entities in PubMed/OpenAlex results, no data-ingestion dependency at all. **In progress 2026-08-26**: real package, model download (~1.4GB, hosted on Hugging Face) is genuinely slow in this environment (~55min at observed throughput) but not stalled/broken like AbLang's -- being completed this session, not abandoned. |
+| OmniPath | Integrated signaling pathways + ligand-receptor cell communication (distinct from STRING/KEGG/Reactome, which this platform already has). **Live 2026-08-26 as `omnipath_interactions`.** |
+| ~~BUSCO~~ | Genome/transcriptome/proteome assembly completeness scoring. **Checked 2026-08-26, not built** -- not on PyPI under that name (bioconda-only distribution), different integration tier than docs/12 assumed. |
 
 ### Structural biology (`feature/structural-biology`) -- 4 tools
 | Tool | Adds |
