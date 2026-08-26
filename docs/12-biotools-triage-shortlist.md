@@ -32,7 +32,7 @@ Already-built tools (16 external-API + scikit-bio, BioPandas, cobra, Vina/RDKit/
 - [ ] **HMMER3 / pyhmmer** (PIP, High) — profile-HMM / remote homology / Pfam-domain search.
 - [ ] **Clustal Omega** (CLONE, High) / **MAFFT** (CLONE, High) — multiple sequence alignment.
 - [ ] **EMBOSS** (CLONE, High) — pairwise alignment (needle/water), primer picking, sequence composition/ORF utilities.
-- [ ] **Minimap2 / mappy** (PIP, High) — versatile pairwise aligner (long reads, cDNA, genome-vs-genome).
+- [x] **Minimap2 / mappy** (PIP, High) — versatile pairwise aligner (long reads, cDNA, genome-vs-genome). Live 2026-08-26 as `minimap2_align`.
 - [ ] **Prodigal** (CLONE, High) — ab initio prokaryotic gene prediction from a genome sequence, no external DB needed.
 - [ ] **MUMmer4** (CLONE, High) — whole-genome-to-genome alignment/synteny.
 - [ ] **Primer3 / primer3-py** (PIP, High) — PCR/qPCR primer design.
@@ -43,7 +43,7 @@ Already-built tools (16 external-API + scikit-bio, BioPandas, cobra, Vina/RDKit/
 - [ ] **IQ-TREE** (CLONE, High) / **FastTree** (CLONE, High) — ML phylogenetic tree inference from an alignment.
 - [ ] **ete3** (PIP, High) / **DendroPy** (PIP, High) — programmatic tree construction/manipulation/comparison.
 - [ ] **piqtree** (PIP, High) — Python-native IQ-TREE bindings, no shelling out.
-- [ ] **PhyKIT** (PIP, High) / **BioKIT** (PIP, Medium-High) — one-command tree/alignment statistics.
+- [x] **PhyKIT** (PIP, High) — one-command tree statistics, live (`phylogenetics.compute_tree_statistics`). / **BioKIT** (PIP, Medium-High) — investigated 2026-08-26, not built: real bug found in `jlsteenwyk-biokit` v1.1.23 itself (see `docs/17` Phase 1 Phylogenetics section).
 - [ ] **OrthoFinder** (CLONE, High) — ortholog/orthogroup inference across genomes.
 - [ ] **PAML** (CLONE, Medium-High) — dN/dS selection testing.
 - [ ] **ASTRAL-Pro2** (CLONE, Medium-High) — coalescent species-tree estimation from gene trees.
@@ -71,7 +71,7 @@ Already-built tools (16 external-API + scikit-bio, BioPandas, cobra, Vina/RDKit/
 
 - [ ] **pixy** (PIP, High) — nucleotide diversity (π) / divergence (dxy) from a VCF.
 - [ ] **poolfstat** (CLONE, High) — Fst from allele-count data.
-- [ ] **egglib** (PIP, High) — general pop-gen stats engine (diversity, Fst, Tajima's D).
+- [x] **egglib** (PIP, High) — general pop-gen stats engine (diversity, Fst, Tajima's D). Live 2026-08-26 as `egglib_popgen`.
 - [ ] **msprime** (PIP, High) — coalescent simulation from demographic parameters.
 - [ ] **ADMIXTURE** (CLONE, High) / **Eigensoft** (CLONE, High) — ancestry/population-structure inference.
 - [ ] **TreeMix** (CLONE, High) — population tree + admixture edges from allele frequencies.
@@ -106,22 +106,22 @@ Already-built tools (16 external-API + scikit-bio, BioPandas, cobra, Vina/RDKit/
 - [ ] **RAscore** (CLONE, Medium) — synthesizability scoring.
 - [ ] **ToxinPred2** (CLONE, Medium) — peptide/protein toxicity prediction.
 - [ ] **xtb** (CLONE, Medium) — fast semi-empirical QM geometry/energy calculations.
-- [ ] **libRoadRunner** (PIP, High) / **basico** (PIP, Medium) — SBML kinetic/ODE model simulation (dynamic, complements cobrapy's steady-state FBA).
+- [x] **libRoadRunner** (PIP, High) / **basico** (PIP, Medium) — SBML kinetic/ODE model simulation (dynamic, complements cobrapy's steady-state FBA). libRoadRunner live 2026-08-26 as `kinetic_simulation`; basico deliberately not also wired (same niche, alternate API).
 - [ ] **straindesign** (PIP, Medium) — metabolic engineering intervention design, built on cobrapy.
 
 ## Immunoinformatics
 
 - [ ] **MHCflurry** (PIP, High) — peptide-MHC-I binding affinity prediction.
-- [ ] **epitopepredict** (PIP, High) — unified T-cell epitope prediction framework.
-- [ ] **ANARCI** (PIP, High) — antibody/TCR sequence numbering (Kabat/Chothia/IMGT).
-- [ ] **AbLang** (PIP, High) — antibody sequence language model.
-- [ ] **BioPhi** (PIP, High) — antibody humanization + humanness scoring.
-- [ ] **PyIR** (PIP, High) — antibody/TCR V(D)J gene assignment (IgBLAST wrapper).
-- [ ] **clusTCR** (PIP, Medium) / **tcrdist3** (PIP, Medium) — TCR repertoire clustering/distance.
+- [x] **epitopepredict** (PIP, High) — unified T-cell epitope prediction framework. Live 2026-08-26 as `epitopepredict`.
+- [x] **ANARCI** (PIP, High) — antibody/TCR sequence numbering (Kabat/Chothia/IMGT). Live 2026-08-26 as `anarci_numbering` -- real CLONE-tier tool (needs the `hmmscan` binary, `hmmer` added to Dockerfile), not PIP-tier as first assumed.
+- [ ] **AbLang** (PIP, High) — antibody sequence language model. Attempted 2026-08-26: real package, but its model-weight download (opig.stats.ox.ac.uk, ~318MB) stalled indefinitely in this environment despite the host being reachable -- deferred, not a code issue found.
+- [ ] **BioPhi** (PIP, High) — antibody humanization + humanness scoring. Not on PyPI under any tried name (`biophi`/`BioPhi` both 404) -- GitHub-only install, different integration tier than assumed.
+- [ ] **PyIR** (PIP, High) — antibody/TCR V(D)J gene assignment (IgBLAST wrapper). Not on PyPI under any tried name -- GitHub-only install, different integration tier than assumed.
+- [ ] **clusTCR** (PIP, Medium) — not on PyPI under any tried name -- GitHub-only install, different integration tier than assumed. / [x] **tcrdist3** (PIP, Medium) — TCR repertoire clustering/distance. tcrdist3 live 2026-08-26 as `tcrdist_repertoire`.
 
 ## Proteomics (mass spec — currently zero coverage)
 
-- [ ] **mokapot** (PIP, High) — pure-Python PSM rescoring for FDR control.
+- [x] **mokapot** (PIP, High) — pure-Python PSM rescoring for FDR control. Live 2026-08-26 as `mokapot_rescoring`.
 - [ ] **Pyteomics** (PIP, High) — foundational MS file-format parsing (mzML, MGF, pepXML) — prerequisite plumbing for the rest of this cluster.
 - [ ] **Comet** (CLONE, High) / **Sage** (CLONE, Medium) — MS/MS database search engines.
 - [ ] **DIA-NN** (CLONE, High) — modern DIA proteomics search+quant.
