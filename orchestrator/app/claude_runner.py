@@ -319,6 +319,14 @@ RECORD_REF_PATTERNS: list[tuple[str, re.Pattern]] = [
     ("EMBOSS {}", re.compile(r"\[emboss:(\w+)\]")),
     ("Prodigal {}", re.compile(r"\[prodigal:(\w+)\]")),
     ("MUMmer4 {}", re.compile(r"\[mummer:(\w+)\]")),
+    # docs/17-remaining-tools-wiring-plan.md Phase 2, Structural
+    # biology cluster -- all four real local computation on a fetched
+    # real structure, same methodological-citation convention.
+    ("DSSP {}", re.compile(r"\[dssp:(\w+)\]")),
+    ("Foldseek {}", re.compile(r"\[foldseek:([\w-]+)\]")),
+    ("US-align {}", re.compile(r"\[usalign:(\w+)\]")),
+    ("FoldMason {}", re.compile(r"\[foldmason:([\w-]+)\]")),
+    ("Fpocket {}", re.compile(r"\[fpocket:(\w+)\]")),
 ]
 
 

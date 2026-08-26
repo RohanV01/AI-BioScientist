@@ -188,6 +188,19 @@ KNOWN_TOOL_SOURCES = {
     "correlationplus_dynamics": (
         "structural_biology", "free_public", "in-process:app.tools.correlationplus_dynamics", False, False,
     ),
+    # docs/17-remaining-tools-wiring-plan.md Phase 2, Structural biology
+    # cluster. HADDOCK3 (haddock3_docking, same cluster) investigated
+    # and NOT built -- confirmed live via strace that its topoaa
+    # module's CNS jobs exit cleanly (code 0) but haddock3's own Python
+    # wrapper never writes/uses the captured CNS output, so every run
+    # fails with "100% of output not generated" regardless of input --
+    # a real bug/breakage in the current PyPI release (2026.8.0), not a
+    # config error on this platform's side.
+    "dssp_secondary_structure": ("structural_biology", "free_public", "in-process:app.tools.dssp_secondary_structure", False, False),
+    "foldseek_search": ("structural_biology", "free_public", "in-process:app.tools.foldseek_search", False, False),
+    "usalign_tmscore": ("structural_biology", "free_public", "in-process:app.tools.usalign_tmscore", False, False),
+    "foldmason_align": ("structural_biology", "free_public", "in-process:app.tools.foldmason_align", False, False),
+    "fpocket_detection": ("structural_biology", "free_public", "in-process:app.tools.fpocket_detection", False, False),
     # docs/12-biotools-triage-shortlist.md's Sequence analysis fundamentals
     # cluster (feature/sequence-analysis branch) -- both real in-process
     # computation, no external API for the computation itself.
