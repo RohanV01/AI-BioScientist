@@ -239,6 +239,17 @@ RECORD_REF_PATTERNS: list[tuple[str, re.Pattern]] = [
     # (app/tools/minimap2_align.py), same methodological-citation pattern
     # as mafft.
     ("minimap2 alignment {}", re.compile(r"\[minimap2:([\w-]+)\]")),
+    # A bare PubChem CID (just digits) is too ambiguous to match
+    # standalone -- same "PDB " lookbehind precedent, scoped to how
+    # app/tools/pubchem.py always formats its own output.
+    ("PubChem CID {}", re.compile(r"(?<=PubChem CID )(\d+)")),
+    # openFDA FAERS aggregate report counts have no single per-record ID
+    # -- same methodological-citation convention as gseapy/gprofiler.
+    ("openFDA FAERS query {}", re.compile(r"\[openfda:(\w+)\]")),
+    # OMIM/ORPHA disease IDs -- app/tools/hpo.py's disease-association
+    # results (MONDO cross-refs, when present, already match the
+    # existing "Ontology/Disease ID {}" pattern above).
+    ("Disease ID {}", re.compile(r"\b((?:OMIM|ORPHA):\d+)\b")),
 ]
 
 

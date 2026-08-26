@@ -52,6 +52,11 @@ from app.vault import encrypt  # noqa: E402
 KNOWN_TOOL_SOURCES = {
     "pubmed": ("literature", "free_public", "in-process:app.tools.pubmed", False, False),
     "chembl": ("drug_discovery", "free_public", "in-process:app.tools.chembl", False, False),
+    # docs/17-remaining-tools-wiring-plan.md "newly identified gaps" --
+    # real, free, unauthenticated REST APIs outside docs/12's original
+    # bio.tools/GitHub triage scope.
+    "pubchem": ("drug_discovery", "free_public", "in-process:app.tools.pubchem", False, False),
+    "europepmc": ("literature", "free_public", "in-process:app.tools.europepmc", False, False),
     "open_targets": ("drug_discovery", "free_public", "in-process:app.tools.open_targets", False, False),
     "literature_discovery": ("literature", "free_public", "in-process:app.tools.literature_discovery", False, False),
     "ensembl": ("genomics", "free_public", "in-process:app.tools.ensembl", False, False),
@@ -59,6 +64,7 @@ KNOWN_TOOL_SOURCES = {
     "clinvar": ("genomics", "free_public", "in-process:app.tools.clinvar", True, False),
     "gnomad": ("genomics", "free_public", "in-process:app.tools.gnomad", False, False),
     "ontologies": ("ontologies", "free_public", "in-process:app.tools.ontologies", False, False),
+    "hpo": ("ontologies", "free_public", "in-process:app.tools.hpo", False, False),
     "kegg": ("systems_biology", "free_public", "in-process:app.tools.kegg", False, False),
     "reactome": ("systems_biology", "free_public", "in-process:app.tools.reactome", False, False),
     # docs/18-platform-capability-gaps.md Pass 2 #1 -- correctness/trust
@@ -86,6 +92,9 @@ KNOWN_TOOL_SOURCES = {
     "string": ("systems_biology", "free_public", "in-process:app.tools.string_db", False, False),
     "clinicaltrials": ("clinical", "free_public", "in-process:app.tools.clinicaltrials", True, False),
     "dailymed": ("clinical", "free_public", "in-process:app.tools.dailymed", True, False),
+    # Real-world adverse-event reports (FAERS) -- clinical/regulatory-
+    # sensitive, same tier as dailymed/clinicaltrials.
+    "openfda": ("clinical", "free_public", "in-process:app.tools.openfda", True, False),
     "pdb": ("structural_biology", "free_public", "in-process:app.tools.pdb", False, False),
     "alphafold": ("structural_biology", "free_public", "in-process:app.tools.alphafold", False, False),
     # docs/17-remaining-tools-wiring-plan.md Phase 1, Immunoinformatics
