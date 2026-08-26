@@ -62,6 +62,7 @@ from app.tools.plip_interactions import build_plip_interactions_mcp_server
 from app.tools.primer3 import build_primer3_mcp_server
 from app.tools.pubchem import build_pubchem_mcp_server
 from app.tools.pubmed import build_pubmed_mcp_server
+from app.tools.pycombat_correction import build_pycombat_correction_mcp_server
 from app.tools.pyhmmer_search import build_pyhmmer_search_mcp_server
 from app.tools.pyteomics_mass import build_pyteomics_mass_mcp_server
 from app.tools.reactome import build_reactome_mcp_server
@@ -174,6 +175,10 @@ TOOL_BUILDERS = {
     "gene_set_enrichment": (
         "gene_set_enrichment", build_gene_set_enrichment_mcp_server,
         ["mcp__gene_set_enrichment__enrich_gene_set"],
+    ),
+    "pycombat_correction": (
+        "pycombat_correction", build_pycombat_correction_mcp_server,
+        ["mcp__pycombat_correction__correct_batch_effect"],
     ),
     "gprofiler_enrichment": (
         "gprofiler_enrichment", build_gprofiler_enrichment_mcp_server,

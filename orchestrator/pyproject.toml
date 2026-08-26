@@ -96,6 +96,10 @@ dependencies = [
     # cluster -- real directed/signed signaling interactions + ligand-
     # receptor pairs, distinct from kegg/reactome/string's coverage.
     "omnipath>=1.0,<2.0",
+    # docs/17-remaining-tools-wiring-plan.md Phase 1, Transcriptomics
+    # cluster -- real ComBat batch-effect correction on caller-supplied
+    # expression data, no external API.
+    "pycombat>=0.20,<1.0",
 ]
 
 [project.optional-dependencies]

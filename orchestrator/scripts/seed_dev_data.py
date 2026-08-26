@@ -155,6 +155,10 @@ KNOWN_TOOL_SOURCES = {
     # services (Enrichr, g:Profiler), independent backends kept as two
     # tools deliberately so results can cross-check each other.
     "gene_set_enrichment": ("transcriptomics", "free_public", "in-process:app.tools.gene_set_enrichment", False, False),
+    # docs/17-remaining-tools-wiring-plan.md Phase 1, Transcriptomics
+    # cluster -- real ComBat batch-effect correction on caller-supplied
+    # expression data, no external API.
+    "pycombat_correction": ("transcriptomics", "free_public", "in-process:app.tools.pycombat_correction", False, False),
     "gprofiler_enrichment": ("transcriptomics", "free_public", "in-process:app.tools.gprofiler_enrichment", False, False),
     # docs/12-biotools-triage-shortlist.md's Proteomics cluster
     # (feature/proteomics branch) -- real in-process mass calculation

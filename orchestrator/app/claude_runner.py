@@ -260,6 +260,10 @@ RECORD_REF_PATTERNS: list[tuple[str, re.Pattern]] = [
     # itself, same convention as gseapy/gprofiler's enrichment-library
     # tags.
     ("OmniPath query {}", re.compile(r"\[omnipath:(\w+)\]")),
+    # pyComBat batch-effect correction -- real local computation on
+    # caller-supplied data (app/tools/pycombat_correction.py), same
+    # methodological-citation convention as egglib/scikit-bio.
+    ("pyComBat {}", re.compile(r"\[pycombat:(\w+)\]")),
 ]
 
 
