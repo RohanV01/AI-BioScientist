@@ -69,6 +69,10 @@ KNOWN_TOOL_SOURCES = {
     # finding is itself a fact a researcher needs to see flagged, same
     # tier as clinical variant/trial/label data.
     "retraction_watch": ("literature", "free_public", "in-process:app.tools.retraction_watch", True, False),
+    # docs/17-remaining-tools-wiring-plan.md Phase 1, Population genetics
+    # cluster -- real local diversity-statistics computation, natural
+    # downstream step from the already-live msa tool's aligned output.
+    "egglib_popgen": ("population_genetics", "free_public", "in-process:app.tools.egglib_popgen", False, False),
     "string": ("systems_biology", "free_public", "in-process:app.tools.string_db", False, False),
     "clinicaltrials": ("clinical", "free_public", "in-process:app.tools.clinicaltrials", True, False),
     "dailymed": ("clinical", "free_public", "in-process:app.tools.dailymed", True, False),

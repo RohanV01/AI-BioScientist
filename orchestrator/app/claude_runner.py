@@ -214,6 +214,10 @@ RECORD_REF_PATTERNS: list[tuple[str, re.Pattern]] = [
     # NRP Calculator non-repetitive part design -- real local computation
     # (app/tools/nrpcalc_design.py), same methodological-citation pattern.
     ("NRP Calculator {}", re.compile(r"\[nrpcalc:(\w+)\]")),
+    # egglib population-genetics diversity statistics -- real local
+    # computation (app/tools/egglib_popgen.py) on caller-supplied aligned
+    # sequences, same methodological-citation pattern as msprime.
+    ("egglib {}", re.compile(r"\[egglib:(\w+)\]")),
 ]
 
 

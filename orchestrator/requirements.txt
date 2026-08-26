@@ -45,6 +45,7 @@ soltrannet>=1.0,<2.0
 equilibrator-api>=0.6,<1.0
 straindesign>=1.19,<2.0
 nrpcalc>=1.7,<2.0
+egglib>=3.6,<4.0
 
 # dev/test
 pytest>=8.3,<9.0
