@@ -59,7 +59,7 @@ so roughly 25-40 tools per contributor-week at a sustainable pace, not a sprint.
 | Tool | Adds |
 |---|---|
 | LightDock | Protein-protein docking (Vina only does small-molecule) |
-| Auto3D | SMILES -> 3D conformers (closes the gap between ChEMBL's 2D SMILES and Vina's 3D input requirement) |
+| Auto3D | SMILES -> 3D conformers (closes the gap between ChEMBL's 2D SMILES and Vina's 3D input requirement). **Live 2026-08-26 as `auto3d_conformers`.** Found and guarded against a real, environment-specific bug: torch's JIT C++ compile (inductor) fails when the install path contains a space (`TORCHDYNAMO_DISABLE=1` set at import time). |
 | AiZynthFinder | Retrosynthetic route planning |
 | Chemprop | Trainable/pretrained molecular property prediction (MPNN) |
 | Pickaxe | Metabolite/biotransformation prediction from a structure |
