@@ -61,6 +61,14 @@ KNOWN_TOOL_SOURCES = {
     "ontologies": ("ontologies", "free_public", "in-process:app.tools.ontologies", False, False),
     "kegg": ("systems_biology", "free_public", "in-process:app.tools.kegg", False, False),
     "reactome": ("systems_biology", "free_public", "in-process:app.tools.reactome", False, False),
+    # docs/18-platform-capability-gaps.md Pass 2 #1 -- correctness/trust
+    # fix for the existing grounded-response guarantee, not a new domain.
+    # Real structured retraction data from PubMed's own record (not a
+    # heuristic), no external API dependency beyond E-utilities (already
+    # used by pubmed.py). requires_expert_review=True: a retraction
+    # finding is itself a fact a researcher needs to see flagged, same
+    # tier as clinical variant/trial/label data.
+    "retraction_watch": ("literature", "free_public", "in-process:app.tools.retraction_watch", True, False),
     "string": ("systems_biology", "free_public", "in-process:app.tools.string_db", False, False),
     "clinicaltrials": ("clinical", "free_public", "in-process:app.tools.clinicaltrials", True, False),
     "dailymed": ("clinical", "free_public", "in-process:app.tools.dailymed", True, False),

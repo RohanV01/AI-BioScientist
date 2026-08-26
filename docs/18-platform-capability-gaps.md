@@ -116,10 +116,24 @@ builder file, a real API or a real DB-table query, a real test), and both attack
 actual stated mission (grounded, publishable, verifiable science) directly, rather than adding
 surface area the way one more data source would.
 
-**Retraction detection** in particular deserves to jump the queue ahead of `docs/17`'s Phase 1 --
-it's a correctness/trust issue with the *existing* grounded-response guarantee, not a new
-capability. Concretely: a `retraction_status(doi_or_pmid)` check against Retraction Watch's
-database, called automatically whenever `pubmed`/`literature_discovery` results feed a `grounded`
-response, with a hard requirement that a retracted source can never back a `grounded` claim without
-an explicit warning surfaced to the researcher -- the same structural-enforcement precedent
-`app/grounding.py` already sets for citations generally.
+**Retraction detection -- built and live-verified 2026-08-26.** `app/tools/retraction_watch.py`'s
+`check_retraction_status(pmid|doi)` checks PubMed's own record (`PublicationType == "Retracted
+Publication"`, plus `CommentsCorrections RefType="RetractionIn"`/`"ExpressionOfConcernIn"`) --
+confirmed live against known-retracted PMIDs (9500320 Wakefield, 24476887 STAP-cell) to be more
+reliable than Crossref's `works/{doi}` `update-to` field, which isn't consistently populated for
+known-retracted DOIs (checked live, not assumed). **Enforcement is prompt-level, not yet
+grounding.py-level**: `MASTER_AGENT_SYSTEM_PROMPT` requires calling this tool on every PubMed-
+sourced PMID before it backs a claim, and disclosing retraction/concern status inline rather than
+citing it as standing evidence -- live-verified on a real retracted-paper query (Wakefield MMR
+paper, PMID 9500320: agent called `pubmed` then `retraction_watch`, response correctly stated
+"RETRACTED" and warned against citing it as evidence, `provenance_type` stayed `grounded` with
+both PMID 9500320 and the retraction-notice PMID 15016483 as GroundingLinks) and a clean-paper
+control query (no retraction, no false positive, both tools still correctly attributed, no
+isolation leak). **Still open, deliberately not attempted in this pass**: the harder version this
+section originally proposed -- a hard, code-level block in `app/grounding.py` itself that refuses
+to let a retracted record back a `grounded` response at all, rather than relying on the agent
+following its system prompt. That needs `create_response` to cross-check every citation's
+record_ref against retraction status at response-creation time (a live network call inside what's
+currently a zero-I/O synchronous enforcement path) -- a real design decision (cache retraction
+status? block synchronously? which record types even apply?) worth its own pass, not a corner cut
+here.

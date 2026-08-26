@@ -11,10 +11,6 @@ notes/
 data/*
 !data/README.md
 
-# Legacy RxDis reference material — kept locally, not part of the new app's history
-reference/rxdis-legacy/output/
-reference/rxdis-legacy/.env.rxdis-legacy
-
 # Python
 __pycache__/
 *.py[cod]

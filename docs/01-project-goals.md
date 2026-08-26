@@ -13,8 +13,7 @@ It is the build-out of [[researcher-lab-experiment-catalog-2026-08-15]] (the "Re
 Three things converged to make this buildable rather than theoretical:
 
 1. **The tool catalog already exists.** ChEMBL, Open Targets, and PubMed are live MCPs today. A 124-resource BioDB registry and a 33,110-entry bio.tools index are already cataloged and ready to be wrapped.
-2. **A working drug-discovery agent already exists.** RxDis (`reference/rxdis-legacy/`) is a functioning 9-phase pipeline — target ID, structure validation, repurposing, de novo design, biologics, optimization — that can be wrapped as the platform's first non-trivial agent instead of built from scratch.
-3. **The data problem may already be half-solved.** `data/scihub.sql` (32.7GB, a full Sci-Hub `scimag` metadata dump with Title/Author/Year/Journal/PubmedID/PMC per DOI) sat alongside RxDis, undiscovered until this project's kickoff. Joined against the DOI biology classification project's `biology_dois.txt` (16.9M classified biology DOIs), this may resolve the single biggest blocker the research report identified — the DOI corpus having no metadata — without rebuilding the CrossRef/Unpaywall enrichment pipeline the report originally proposed. Confirming this join is the first task in the Build Plan (Section 10, Phase 0).
+2. **The data problem may already be half-solved.** `data/scihub.sql` (32.7GB, a full Sci-Hub `scimag` metadata dump with Title/Author/Year/Journal/PubmedID/PMC per DOI), undiscovered until this project's kickoff. Joined against the DOI biology classification project's `biology_dois.txt` (16.9M classified biology DOIs), this may resolve the single biggest blocker the research report identified — the DOI corpus having no metadata — without rebuilding the CrossRef/Unpaywall enrichment pipeline the report originally proposed. Confirming this join is the first task in the Build Plan (Section 10, Phase 0).
 
 ## Goals
 
@@ -35,9 +34,8 @@ Three things converged to make this buildable rather than theoretical:
 ## Success looks like
 
 - A researcher can `@drug-discovery-agent` a target name and get back a literature-grounded rationale report (Flagship 5.2) inside a channel, with every claim citable, in under a few minutes.
-- RxDis is reachable as `@drug-discovery-agent run repurposing for <disease>` instead of requiring its own separate UI.
 - The DOI corpus enrichment question is answered (solved via local join, or confirmed as still needing the CrossRef/Unpaywall path) within the first week of building, because it gates a large fraction of the rest of the roadmap.
-- A second agent (beyond drug discovery) — most likely the literature agent, since PubMed is already live — is delegatable end-to-end, proving the "one interface, many agents" pattern generalizes rather than being a one-off wrapper around RxDis.
+- A second agent (beyond drug discovery) — most likely the literature agent, since PubMed is already live — is delegatable end-to-end, proving the "one interface, many agents" pattern generalizes rather than being a one-off wrapper around a single domain.
 
 ## Related documents
 
