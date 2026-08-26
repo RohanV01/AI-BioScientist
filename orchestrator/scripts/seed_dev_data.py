@@ -52,6 +52,11 @@ from app.vault import encrypt  # noqa: E402
 KNOWN_TOOL_SOURCES = {
     "pubmed": ("literature", "free_public", "in-process:app.tools.pubmed", False, False),
     "chembl": ("drug_discovery", "free_public", "in-process:app.tools.chembl", False, False),
+    # docs/17-remaining-tools-wiring-plan.md Phase 1, Cheminformatics
+    # cluster -- real SMILES -> 3D conformer generation (RDKit isomer
+    # enumeration + AIMNET NNP optimization), closes the gap between
+    # ChEMBL/PubChem's 2D SMILES and vina_docking's 3D input requirement.
+    "auto3d_conformers": ("drug_discovery", "free_public", "in-process:app.tools.auto3d_conformers", False, False),
     # docs/17-remaining-tools-wiring-plan.md "newly identified gaps" --
     # real, free, unauthenticated REST APIs outside docs/12's original
     # bio.tools/GitHub triage scope.

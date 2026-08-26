@@ -87,6 +87,9 @@ USER orchestrator
 # nothing, purely because this used to sit after `COPY . .`.
 RUN python3 -c "from equilibrator_api import ComponentContribution; ComponentContribution()" || true
 RUN mhcflurry-downloads fetch models_class1_pan
+# Auto3D's AIMNET model weights (~8.8MB, small relative to the two
+# above, but same principle -- pay the one-time download at build time).
+RUN TORCHDYNAMO_DISABLE=1 python3 -c "from Auto3D.auto3D import Auto3DOptions, smiles2mols; smiles2mols(['C'], Auto3DOptions(k=1, use_gpu=False, optimizing_engine='AIMNET'))" || true
 
 USER root
 COPY --chown=orchestrator:orchestrator . .

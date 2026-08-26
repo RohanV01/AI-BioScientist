@@ -254,6 +254,10 @@ RECORD_REF_PATTERNS: list[tuple[str, re.Pattern]] = [
     # caller-supplied data (app/tools/mokapot_rescoring.py), same
     # methodological-citation convention as cobra/tcrdist/egglib.
     ("mokapot rescoring (target FDR {}) ", re.compile(r"\[mokapot:([\d.]+)\]")),
+    # Auto3D 3D conformer generation -- real local computation
+    # (app/tools/auto3d_conformers.py), same methodological-citation
+    # convention as vina's [vina:pdb_id] tag.
+    ("Auto3D {}", re.compile(r"\[auto3d:(\w+)\]")),
 ]
 
 

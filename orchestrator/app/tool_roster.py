@@ -27,6 +27,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import Agent, Credential, ToolBinding, ToolSource
 from app.tools.alphafold import build_alphafold_mcp_server
 from app.tools.anarci_numbering import build_anarci_mcp_server
+from app.tools.auto3d_conformers import build_auto3d_conformers_mcp_server
 from app.tools.biopandas_structure import build_biopandas_structure_mcp_server
 from app.tools.chembl import build_chembl_mcp_server
 from app.tools.clinicaltrials import build_clinicaltrials_mcp_server
@@ -88,6 +89,10 @@ TOOL_BUILDERS = {
     "chembl": (
         "chembl", build_chembl_mcp_server,
         ["mcp__chembl__compound_search", "mcp__chembl__get_bioactivity"],
+    ),
+    "auto3d_conformers": (
+        "auto3d_conformers", build_auto3d_conformers_mcp_server,
+        ["mcp__auto3d_conformers__generate_3d_conformer"],
     ),
     "pubchem": ("pubchem", build_pubchem_mcp_server, ["mcp__pubchem__search_compound"]),
     "europepmc": ("europepmc", build_europepmc_mcp_server, ["mcp__europepmc__search_europepmc"]),

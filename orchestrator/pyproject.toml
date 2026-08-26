@@ -92,6 +92,11 @@ dependencies = [
     # -- pure-Python PSM rescoring for FDR control, pairs with the
     # already-live pyteomics_mass.
     "mokapot>=0.10,<1.0",
+    # docs/17-remaining-tools-wiring-plan.md Phase 1, Cheminformatics
+    # cluster -- SMILES -> 3D conformers via RDKit isomer enumeration +
+    # a neural network potential (AIMNET), closing the ChEMBL/PubChem
+    # 2D-SMILES -> vina_docking 3D-input gap.
+    "Auto3D>=3.0,<4.0",
 ]
 
 [project.optional-dependencies]
