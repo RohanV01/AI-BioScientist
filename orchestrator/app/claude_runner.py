@@ -254,6 +254,12 @@ RECORD_REF_PATTERNS: list[tuple[str, re.Pattern]] = [
     # caller-supplied data (app/tools/mokapot_rescoring.py), same
     # methodological-citation convention as cobra/tcrdist/egglib.
     ("mokapot rescoring (target FDR {}) ", re.compile(r"\[mokapot:([\d.]+)\]")),
+    # OmniPath signaling interactions -- real curated data from a live
+    # external service (app/tools/omnipath_interactions.py), but no
+    # single per-interaction record ID, so the citable unit is the query
+    # itself, same convention as gseapy/gprofiler's enrichment-library
+    # tags.
+    ("OmniPath query {}", re.compile(r"\[omnipath:(\w+)\]")),
 ]
 
 

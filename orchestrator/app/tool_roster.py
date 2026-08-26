@@ -52,6 +52,7 @@ from app.tools.mokapot_rescoring import build_mokapot_rescoring_mcp_server
 from app.tools.msa import build_msa_mcp_server
 from app.tools.msprime import build_msprime_mcp_server
 from app.tools.nrpcalc_design import build_nrpcalc_design_mcp_server
+from app.tools.omnipath_interactions import build_omnipath_interactions_mcp_server
 from app.tools.ontologies import build_ontologies_mcp_server
 from app.tools.open_targets import build_open_targets_mcp_server
 from app.tools.openfda import build_openfda_mcp_server
@@ -134,6 +135,10 @@ TOOL_BUILDERS = {
     ),
     "minimap2_align": ("minimap2_align", build_minimap2_mcp_server, ["mcp__minimap2_align__align_to_reference"]),
     "string": ("string", build_string_mcp_server, ["mcp__string__get_interaction_partners"]),
+    "omnipath_interactions": (
+        "omnipath_interactions", build_omnipath_interactions_mcp_server,
+        ["mcp__omnipath_interactions__get_signaling_interactions"],
+    ),
     "clinicaltrials": ("clinicaltrials", build_clinicaltrials_mcp_server, ["mcp__clinicaltrials__search_trials"]),
     "dailymed": ("dailymed", build_dailymed_mcp_server, ["mcp__dailymed__search_drug_labels"]),
     "openfda": ("openfda", build_openfda_mcp_server, ["mcp__openfda__search_adverse_events"]),

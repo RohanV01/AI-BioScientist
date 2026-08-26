@@ -90,6 +90,11 @@ KNOWN_TOOL_SOURCES = {
     # alignment of closely-related sequences.
     "minimap2_align": ("sequence_analysis", "free_public", "in-process:app.tools.minimap2_align", False, False),
     "string": ("systems_biology", "free_public", "in-process:app.tools.string_db", False, False),
+    # docs/17-remaining-tools-wiring-plan.md Phase 1, Transcriptomics
+    # cluster -- real directed/signed signaling interactions with
+    # literature evidence, distinct from kegg/reactome (pathway detail)
+    # and string (undirected confidence network).
+    "omnipath_interactions": ("systems_biology", "free_public", "in-process:app.tools.omnipath_interactions", False, False),
     "clinicaltrials": ("clinical", "free_public", "in-process:app.tools.clinicaltrials", True, False),
     "dailymed": ("clinical", "free_public", "in-process:app.tools.dailymed", True, False),
     # Real-world adverse-event reports (FAERS) -- clinical/regulatory-
