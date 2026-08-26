@@ -254,6 +254,10 @@ RECORD_REF_PATTERNS: list[tuple[str, re.Pattern]] = [
     # caller-supplied data (app/tools/mokapot_rescoring.py), same
     # methodological-citation convention as cobra/tcrdist/egglib.
     ("mokapot rescoring (target FDR {}) ", re.compile(r"\[mokapot:([\d.]+)\]")),
+    # spyrmsd pose RMSD -- real local computation on caller-supplied
+    # poses (app/tools/spyrmsd_pose.py), same methodological-citation
+    # convention as vina's [vina:pdb_id] tag.
+    ("spyrmsd {}", re.compile(r"\[spyrmsd:(\w+)\]")),
 ]
 
 

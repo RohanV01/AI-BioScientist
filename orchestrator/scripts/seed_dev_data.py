@@ -119,6 +119,12 @@ KNOWN_TOOL_SOURCES = {
     "biopandas_structure": ("structural_biology", "free_public", "in-process:app.tools.biopandas_structure", False, False),
     "cobra_fba": ("systems_biology", "free_public", "in-process:app.tools.cobra_fba", False, False),
     "vina_docking": ("drug_discovery", "free_public", "in-process:app.tools.vina_docking", False, False),
+    # docs/17-remaining-tools-wiring-plan.md Phase 1, Structural biology
+    # cluster -- real symmetry-corrected small-molecule pose RMSD, pairs
+    # with vina_docking. DockQ (protein-protein pose scoring, same
+    # shortlist row) investigated and NOT wired -- see docs/17 for why
+    # (hard numpy<2 vs. msprime/tskit's numpy>=2 C-API conflict).
+    "spyrmsd_pose": ("structural_biology", "free_public", "in-process:app.tools.spyrmsd_pose", False, False),
     # docs/12-biotools-triage-shortlist.md's Sequence analysis fundamentals
     # cluster (feature/sequence-analysis branch) -- both real in-process
     # computation, no external API for the computation itself.

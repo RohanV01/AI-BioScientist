@@ -68,6 +68,7 @@ from app.tools.retraction_watch import build_retraction_watch_mcp_server
 from app.tools.scikit_bio import build_scikit_bio_mcp_server
 from app.tools.soltrannet_solubility import build_soltrannet_solubility_mcp_server
 from app.tools.sourmash_compare import build_sourmash_compare_mcp_server
+from app.tools.spyrmsd_pose import build_spyrmsd_pose_mcp_server
 from app.tools.straindesign_intervention import build_straindesign_intervention_mcp_server
 from app.tools.string_db import build_string_mcp_server
 from app.tools.tcrdist_repertoire import build_tcrdist_repertoire_mcp_server
@@ -162,6 +163,7 @@ TOOL_BUILDERS = {
         ["mcp__cobra_fba__search_metabolic_models", "mcp__cobra_fba__run_flux_balance_analysis"],
     ),
     "vina_docking": ("vina_docking", build_vina_docking_mcp_server, ["mcp__vina_docking__dock_ligand"]),
+    "spyrmsd_pose": ("spyrmsd_pose", build_spyrmsd_pose_mcp_server, ["mcp__spyrmsd_pose__compute_pose_rmsd"]),
     "equilibrator_thermo": (
         "equilibrator_thermo", build_equilibrator_thermo_mcp_server,
         ["mcp__equilibrator_thermo__estimate_reaction_gibbs_energy"],

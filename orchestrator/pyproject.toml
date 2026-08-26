@@ -92,6 +92,16 @@ dependencies = [
     # -- pure-Python PSM rescoring for FDR control, pairs with the
     # already-live pyteomics_mass.
     "mokapot>=0.10,<1.0",
+    # docs/17-remaining-tools-wiring-plan.md Phase 1, Structural biology
+    # cluster -- symmetry-corrected small-molecule pose RMSD, pairs with
+    # vina_docking. DockQ (same shortlist row) investigated and NOT
+    # added -- its numpy<2.0 pin conflicts with msprime/tskit's compiled
+    # extension, which needs numpy>=2's C-API (confirmed live: DockQ
+    # installed fine alone, but broke tskit's import; reinstalling
+    # numpy>=2 to fix tskit then broke DockQ's own compiled extension in
+    # the other direction -- a real, unresolvable-in-place conflict, not
+    # a version-range nitpick).
+    "spyrmsd>=0.9,<1.0",
 ]
 
 [project.optional-dependencies]
