@@ -74,6 +74,10 @@ KNOWN_TOOL_SOURCES = {
     # complementing cobra_fba's steady-state FBA. basico deliberately not
     # also wired -- docs/17 itself flags it as "same niche, alternate API".
     "kinetic_simulation": ("systems_biology", "free_public", "in-process:app.tools.kinetic_simulation", False, False),
+    # docs/17-remaining-tools-wiring-plan.md Phase 1, Population genetics
+    # cluster -- real local diversity-statistics computation, natural
+    # downstream step from the already-live msa tool's aligned output.
+    "egglib_popgen": ("population_genetics", "free_public", "in-process:app.tools.egglib_popgen", False, False),
     "string": ("systems_biology", "free_public", "in-process:app.tools.string_db", False, False),
     "clinicaltrials": ("clinical", "free_public", "in-process:app.tools.clinicaltrials", True, False),
     "dailymed": ("clinical", "free_public", "in-process:app.tools.dailymed", True, False),

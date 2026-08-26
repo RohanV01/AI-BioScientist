@@ -231,6 +231,10 @@ RECORD_REF_PATTERNS: list[tuple[str, re.Pattern]] = [
     # the local-computation tags above) this is an external database
     # record reference, same tier as a ChEMBL/PDB ID.
     ("BioModels ID {}", re.compile(r"\b(BIOMD\d{10}|MODEL\d{10})\b")),
+    # egglib population-genetics diversity statistics -- real local
+    # computation (app/tools/egglib_popgen.py) on caller-supplied aligned
+    # sequences, same methodological-citation pattern as msprime.
+    ("egglib {}", re.compile(r"\[egglib:(\w+)\]")),
 ]
 
 

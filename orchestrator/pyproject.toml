@@ -80,6 +80,10 @@ dependencies = [
     # cluster -- dynamic SBML kinetic simulation, complementing cobra's
     # steady-state FBA.
     "libroadrunner>=2.10,<3.0",
+    # docs/17-remaining-tools-wiring-plan.md Phase 1, Population genetics
+    # cluster -- real diversity statistics on caller-supplied aligned
+    # sequences, no external API.
+    "egglib>=3.6,<4.0",
 ]
 
 [project.optional-dependencies]

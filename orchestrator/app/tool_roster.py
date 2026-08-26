@@ -33,6 +33,7 @@ from app.tools.clinicaltrials import build_clinicaltrials_mcp_server
 from app.tools.clinvar import build_clinvar_mcp_server
 from app.tools.cobra_fba import build_cobra_fba_mcp_server
 from app.tools.dailymed import build_dailymed_mcp_server
+from app.tools.egglib_popgen import build_egglib_popgen_mcp_server
 from app.tools.ensembl import build_ensembl_mcp_server
 from app.tools.epitopepredict import build_epitopepredict_mcp_server
 from app.tools.equilibrator_thermo import build_equilibrator_thermo_mcp_server
@@ -117,6 +118,10 @@ TOOL_BUILDERS = {
     "kinetic_simulation": (
         "kinetic_simulation", build_kinetic_simulation_mcp_server,
         ["mcp__kinetic_simulation__simulate_kinetic_model"],
+    ),
+    "egglib_popgen": (
+        "egglib_popgen", build_egglib_popgen_mcp_server,
+        ["mcp__egglib_popgen__compute_diversity_statistics"],
     ),
     "string": ("string", build_string_mcp_server, ["mcp__string__get_interaction_partners"]),
     "clinicaltrials": ("clinicaltrials", build_clinicaltrials_mcp_server, ["mcp__clinicaltrials__search_trials"]),
