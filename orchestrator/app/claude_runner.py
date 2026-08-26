@@ -250,6 +250,10 @@ RECORD_REF_PATTERNS: list[tuple[str, re.Pattern]] = [
     # results (MONDO cross-refs, when present, already match the
     # existing "Ontology/Disease ID {}" pattern above).
     ("Disease ID {}", re.compile(r"\b((?:OMIM|ORPHA):\d+)\b")),
+    # mokapot PSM rescoring -- real local semi-supervised computation on
+    # caller-supplied data (app/tools/mokapot_rescoring.py), same
+    # methodological-citation convention as cobra/tcrdist/egglib.
+    ("mokapot rescoring (target FDR {}) ", re.compile(r"\[mokapot:([\d.]+)\]")),
 ]
 
 

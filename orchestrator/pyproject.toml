@@ -88,6 +88,10 @@ dependencies = [
     # cluster -- minimap2's official Python bindings, real compiled
     # aligner, no external API.
     "mappy>=2.31,<3.0",
+    # docs/17-remaining-tools-wiring-plan.md Phase 1, Proteomics cluster
+    # -- pure-Python PSM rescoring for FDR control, pairs with the
+    # already-live pyteomics_mass.
+    "mokapot>=0.10,<1.0",
 ]
 
 [project.optional-dependencies]
