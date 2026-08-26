@@ -49,10 +49,10 @@ so roughly 25-40 tools per contributor-week at a sustainable pace, not a sprint.
 |---|---|
 | epitopepredict | Unified T-cell epitope prediction (complements MHCflurry's MHC-I-only scope) |
 | ANARCI | Antibody/TCR sequence numbering (Kabat/Chothia/IMGT) |
-| AbLang | Antibody sequence language model |
-| BioPhi | Antibody humanization + humanness scoring |
-| PyIR | Antibody/TCR V(D)J gene assignment (IgBLAST wrapper) |
-| clusTCR | TCR repertoire clustering |
+| AbLang | Antibody sequence language model. **Live 2026-08-27 as `ablang_restore`** (`restore_antibody_sequence`, restore mode). Earlier session attempt stalled on the model download (near-zero bytes/sec); confirmed live on retry that this was transient -- both checkpoints downloaded in under 70s. |
+| ~~BioPhi~~ | Antibody humanization + humanness scoring. **Checked 2026-08-27, not built** -- not on PyPI under any tried name (`biophi`/`bio-phi`/`biophi-humanization`), GitHub-only install, same tier finding as IDPConformerGenerator/clusTCR. |
+| PyIR | Antibody/TCR V(D)J gene assignment (IgBLAST wrapper). **Checked 2026-08-27**: the real package is `crowelab-pyir` (bare `pyir` on PyPI is an unrelated "Python Intermediate Representation" package). Confirmed live it genuinely shells out to a real `igblastn` binary + germline reference databases (`--igdata`/`-x` flags) -- heavier CLONE-tier plumbing than ANARCI's single `hmmscan` binary, not simple `apt-get`. Moved to the Phase 2 CLONE-tier batch rather than built as a one-off mid-Phase-1 Dockerfile hack. |
+| ~~clusTCR~~ | TCR repertoire clustering. **Checked 2026-08-27, not built** -- not on PyPI under that name, GitHub-only install, same tier finding as BioPhi/IDPConformerGenerator. |
 | tcrdist3 | TCR repertoire distance metrics |
 
 ### Cheminformatics (`feature/cheminformatics`) -- 7 tools
@@ -60,18 +60,18 @@ so roughly 25-40 tools per contributor-week at a sustainable pace, not a sprint.
 |---|---|
 | LightDock | Protein-protein docking (Vina only does small-molecule). **Live 2026-08-26 as `lightdock_docking`.** |
 | Auto3D | SMILES -> 3D conformers (closes the gap between ChEMBL's 2D SMILES and Vina's 3D input requirement). **Live 2026-08-26 as `auto3d_conformers`.** Found and guarded against a real, environment-specific bug: torch's JIT C++ compile (inductor) fails when the install path contains a space (`TORCHDYNAMO_DISABLE=1` set at import time). |
-| AiZynthFinder | Retrosynthetic route planning -- not attempted this pass (time budget), real pretrained-model download risk similar to HunFlair's, worth its own session. |
-| Chemprop | Trainable/pretrained molecular property prediction (MPNN) -- not attempted this pass; needs a pretrained checkpoint or training data this platform doesn't have on hand, not a simple zero-shot wrap like the other tools here. |
+| ~~AiZynthFinder~~ | Retrosynthetic route planning. **Investigated 2026-08-27, not built -- real dependency conflict.** Installing it force-downgrades this platform's pinned `rdkit>=2026.3,<2027.0` to `rdkit==2023.9.6` (confirmed live) -- the same class of hard, unresolvable-in-place conflict as the DockQ/numpy rejection, since `vina_docking`/`meeko`/`auto3d_conformers`/etc. are already shipped against the newer rdkit. |
+| ~~Chemprop~~ | Trainable/pretrained molecular property prediction (MPNN). **Investigated 2026-08-27, not built** -- confirmed live it resolves cleanly against this platform's pinned rdkit (no conflict, unlike AiZynthFinder) but genuinely ships no downloadable pretrained/foundation checkpoint (its own package has no pretrained-hub code path, only CLI `--checkpoint` for a caller-supplied trained model file) -- needs training data this platform doesn't have, confirming the original assessment. |
 | ~~Pickaxe~~ | Metabolite/biotransformation prediction from a structure. **Checked 2026-08-26, not built.** The real PyPI package is `minedatabase` (bare `pickaxe` on PyPI is an empty placeholder, confirmed before installing). It pulls a heavy, unexpected dependency chain (pymongo, keras) suggesting the package is architected around a persistent MongoDB-backed reaction database, not a stateless per-request computation, and its `lxml` dependency fails to build without `libxml2-dev`/`libxslt1-dev` system headers (not in the base image). A heavier CLONE-tier integration than docs/12 assumed -- worth a dedicated pass to confirm whether standalone (non-Mongo) use is actually viable, not built speculatively here. |
 | libRoadRunner | SBML kinetic/ODE simulation (dynamic, complements cobrapy's steady-state FBA) |
-| basico | Same SBML kinetic simulation niche, alternate API |
+| ~~basico~~ | Same SBML kinetic simulation niche, alternate API to the already-live `libRoadRunner`/`kinetic_simulation`. **Deliberately not built 2026-08-27** -- real redundant capability, not worth a second tool for the same niche (same call as the docs/12 precedent this row itself already flagged). |
 
 ### Population genetics (`feature/population-genetics`) -- 3 tools
 | Tool | Adds |
 |---|---|
-| pixy | Nucleotide diversity (pi) / divergence (dxy) from a VCF |
+| pixy | Nucleotide diversity (pi) / divergence (dxy) from a VCF. **Checked 2026-08-27**: not on PyPI under that name (the PyPI `pixy` package is an unrelated terminal-color library) -- bioconda-only distribution, same tier finding as BUSCO. Moved to the Phase 2 CLONE-tier batch. |
 | egglib | General pop-gen stats engine (diversity, Fst, Tajima's D) |
-| pandasGWAS | Programmatic GWAS Catalog queries |
+| pandasGWAS | Programmatic GWAS Catalog queries. **Live 2026-08-27 as `gwas_catalog`** (`get_gwas_studies_for_variant`, wired on `get_studies_by_variant_id`). Genuinely slow (confirmed live: 60-90s per call against a well-studied real variant, the API paginating a large real result set) -- documented plainly in the tool's own description rather than treated as a defect; user confirmed multi-minute real tool latency is acceptable as long as the result is real. |
 
 ### Sequence analysis (`feature/sequence-analysis`) -- 1 tool
 | Tool | Adds |
@@ -81,8 +81,8 @@ so roughly 25-40 tools per contributor-week at a sustainable pace, not a sprint.
 ### Synthetic biology (`feature/synthetic-biology`) -- 2 tools
 | Tool | Adds |
 |---|---|
-| OpenCloning | Cloning/genome-engineering strategy design (documented API) |
-| PEGG | Prime-editing pegRNA design |
+| ~~OpenCloning~~ | Cloning/genome-engineering strategy design. **Investigated 2026-08-27, not built as named** -- the PyPI `opencloning` package is a FastAPI web-app backend (its own summary says so), not a callable library, with no public hosted instance referenced in its own settings. Its real assembly-simulation logic is built on `pydna`, a real standalone library -- wired that directly instead as **`gibson_assembly`** (`simulate_gibson_assembly`), confirmed live to correctly find circularized Gibson assembly products from real overlapping fragments. |
+| ~~PEGG~~ | Prime-editing pegRNA design. **Re-confirmed 2026-08-27, not built** -- still hard-pins `scikit-learn==1.1.1` (verified live against current PyPI metadata), which would downgrade this venv's scikit-learn below `mhcflurry`'s `>=1.9` floor and break an already-shipped tool. Same precedent as the docs/12 note this row already carries. |
 
 ### Transcriptomics (`feature/transcriptomics`) -- 6 tools
 | Tool | Adds |
