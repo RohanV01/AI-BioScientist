@@ -14,8 +14,15 @@ FROM python:3.11-slim
 # aligned and has no way to align raw, indel-bearing real-world sequences
 # itself, which silently corrupted a tree-building result under hard
 # testing (see docs/15-battle-test-report.md, Battle 7).
+# hmmer (app/tools/anarci_numbering.py) -- the `anarci` PyPI package
+# (docs/17-remaining-tools-wiring-plan.md Phase 1, Immunoinformatics
+# cluster) is pure Python but shells out to the real `hmmscan` binary for
+# its profile-HMM alignment step; confirmed live (a bare `anarci()` call
+# raised FileNotFoundError for `hmmscan` before this was added) rather
+# than assumed from the package's PyPI listing -- so this is really a
+# CLONE-tier tool, not the PIP-tier docs/17 first assumed.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends curl ca-certificates gnupg mafft \
+    && apt-get install -y --no-install-recommends curl ca-certificates gnupg mafft hmmer \
     && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y --no-install-recommends nodejs \
     && npm install -g @anthropic-ai/claude-code \

@@ -74,6 +74,11 @@ KNOWN_TOOL_SOURCES = {
     "dailymed": ("clinical", "free_public", "in-process:app.tools.dailymed", True, False),
     "pdb": ("structural_biology", "free_public", "in-process:app.tools.pdb", False, False),
     "alphafold": ("structural_biology", "free_public", "in-process:app.tools.alphafold", False, False),
+    # docs/17-remaining-tools-wiring-plan.md Phase 1, Immunoinformatics
+    # cluster -- all three real local computation, no external API.
+    "epitopepredict": ("immunoinformatics", "free_public", "in-process:app.tools.epitopepredict", False, False),
+    "anarci_numbering": ("immunoinformatics", "free_public", "in-process:app.tools.anarci_numbering", False, False),
+    "tcrdist_repertoire": ("immunoinformatics", "free_public", "in-process:app.tools.tcrdist_repertoire", False, False),
     # free_metered, not free_public -- HF's Inference API needs a real
     # (free-to-create) token, unlike the NCBI/EBI/RCSB-style truly
     # anonymous APIs everything else here uses.

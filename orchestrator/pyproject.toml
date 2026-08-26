@@ -69,6 +69,13 @@ dependencies = [
     # scikit-learn==1.1.1, which would downgrade this venv's scikit-learn
     # (needed at >=1.9 by mhcflurry) and break an already-shipped tool.
     "nrpcalc>=1.7,<2.0",
+    # docs/17-remaining-tools-wiring-plan.md Phase 1, Immunoinformatics
+    # cluster -- three real local-computation packages, no external API.
+    "epitopepredict>=0.5,<1.0",
+    # anarci is pure Python but needs the real `hmmscan` binary (apt
+    # `hmmer` package, see Dockerfile) for its HMM alignment step.
+    "anarci>=2026.2.13,<2027.0",
+    "tcrdist3>=0.3,<1.0",
 ]
 
 [project.optional-dependencies]
