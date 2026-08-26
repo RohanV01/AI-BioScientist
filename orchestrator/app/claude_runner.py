@@ -214,6 +214,11 @@ RECORD_REF_PATTERNS: list[tuple[str, re.Pattern]] = [
     # NRP Calculator non-repetitive part design -- real local computation
     # (app/tools/nrpcalc_design.py), same methodological-citation pattern.
     ("NRP Calculator {}", re.compile(r"\[nrpcalc:(\w+)\]")),
+    # BioModels ID -- app/tools/kinetic_simulation.py fetches a real
+    # curated kinetic model by this ID before simulating it, so (unlike
+    # the local-computation tags above) this is an external database
+    # record reference, same tier as a ChEMBL/PDB ID.
+    ("BioModels ID {}", re.compile(r"\b(BIOMD\d{10}|MODEL\d{10})\b")),
 ]
 
 
