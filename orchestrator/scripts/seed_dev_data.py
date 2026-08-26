@@ -69,8 +69,16 @@ KNOWN_TOOL_SOURCES = {
     "open_targets": ("drug_discovery", "free_public", "in-process:app.tools.open_targets", False, False),
     "literature_discovery": ("literature", "free_public", "in-process:app.tools.literature_discovery", False, False),
     "ensembl": ("genomics", "free_public", "in-process:app.tools.ensembl", False, False),
+    # Predicts a variant's functional consequence (missense/nonsense/
+    # splice-site, SIFT/PolyPhen) for a variant not yet curated in
+    # ClinVar -- clinical-adjacent, same review tier as clinvar/gnomad.
+    "ensembl_vep": ("genomics", "free_public", "in-process:app.tools.ensembl_vep", True, False),
     "uniprot": ("genomics", "free_public", "in-process:app.tools.uniprot", False, False),
     "clinvar": ("genomics", "free_public", "in-process:app.tools.clinvar", True, False),
+    # Real successor to the old, now-dead pharmgkb.org API (docs/10 Phase
+    # 3 gave up on it) -- api.clinpgx.org confirmed live 2026-08-26.
+    # Pharmacogenomics is clinically actionable -- same review tier.
+    "clinpgx_annotations": ("clinical", "free_public", "in-process:app.tools.clinpgx_annotations", True, False),
     "gnomad": ("genomics", "free_public", "in-process:app.tools.gnomad", False, False),
     "ontologies": ("ontologies", "free_public", "in-process:app.tools.ontologies", False, False),
     "hpo": ("ontologies", "free_public", "in-process:app.tools.hpo", False, False),
