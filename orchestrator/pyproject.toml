@@ -106,6 +106,22 @@ dependencies = [
     # (same cluster) deliberately NOT added -- phones home to Zenodo on
     # bare import, observed to hang/504 repeatedly in this environment.
     "pybioportal>=1.0,<2.0",
+    # docs/17-remaining-tools-wiring-plan.md Phase 1, Structural biology
+    # cluster -- symmetry-corrected small-molecule pose RMSD, pairs with
+    # vina_docking. DockQ (same shortlist row) investigated and NOT
+    # added -- its numpy<2.0 pin conflicts with msprime/tskit's compiled
+    # extension, which needs numpy>=2's C-API (confirmed live: DockQ
+    # installed fine alone, but broke tskit's import; reinstalling
+    # numpy>=2 to fix tskit then broke DockQ's own compiled extension in
+    # the other direction -- a real, unresolvable-in-place conflict, not
+    # a version-range nitpick).
+    "spyrmsd>=0.9,<1.0",
+    # docs/17-remaining-tools-wiring-plan.md Phase 1, Structural biology
+    # cluster -- real Elastic Network Model dynamics (ANM) from a static
+    # structure, no MD trajectory needed. PyPI metadata pins numpy<2.0
+    # but confirmed live (unlike DockQ) that it's pure Python and works
+    # fine against numpy>=2 -- not the same conflict.
+    "correlationplus>=0.2,<1.0",
 ]
 
 [project.optional-dependencies]

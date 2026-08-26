@@ -97,10 +97,10 @@ so roughly 25-40 tools per contributor-week at a sustainable pace, not a sprint.
 ### Structural biology (`feature/structural-biology`) -- 4 tools
 | Tool | Adds |
 |---|---|
-| DockQ | Docking pose quality scoring -- pairs directly with the existing `vina_docking`/`plip_interactions` chain |
-| spyrmsd | Pose RMSD scoring, same pairing |
-| IDPConformerGenerator | 3D conformer ensembles for intrinsically disordered regions from sequence |
-| correlationplus | Dynamical/allosteric residue correlation from a static structure (Elastic Network Model, no MD trajectory needed) |
+| ~~DockQ~~ | **Investigated 2026-08-26, not built -- real dependency conflict, not a version-range nitpick.** DockQ hard-pins `numpy<2.0`; this platform's already-live `msprime`/`tskit` needs numpy's `>=2` C-API. Confirmed live in both directions: installing DockQ (which downgrades numpy to 1.26) breaks `tskit`'s import (`numpy._core.multiarray failed to import` -- a C-API version mismatch); reinstalling `numpy>=2` to fix `tskit` then breaks DockQ's own compiled `.operations` extension the other way. No numpy version satisfies both. Same precedent as pegg's scikit-learn conflict (docs/12) -- don't break an already-shipped tool for a new one. |
+| spyrmsd | Pose RMSD scoring, same pairing. **Live 2026-08-26 as `spyrmsd_pose`** -- no numpy-range conflict, built cleanly against `numpy>=2`. |
+| ~~IDPConformerGenerator~~ | 3D conformer ensembles for intrinsically disordered regions from sequence. **Checked 2026-08-26, not built** -- not on PyPI under any tried name (`idpconformergenerator`/`idpconfgen`), GitHub-only install, different integration tier than docs/12 assumed (same finding as BioPhi/PyIR/clusTCR this session). |
+| correlationplus | Dynamical/allosteric residue correlation from a static structure (Elastic Network Model, no MD trajectory needed). **Live 2026-08-26 as `correlationplus_dynamics`.** |
 
 ### Phylogenetics (`feature/phylogenetics`) -- 1 tool
 | Tool | Adds |

@@ -35,6 +35,7 @@ from app.tools.clinicaltrials import build_clinicaltrials_mcp_server
 from app.tools.clinpgx_annotations import build_clinpgx_annotations_mcp_server
 from app.tools.clinvar import build_clinvar_mcp_server
 from app.tools.cobra_fba import build_cobra_fba_mcp_server
+from app.tools.correlationplus_dynamics import build_correlationplus_dynamics_mcp_server
 from app.tools.dailymed import build_dailymed_mcp_server
 from app.tools.egglib_popgen import build_egglib_popgen_mcp_server
 from app.tools.ensembl import build_ensembl_mcp_server
@@ -73,6 +74,7 @@ from app.tools.retraction_watch import build_retraction_watch_mcp_server
 from app.tools.scikit_bio import build_scikit_bio_mcp_server
 from app.tools.soltrannet_solubility import build_soltrannet_solubility_mcp_server
 from app.tools.sourmash_compare import build_sourmash_compare_mcp_server
+from app.tools.spyrmsd_pose import build_spyrmsd_pose_mcp_server
 from app.tools.straindesign_intervention import build_straindesign_intervention_mcp_server
 from app.tools.string_db import build_string_mcp_server
 from app.tools.tcrdist_repertoire import build_tcrdist_repertoire_mcp_server
@@ -183,6 +185,11 @@ TOOL_BUILDERS = {
     "lightdock_docking": (
         "lightdock_docking", build_lightdock_docking_mcp_server,
         ["mcp__lightdock_docking__dock_protein_protein"],
+    ),
+    "spyrmsd_pose": ("spyrmsd_pose", build_spyrmsd_pose_mcp_server, ["mcp__spyrmsd_pose__compute_pose_rmsd"]),
+    "correlationplus_dynamics": (
+        "correlationplus_dynamics", build_correlationplus_dynamics_mcp_server,
+        ["mcp__correlationplus_dynamics__compute_residue_correlations"],
     ),
     "equilibrator_thermo": (
         "equilibrator_thermo", build_equilibrator_thermo_mcp_server,

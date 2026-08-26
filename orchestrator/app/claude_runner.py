@@ -272,6 +272,14 @@ RECORD_REF_PATTERNS: list[tuple[str, re.Pattern]] = [
     # free bracket-tag shape as the methodological tags, but this one is
     # a real external record ID.
     ("PharmGKB accession {}", re.compile(r"\[(PA\d+)\]")),
+    # spyrmsd pose RMSD -- real local computation on caller-supplied
+    # poses (app/tools/spyrmsd_pose.py), same methodological-citation
+    # convention as vina's [vina:pdb_id] tag.
+    ("spyrmsd {}", re.compile(r"\[spyrmsd:(\w+)\]")),
+    # correlationplus ANM dynamics -- real local computation
+    # (app/tools/correlationplus_dynamics.py), same methodological-
+    # citation convention as scikit-bio/cobra.
+    ("correlationplus {}", re.compile(r"\[correlationplus:(\w+)\]")),
 ]
 
 
