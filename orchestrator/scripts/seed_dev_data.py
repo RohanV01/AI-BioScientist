@@ -69,6 +69,11 @@ KNOWN_TOOL_SOURCES = {
     # finding is itself a fact a researcher needs to see flagged, same
     # tier as clinical variant/trial/label data.
     "retraction_watch": ("literature", "free_public", "in-process:app.tools.retraction_watch", True, False),
+    # docs/17-remaining-tools-wiring-plan.md Phase 1, Cheminformatics
+    # cluster -- dynamic SBML kinetic simulation via libRoadRunner,
+    # complementing cobra_fba's steady-state FBA. basico deliberately not
+    # also wired -- docs/17 itself flags it as "same niche, alternate API".
+    "kinetic_simulation": ("systems_biology", "free_public", "in-process:app.tools.kinetic_simulation", False, False),
     "string": ("systems_biology", "free_public", "in-process:app.tools.string_db", False, False),
     "clinicaltrials": ("clinical", "free_public", "in-process:app.tools.clinicaltrials", True, False),
     "dailymed": ("clinical", "free_public", "in-process:app.tools.dailymed", True, False),

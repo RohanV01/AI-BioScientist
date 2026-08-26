@@ -41,6 +41,7 @@ from app.tools.gnomad import build_gnomad_mcp_server
 from app.tools.gprofiler_enrichment import build_gprofiler_enrichment_mcp_server
 from app.tools.huggingface import build_huggingface_mcp_server
 from app.tools.kegg import build_kegg_mcp_server
+from app.tools.kinetic_simulation import build_kinetic_simulation_mcp_server
 from app.tools.literature_discovery import build_literature_discovery_mcp_server
 from app.tools.mhcflurry_binding import build_mhcflurry_binding_mcp_server
 from app.tools.msa import build_msa_mcp_server
@@ -112,6 +113,10 @@ TOOL_BUILDERS = {
     "retraction_watch": (
         "retraction_watch", build_retraction_watch_mcp_server,
         ["mcp__retraction_watch__check_retraction_status"],
+    ),
+    "kinetic_simulation": (
+        "kinetic_simulation", build_kinetic_simulation_mcp_server,
+        ["mcp__kinetic_simulation__simulate_kinetic_model"],
     ),
     "string": ("string", build_string_mcp_server, ["mcp__string__get_interaction_partners"]),
     "clinicaltrials": ("clinicaltrials", build_clinicaltrials_mcp_server, ["mcp__clinicaltrials__search_trials"]),

@@ -76,6 +76,10 @@ dependencies = [
     # `hmmer` package, see Dockerfile) for its HMM alignment step.
     "anarci>=2026.2.13,<2027.0",
     "tcrdist3>=0.3,<1.0",
+    # docs/17-remaining-tools-wiring-plan.md Phase 1, Cheminformatics
+    # cluster -- dynamic SBML kinetic simulation, complementing cobra's
+    # steady-state FBA.
+    "libroadrunner>=2.10,<3.0",
 ]
 
 [project.optional-dependencies]
