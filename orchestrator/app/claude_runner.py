@@ -263,6 +263,15 @@ RECORD_REF_PATTERNS: list[tuple[str, re.Pattern]] = [
     # pattern as vina's [vina:pdb_id] tag. The receptor PDB ID itself is
     # separately caught by the existing "PDB {}" pattern.
     ("LightDock docking against {}", re.compile(r"\[lightdock:([A-Za-z0-9]+)\]")),
+    # cBioPortal sample ID -- app/tools/cbioportal_mutations.py always
+    # formats its own output as "sample <id>:", same "PDB " lookbehind
+    # precedent (a bare sample ID is too ambiguous to match standalone).
+    ("cBioPortal sample {}", re.compile(r"(?<=sample )([\w-]+)(?=:)")),
+    # PharmGKB/ClinPGx accession ID -- app/tools/clinpgx_annotations.py
+    # always formats its own output as "[PA1234...]", same lookbehind-
+    # free bracket-tag shape as the methodological tags, but this one is
+    # a real external record ID.
+    ("PharmGKB accession {}", re.compile(r"\[(PA\d+)\]")),
 ]
 
 

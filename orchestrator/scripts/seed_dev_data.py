@@ -61,12 +61,29 @@ KNOWN_TOOL_SOURCES = {
     # real, free, unauthenticated REST APIs outside docs/12's original
     # bio.tools/GitHub triage scope.
     "pubchem": ("drug_discovery", "free_public", "in-process:app.tools.pubchem", False, False),
+    # docs/17-remaining-tools-wiring-plan.md's Other cluster -- real
+    # cancer-genomics mutation data across public TCGA/cBioPortal
+    # studies, a different question than ClinVar/gnomAD (population/
+    # clinical significance) answer: how often is this gene actually
+    # mutated in real patient tumor cohorts. cptac (same cluster) tried
+    # and NOT wired -- see docs/17 for why (phones home to Zenodo on
+    # bare import, observed to hang/504 repeatedly, unsuitable for a
+    # per-request tool call).
+    "cbioportal_mutations": ("drug_discovery", "free_public", "in-process:app.tools.cbioportal_mutations", False, False),
     "europepmc": ("literature", "free_public", "in-process:app.tools.europepmc", False, False),
     "open_targets": ("drug_discovery", "free_public", "in-process:app.tools.open_targets", False, False),
     "literature_discovery": ("literature", "free_public", "in-process:app.tools.literature_discovery", False, False),
     "ensembl": ("genomics", "free_public", "in-process:app.tools.ensembl", False, False),
+    # Predicts a variant's functional consequence (missense/nonsense/
+    # splice-site, SIFT/PolyPhen) for a variant not yet curated in
+    # ClinVar -- clinical-adjacent, same review tier as clinvar/gnomad.
+    "ensembl_vep": ("genomics", "free_public", "in-process:app.tools.ensembl_vep", True, False),
     "uniprot": ("genomics", "free_public", "in-process:app.tools.uniprot", False, False),
     "clinvar": ("genomics", "free_public", "in-process:app.tools.clinvar", True, False),
+    # Real successor to the old, now-dead pharmgkb.org API (docs/10 Phase
+    # 3 gave up on it) -- api.clinpgx.org confirmed live 2026-08-26.
+    # Pharmacogenomics is clinically actionable -- same review tier.
+    "clinpgx_annotations": ("clinical", "free_public", "in-process:app.tools.clinpgx_annotations", True, False),
     "gnomad": ("genomics", "free_public", "in-process:app.tools.gnomad", False, False),
     "ontologies": ("ontologies", "free_public", "in-process:app.tools.ontologies", False, False),
     "hpo": ("ontologies", "free_public", "in-process:app.tools.hpo", False, False),

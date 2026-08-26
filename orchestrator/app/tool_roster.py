@@ -29,13 +29,16 @@ from app.tools.alphafold import build_alphafold_mcp_server
 from app.tools.anarci_numbering import build_anarci_mcp_server
 from app.tools.auto3d_conformers import build_auto3d_conformers_mcp_server
 from app.tools.biopandas_structure import build_biopandas_structure_mcp_server
+from app.tools.cbioportal_mutations import build_cbioportal_mutations_mcp_server
 from app.tools.chembl import build_chembl_mcp_server
 from app.tools.clinicaltrials import build_clinicaltrials_mcp_server
+from app.tools.clinpgx_annotations import build_clinpgx_annotations_mcp_server
 from app.tools.clinvar import build_clinvar_mcp_server
 from app.tools.cobra_fba import build_cobra_fba_mcp_server
 from app.tools.dailymed import build_dailymed_mcp_server
 from app.tools.egglib_popgen import build_egglib_popgen_mcp_server
 from app.tools.ensembl import build_ensembl_mcp_server
+from app.tools.ensembl_vep import build_ensembl_vep_mcp_server
 from app.tools.epitopepredict import build_epitopepredict_mcp_server
 from app.tools.equilibrator_thermo import build_equilibrator_thermo_mcp_server
 from app.tools.europepmc import build_europepmc_mcp_server
@@ -96,6 +99,10 @@ TOOL_BUILDERS = {
         ["mcp__auto3d_conformers__generate_3d_conformer"],
     ),
     "pubchem": ("pubchem", build_pubchem_mcp_server, ["mcp__pubchem__search_compound"]),
+    "cbioportal_mutations": (
+        "cbioportal_mutations", build_cbioportal_mutations_mcp_server,
+        ["mcp__cbioportal_mutations__get_gene_mutations_in_study"],
+    ),
     "europepmc": ("europepmc", build_europepmc_mcp_server, ["mcp__europepmc__search_europepmc"]),
     "open_targets": (
         "open_targets", build_open_targets_mcp_server,
@@ -116,11 +123,16 @@ TOOL_BUILDERS = {
         ],
     ),
     "ensembl": ("ensembl", build_ensembl_mcp_server, ["mcp__ensembl__search_gene"]),
+    "ensembl_vep": ("ensembl_vep", build_ensembl_vep_mcp_server, ["mcp__ensembl_vep__predict_variant_effect"]),
     "uniprot": (
         "uniprot", build_uniprot_mcp_server,
         ["mcp__uniprot__search_protein", "mcp__uniprot__get_sequence"],
     ),
     "clinvar": ("clinvar", build_clinvar_mcp_server, ["mcp__clinvar__search_variants"]),
+    "clinpgx_annotations": (
+        "clinpgx_annotations", build_clinpgx_annotations_mcp_server,
+        ["mcp__clinpgx_annotations__get_gene_drug_annotations"],
+    ),
     "gnomad": ("gnomad", build_gnomad_mcp_server, ["mcp__gnomad__get_variant_frequency"]),
     "ontologies": ("ontologies", build_ontologies_mcp_server, ["mcp__ontologies__search_ontology_term"]),
     "hpo": ("hpo", build_hpo_mcp_server, ["mcp__hpo__get_phenotype_diseases"]),
