@@ -64,6 +64,7 @@ KNOWN_TOOL_SOURCES = {
     "clinvar": ("genomics", "free_public", "in-process:app.tools.clinvar", True, False),
     "gnomad": ("genomics", "free_public", "in-process:app.tools.gnomad", False, False),
     "ontologies": ("ontologies", "free_public", "in-process:app.tools.ontologies", False, False),
+    "hpo": ("ontologies", "free_public", "in-process:app.tools.hpo", False, False),
     "kegg": ("systems_biology", "free_public", "in-process:app.tools.kegg", False, False),
     "reactome": ("systems_biology", "free_public", "in-process:app.tools.reactome", False, False),
     # docs/18-platform-capability-gaps.md Pass 2 #1 -- correctness/trust

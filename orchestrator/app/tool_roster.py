@@ -38,6 +38,7 @@ from app.tools.europepmc import build_europepmc_mcp_server
 from app.tools.gene_set_enrichment import build_gene_set_enrichment_mcp_server
 from app.tools.gnomad import build_gnomad_mcp_server
 from app.tools.gprofiler_enrichment import build_gprofiler_enrichment_mcp_server
+from app.tools.hpo import build_hpo_mcp_server
 from app.tools.huggingface import build_huggingface_mcp_server
 from app.tools.kegg import build_kegg_mcp_server
 from app.tools.literature_discovery import build_literature_discovery_mcp_server
@@ -109,6 +110,7 @@ TOOL_BUILDERS = {
     "clinvar": ("clinvar", build_clinvar_mcp_server, ["mcp__clinvar__search_variants"]),
     "gnomad": ("gnomad", build_gnomad_mcp_server, ["mcp__gnomad__get_variant_frequency"]),
     "ontologies": ("ontologies", build_ontologies_mcp_server, ["mcp__ontologies__search_ontology_term"]),
+    "hpo": ("hpo", build_hpo_mcp_server, ["mcp__hpo__get_phenotype_diseases"]),
     "kegg": ("kegg", build_kegg_mcp_server, ["mcp__kegg__get_gene_pathways"]),
     "reactome": ("reactome", build_reactome_mcp_server, ["mcp__reactome__search_pathways"]),
     "retraction_watch": (
