@@ -41,6 +41,7 @@ from app.tools.huggingface import build_huggingface_mcp_server
 from app.tools.kegg import build_kegg_mcp_server
 from app.tools.literature_discovery import build_literature_discovery_mcp_server
 from app.tools.mhcflurry_binding import build_mhcflurry_binding_mcp_server
+from app.tools.mokapot_rescoring import build_mokapot_rescoring_mcp_server
 from app.tools.msa import build_msa_mcp_server
 from app.tools.msprime import build_msprime_mcp_server
 from app.tools.nrpcalc_design import build_nrpcalc_design_mcp_server
@@ -166,6 +167,7 @@ TOOL_BUILDERS = {
         "pyteomics_mass", build_pyteomics_mass_mcp_server,
         ["mcp__pyteomics_mass__calculate_peptide_mass"],
     ),
+    "mokapot_rescoring": ("mokapot_rescoring", build_mokapot_rescoring_mcp_server, ["mcp__mokapot_rescoring__rescore_psms"]),
     "soltrannet_solubility": (
         "soltrannet_solubility", build_soltrannet_solubility_mcp_server,
         ["mcp__soltrannet_solubility__predict_aqueous_solubility"],

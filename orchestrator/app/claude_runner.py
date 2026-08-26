@@ -214,6 +214,10 @@ RECORD_REF_PATTERNS: list[tuple[str, re.Pattern]] = [
     # NRP Calculator non-repetitive part design -- real local computation
     # (app/tools/nrpcalc_design.py), same methodological-citation pattern.
     ("NRP Calculator {}", re.compile(r"\[nrpcalc:(\w+)\]")),
+    # mokapot PSM rescoring -- real local semi-supervised computation on
+    # caller-supplied data (app/tools/mokapot_rescoring.py), same
+    # methodological-citation convention as cobra/tcrdist/egglib.
+    ("mokapot rescoring (target FDR {}) ", re.compile(r"\[mokapot:([\d.]+)\]")),
 ]
 
 

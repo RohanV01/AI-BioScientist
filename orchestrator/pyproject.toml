@@ -69,6 +69,10 @@ dependencies = [
     # scikit-learn==1.1.1, which would downgrade this venv's scikit-learn
     # (needed at >=1.9 by mhcflurry) and break an already-shipped tool.
     "nrpcalc>=1.7,<2.0",
+    # docs/17-remaining-tools-wiring-plan.md Phase 1, Proteomics cluster
+    # -- pure-Python PSM rescoring for FDR control, pairs with the
+    # already-live pyteomics_mass.
+    "mokapot>=0.10,<1.0",
 ]
 
 [project.optional-dependencies]

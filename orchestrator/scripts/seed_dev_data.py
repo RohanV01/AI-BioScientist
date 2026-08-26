@@ -130,6 +130,10 @@ KNOWN_TOOL_SOURCES = {
     # fundamentally needs real search-engine PSM output, which can't be
     # honestly fabricated as a test input.
     "pyteomics_mass": ("proteomics", "free_public", "in-process:app.tools.pyteomics_mass", False, False),
+    # docs/17-remaining-tools-wiring-plan.md Phase 1, Proteomics cluster
+    # -- real semi-supervised PSM rescoring for FDR control, pairs with
+    # pyteomics_mass's peptide mass calculation.
+    "mokapot_rescoring": ("proteomics", "free_public", "in-process:app.tools.mokapot_rescoring", False, False),
     # docs/12-biotools-triage-shortlist.md's Phylogenetics cluster
     # (feature/phylogenetics branch) -- this platform's first
     # phylogenetics coverage. Real in-process ML tree inference
