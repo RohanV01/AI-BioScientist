@@ -34,6 +34,7 @@ from app.tools.cobra_fba import build_cobra_fba_mcp_server
 from app.tools.dailymed import build_dailymed_mcp_server
 from app.tools.ensembl import build_ensembl_mcp_server
 from app.tools.equilibrator_thermo import build_equilibrator_thermo_mcp_server
+from app.tools.europepmc import build_europepmc_mcp_server
 from app.tools.gene_set_enrichment import build_gene_set_enrichment_mcp_server
 from app.tools.gnomad import build_gnomad_mcp_server
 from app.tools.gprofiler_enrichment import build_gprofiler_enrichment_mcp_server
@@ -46,10 +47,12 @@ from app.tools.msprime import build_msprime_mcp_server
 from app.tools.nrpcalc_design import build_nrpcalc_design_mcp_server
 from app.tools.ontologies import build_ontologies_mcp_server
 from app.tools.open_targets import build_open_targets_mcp_server
+from app.tools.openfda import build_openfda_mcp_server
 from app.tools.pdb import build_pdb_mcp_server
 from app.tools.phylogenetics import build_phylogenetics_mcp_server
 from app.tools.plip_interactions import build_plip_interactions_mcp_server
 from app.tools.primer3 import build_primer3_mcp_server
+from app.tools.pubchem import build_pubchem_mcp_server
 from app.tools.pubmed import build_pubmed_mcp_server
 from app.tools.pyhmmer_search import build_pyhmmer_search_mcp_server
 from app.tools.pyteomics_mass import build_pyteomics_mass_mcp_server
@@ -78,6 +81,8 @@ TOOL_BUILDERS = {
         "chembl", build_chembl_mcp_server,
         ["mcp__chembl__compound_search", "mcp__chembl__get_bioactivity"],
     ),
+    "pubchem": ("pubchem", build_pubchem_mcp_server, ["mcp__pubchem__search_compound"]),
+    "europepmc": ("europepmc", build_europepmc_mcp_server, ["mcp__europepmc__search_europepmc"]),
     "open_targets": (
         "open_targets", build_open_targets_mcp_server,
         ["mcp__open_targets__search_entities", "mcp__open_targets__get_target_disease_associations"],
@@ -113,6 +118,7 @@ TOOL_BUILDERS = {
     "string": ("string", build_string_mcp_server, ["mcp__string__get_interaction_partners"]),
     "clinicaltrials": ("clinicaltrials", build_clinicaltrials_mcp_server, ["mcp__clinicaltrials__search_trials"]),
     "dailymed": ("dailymed", build_dailymed_mcp_server, ["mcp__dailymed__search_drug_labels"]),
+    "openfda": ("openfda", build_openfda_mcp_server, ["mcp__openfda__search_adverse_events"]),
     "pdb": ("pdb", build_pdb_mcp_server, ["mcp__pdb__search_structures"]),
     "alphafold": ("alphafold", build_alphafold_mcp_server, ["mcp__alphafold__get_predicted_structure"]),
     "huggingface": ("huggingface", build_huggingface_mcp_server, ["mcp__huggingface__predict_masked_residue"]),

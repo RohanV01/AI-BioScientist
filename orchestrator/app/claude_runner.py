@@ -214,6 +214,13 @@ RECORD_REF_PATTERNS: list[tuple[str, re.Pattern]] = [
     # NRP Calculator non-repetitive part design -- real local computation
     # (app/tools/nrpcalc_design.py), same methodological-citation pattern.
     ("NRP Calculator {}", re.compile(r"\[nrpcalc:(\w+)\]")),
+    # A bare PubChem CID (just digits) is too ambiguous to match
+    # standalone -- same "PDB " lookbehind precedent, scoped to how
+    # app/tools/pubchem.py always formats its own output.
+    ("PubChem CID {}", re.compile(r"(?<=PubChem CID )(\d+)")),
+    # openFDA FAERS aggregate report counts have no single per-record ID
+    # -- same methodological-citation convention as gseapy/gprofiler.
+    ("openFDA FAERS query {}", re.compile(r"\[openfda:(\w+)\]")),
 ]
 
 
