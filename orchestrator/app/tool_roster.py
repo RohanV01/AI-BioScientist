@@ -54,6 +54,7 @@ from app.tools.pubmed import build_pubmed_mcp_server
 from app.tools.pyhmmer_search import build_pyhmmer_search_mcp_server
 from app.tools.pyteomics_mass import build_pyteomics_mass_mcp_server
 from app.tools.reactome import build_reactome_mcp_server
+from app.tools.retraction_watch import build_retraction_watch_mcp_server
 from app.tools.scikit_bio import build_scikit_bio_mcp_server
 from app.tools.soltrannet_solubility import build_soltrannet_solubility_mcp_server
 from app.tools.sourmash_compare import build_sourmash_compare_mcp_server
@@ -105,6 +106,10 @@ TOOL_BUILDERS = {
     "ontologies": ("ontologies", build_ontologies_mcp_server, ["mcp__ontologies__search_ontology_term"]),
     "kegg": ("kegg", build_kegg_mcp_server, ["mcp__kegg__get_gene_pathways"]),
     "reactome": ("reactome", build_reactome_mcp_server, ["mcp__reactome__search_pathways"]),
+    "retraction_watch": (
+        "retraction_watch", build_retraction_watch_mcp_server,
+        ["mcp__retraction_watch__check_retraction_status"],
+    ),
     "string": ("string", build_string_mcp_server, ["mcp__string__get_interaction_partners"]),
     "clinicaltrials": ("clinicaltrials", build_clinicaltrials_mcp_server, ["mcp__clinicaltrials__search_trials"]),
     "dailymed": ("dailymed", build_dailymed_mcp_server, ["mcp__dailymed__search_drug_labels"]),
