@@ -38,7 +38,11 @@ from app.tools.clinvar import build_clinvar_mcp_server
 from app.tools.cobra_fba import build_cobra_fba_mcp_server
 from app.tools.correlationplus_dynamics import build_correlationplus_dynamics_mcp_server
 from app.tools.dailymed import build_dailymed_mcp_server
+from app.tools.dssp_secondary_structure import build_dssp_secondary_structure_mcp_server
 from app.tools.egglib_popgen import build_egglib_popgen_mcp_server
+from app.tools.foldmason_align import build_foldmason_align_mcp_server
+from app.tools.foldseek_search import build_foldseek_search_mcp_server
+from app.tools.fpocket_detection import build_fpocket_detection_mcp_server
 from app.tools.ensembl import build_ensembl_mcp_server
 from app.tools.ensembl_vep import build_ensembl_vep_mcp_server
 from app.tools.epitopepredict import build_epitopepredict_mcp_server
@@ -86,6 +90,7 @@ from app.tools.straindesign_intervention import build_straindesign_intervention_
 from app.tools.string_db import build_string_mcp_server
 from app.tools.tcrdist_repertoire import build_tcrdist_repertoire_mcp_server
 from app.tools.uniprot import build_uniprot_mcp_server
+from app.tools.usalign_tmscore import build_usalign_tmscore_mcp_server
 from app.tools.vina_docking import build_vina_docking_mcp_server
 from app.tools.virtual_screening import build_virtual_screening_mcp_server
 from app.vault import decrypt
@@ -213,6 +218,17 @@ TOOL_BUILDERS = {
     "correlationplus_dynamics": (
         "correlationplus_dynamics", build_correlationplus_dynamics_mcp_server,
         ["mcp__correlationplus_dynamics__compute_residue_correlations"],
+    ),
+    "dssp_secondary_structure": (
+        "dssp_secondary_structure", build_dssp_secondary_structure_mcp_server,
+        ["mcp__dssp_secondary_structure__assign_secondary_structure"],
+    ),
+    "foldseek_search": ("foldseek_search", build_foldseek_search_mcp_server, ["mcp__foldseek_search__foldseek_search"]),
+    "usalign_tmscore": ("usalign_tmscore", build_usalign_tmscore_mcp_server, ["mcp__usalign_tmscore__usalign_tmscore"]),
+    "foldmason_align": ("foldmason_align", build_foldmason_align_mcp_server, ["mcp__foldmason_align__foldmason_align"]),
+    "fpocket_detection": (
+        "fpocket_detection", build_fpocket_detection_mcp_server,
+        ["mcp__fpocket_detection__detect_binding_pockets"],
     ),
     "equilibrator_thermo": (
         "equilibrator_thermo", build_equilibrator_thermo_mcp_server,

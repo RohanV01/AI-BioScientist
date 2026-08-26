@@ -30,13 +30,38 @@ FROM python:3.11-slim
 # zlib1g-dev -- mappy's C extension (bseq.c) #includes zlib.h directly;
 # build-essential alone isn't enough, confirmed by the exact "zlib.h: No
 # such file or directory" compiler error in the same build.
+# dssp/git/cmake (docs/17-remaining-tools-wiring-plan.md Phase 2,
+# Structural biology cluster) -- dssp is apt-installable
+# (dssp_secondary_structure.py); git+cmake are build-time tools needed
+# to compile fpocket from source below (not apt-installable itself).
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl ca-certificates gnupg mafft hmmer build-essential zlib1g-dev \
+       dssp git cmake \
     && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y --no-install-recommends nodejs \
     && npm install -g @anthropic-ai/claude-code \
     && apt-get purge -y gnupg && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*
+
+# Foldseek/FoldMason (app/tools/foldseek_search.py,
+# app/tools/foldmason_align.py) -- not apt-installable, installed from
+# their official prebuilt static binary releases, same class as
+# DIAMOND (see this Dockerfile's Sequence analysis fundamentals block).
+RUN curl -fsSL https://mmseqs.com/foldseek/foldseek-linux-avx2.tar.gz | tar xz -C /tmp \
+    && mv /tmp/foldseek/bin/foldseek /usr/local/bin/foldseek && rm -rf /tmp/foldseek
+RUN curl -fsSL https://mmseqs.com/foldmason/foldmason-linux-avx2.tar.gz | tar xz -C /tmp \
+    && mv /tmp/foldmason/bin/foldmason /usr/local/bin/foldmason && rm -rf /tmp/foldmason
+
+# US-align (app/tools/usalign_tmscore.py) -- not apt-installable, single
+# C++ source file, compiled directly (same class of solution as
+# hmmer/mafft, just via compilation instead of a package/binary).
+RUN curl -fsSL https://raw.githubusercontent.com/pylelab/USalign/master/USalign.cpp -o /tmp/USalign.cpp \
+    && g++ -O3 -o /usr/local/bin/USalign /tmp/USalign.cpp -lm && rm /tmp/USalign.cpp
+
+# Fpocket (app/tools/fpocket_detection.py) -- not apt-installable,
+# compiled from source (real Makefile-based build).
+RUN git clone --depth 1 https://github.com/Discngine/fpocket.git /tmp/fpocket \
+    && cd /tmp/fpocket && make && make install && cd / && rm -rf /tmp/fpocket
 
 WORKDIR /app
 
