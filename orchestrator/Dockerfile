@@ -27,8 +27,11 @@ FROM python:3.11-slim
 # back to building from source and fails with "No such file or directory:
 # 'gcc'" without this. Confirmed the actual failure in a real build before
 # adding it, not guessed pre-emptively.
+# zlib1g-dev -- mappy's C extension (bseq.c) #includes zlib.h directly;
+# build-essential alone isn't enough, confirmed by the exact "zlib.h: No
+# such file or directory" compiler error in the same build.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends curl ca-certificates gnupg mafft hmmer build-essential \
+    && apt-get install -y --no-install-recommends curl ca-certificates gnupg mafft hmmer build-essential zlib1g-dev \
     && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y --no-install-recommends nodejs \
     && npm install -g @anthropic-ai/claude-code \
