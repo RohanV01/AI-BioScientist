@@ -30,13 +30,27 @@ FROM python:3.11-slim
 # zlib1g-dev -- mappy's C extension (bseq.c) #includes zlib.h directly;
 # build-essential alone isn't enough, confirmed by the exact "zlib.h: No
 # such file or directory" compiler error in the same build.
+# ncbi-blast+/clustalo/emboss/prodigal/mummer (docs/17-remaining-tools-
+# wiring-plan.md Phase 2, Sequence analysis fundamentals cluster) --
+# all real apt-installable binaries wrapped via subprocess (same
+# pattern as mafft/hmmer above): blast_search.py, clustalo_align.py,
+# emboss_water.py, prodigal_genes.py, mummer_align.py.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl ca-certificates gnupg mafft hmmer build-essential zlib1g-dev \
+       ncbi-blast+ clustalo emboss prodigal mummer \
     && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y --no-install-recommends nodejs \
     && npm install -g @anthropic-ai/claude-code \
     && apt-get purge -y gnupg && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*
+
+# DIAMOND (app/tools/diamond_search.py) -- not in Debian's apt repos
+# (checked before adding an apt package name that doesn't exist);
+# installed from the project's official prebuilt static binary release
+# instead, same "not apt-installable, needs its own step" class as
+# hmmer/mafft above just via a different install mechanism.
+RUN curl -fsSL https://github.com/bbuchfink/diamond/releases/download/v2.1.9/diamond-linux64.tar.gz \
+    | tar xz -C /usr/local/bin diamond
 
 WORKDIR /app
 

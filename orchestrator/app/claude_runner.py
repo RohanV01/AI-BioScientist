@@ -310,6 +310,15 @@ RECORD_REF_PATTERNS: list[tuple[str, re.Pattern]] = [
     # fragment sequences (app/tools/gibson_assembly.py), same
     # methodological-citation convention as egglib/scikit-bio.
     ("pydna {}", re.compile(r"\[pydna:(\w+)\]")),
+    # docs/17-remaining-tools-wiring-plan.md Phase 2, Sequence analysis
+    # fundamentals cluster -- all five real local computation on
+    # caller-supplied data, same methodological-citation convention.
+    ("BLAST+ {}", re.compile(r"\[blast:(\w+)\]")),
+    ("DIAMOND {}", re.compile(r"\[diamond:(\w+)\]")),
+    ("Clustal Omega {}", re.compile(r"\[clustalo:(\w+)\]")),
+    ("EMBOSS {}", re.compile(r"\[emboss:(\w+)\]")),
+    ("Prodigal {}", re.compile(r"\[prodigal:(\w+)\]")),
+    ("MUMmer4 {}", re.compile(r"\[mummer:(\w+)\]")),
 ]
 
 

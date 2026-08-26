@@ -111,6 +111,17 @@ KNOWN_TOOL_SOURCES = {
     # genome-vs-genome), complementing msa's MAFFT multiple-sequence
     # alignment of closely-related sequences.
     "minimap2_align": ("sequence_analysis", "free_public", "in-process:app.tools.minimap2_align", False, False),
+    # docs/17-remaining-tools-wiring-plan.md Phase 2, Sequence analysis
+    # fundamentals cluster (highest-priority cluster in that phase) --
+    # BLAST+ is flagged in docs/12 as "the single most fundamental
+    # missing operation"; this platform had zero sequence-similarity-
+    # search capability before these five.
+    "blast_search": ("sequence_analysis", "free_public", "in-process:app.tools.blast_search", False, False),
+    "diamond_search": ("sequence_analysis", "free_public", "in-process:app.tools.diamond_search", False, False),
+    "clustalo_align": ("sequence_analysis", "free_public", "in-process:app.tools.clustalo_align", False, False),
+    "emboss_water": ("sequence_analysis", "free_public", "in-process:app.tools.emboss_water", False, False),
+    "prodigal_genes": ("sequence_analysis", "free_public", "in-process:app.tools.prodigal_genes", False, False),
+    "mummer_align": ("sequence_analysis", "free_public", "in-process:app.tools.mummer_align", False, False),
     "string": ("systems_biology", "free_public", "in-process:app.tools.string_db", False, False),
     # docs/17-remaining-tools-wiring-plan.md Phase 1, Transcriptomics
     # cluster -- real directed/signed signaling interactions with

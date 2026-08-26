@@ -30,7 +30,13 @@ from app.tools.alphafold import build_alphafold_mcp_server
 from app.tools.anarci_numbering import build_anarci_mcp_server
 from app.tools.auto3d_conformers import build_auto3d_conformers_mcp_server
 from app.tools.biopandas_structure import build_biopandas_structure_mcp_server
+from app.tools.blast_search import build_blast_search_mcp_server
 from app.tools.cbioportal_mutations import build_cbioportal_mutations_mcp_server
+from app.tools.clustalo_align import build_clustalo_align_mcp_server
+from app.tools.diamond_search import build_diamond_search_mcp_server
+from app.tools.emboss_water import build_emboss_water_mcp_server
+from app.tools.mummer_align import build_mummer_align_mcp_server
+from app.tools.prodigal_genes import build_prodigal_genes_mcp_server
 from app.tools.chembl import build_chembl_mcp_server
 from app.tools.clinicaltrials import build_clinicaltrials_mcp_server
 from app.tools.clinpgx_annotations import build_clinpgx_annotations_mcp_server
@@ -160,6 +166,18 @@ TOOL_BUILDERS = {
         ["mcp__egglib_popgen__compute_diversity_statistics"],
     ),
     "minimap2_align": ("minimap2_align", build_minimap2_mcp_server, ["mcp__minimap2_align__align_to_reference"]),
+    "blast_search": ("blast_search", build_blast_search_mcp_server, ["mcp__blast_search__blast_search"]),
+    "diamond_search": ("diamond_search", build_diamond_search_mcp_server, ["mcp__diamond_search__diamond_search"]),
+    "clustalo_align": (
+        "clustalo_align", build_clustalo_align_mcp_server,
+        ["mcp__clustalo_align__align_sequences_clustalo"],
+    ),
+    "emboss_water": (
+        "emboss_water", build_emboss_water_mcp_server,
+        ["mcp__emboss_water__water_local_alignment"],
+    ),
+    "prodigal_genes": ("prodigal_genes", build_prodigal_genes_mcp_server, ["mcp__prodigal_genes__predict_genes"]),
+    "mummer_align": ("mummer_align", build_mummer_align_mcp_server, ["mcp__mummer_align__mummer_align"]),
     "string": ("string", build_string_mcp_server, ["mcp__string__get_interaction_partners"]),
     "omnipath_interactions": (
         "omnipath_interactions", build_omnipath_interactions_mcp_server,
