@@ -268,6 +268,10 @@ RECORD_REF_PATTERNS: list[tuple[str, re.Pattern]] = [
     # supplied data (app/tools/scanpy_clustering.py), same
     # methodological-citation convention as egglib/pycombat.
     ("Scanpy {}", re.compile(r"\[scanpy:(\w+)\]")),
+    # HunFlair2 biomedical NER -- real local model inference on caller-
+    # supplied text (app/tools/hunflair_ner.py), same methodological-
+    # citation convention as egglib/pycombat/scanpy.
+    ("HunFlair2 {}", re.compile(r"\[hunflair2:(\w+)\]")),
 ]
 
 

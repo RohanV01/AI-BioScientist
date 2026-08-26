@@ -165,6 +165,11 @@ KNOWN_TOOL_SOURCES = {
     # scRNA-seq-matrix ingestion path exists yet) but wired now per
     # docs/17's explicit call, so it's real and tested once that exists.
     "scanpy_clustering": ("transcriptomics", "free_public", "in-process:app.tools.scanpy_clustering", False, False),
+    # docs/17-remaining-tools-wiring-plan.md Phase 1, Transcriptomics
+    # cluster -- real HunFlair2 (flair) biomedical NER on caller-supplied
+    # free text (genes/diseases/chemicals/species/cell lines), local
+    # model inference, no external API per request.
+    "hunflair_ner": ("transcriptomics", "free_public", "in-process:app.tools.hunflair_ner", False, False),
     "gprofiler_enrichment": ("transcriptomics", "free_public", "in-process:app.tools.gprofiler_enrichment", False, False),
     # docs/12-biotools-triage-shortlist.md's Proteomics cluster
     # (feature/proteomics branch) -- real in-process mass calculation

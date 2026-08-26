@@ -43,6 +43,7 @@ from app.tools.gnomad import build_gnomad_mcp_server
 from app.tools.gprofiler_enrichment import build_gprofiler_enrichment_mcp_server
 from app.tools.hpo import build_hpo_mcp_server
 from app.tools.huggingface import build_huggingface_mcp_server
+from app.tools.hunflair_ner import build_hunflair_ner_mcp_server
 from app.tools.kegg import build_kegg_mcp_server
 from app.tools.kinetic_simulation import build_kinetic_simulation_mcp_server
 from app.tools.literature_discovery import build_literature_discovery_mcp_server
@@ -184,6 +185,10 @@ TOOL_BUILDERS = {
     "scanpy_clustering": (
         "scanpy_clustering", build_scanpy_clustering_mcp_server,
         ["mcp__scanpy_clustering__cluster_expression_matrix"],
+    ),
+    "hunflair_ner": (
+        "hunflair_ner", build_hunflair_ner_mcp_server,
+        ["mcp__hunflair_ner__extract_biomedical_entities"],
     ),
     "gprofiler_enrichment": (
         "gprofiler_enrichment", build_gprofiler_enrichment_mcp_server,

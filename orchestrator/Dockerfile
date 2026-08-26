@@ -87,6 +87,10 @@ USER orchestrator
 # nothing, purely because this used to sit after `COPY . .`.
 RUN python3 -c "from equilibrator_api import ComponentContribution; ComponentContribution()" || true
 RUN mhcflurry-downloads fetch models_class1_pan
+# hunflair_ner's HunFlair2 model (~1.9GB under ~/.flair/models/) -- same
+# cache-busting rationale as the two RUN steps above, and genuinely slow
+# to download (confirmed live: ~65min at this environment's throughput).
+RUN python3 -c "from flair.nn import Classifier; Classifier.load('hunflair2')" || true
 
 USER root
 COPY --chown=orchestrator:orchestrator . .

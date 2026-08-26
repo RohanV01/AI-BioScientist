@@ -108,6 +108,11 @@ dependencies = [
     "scanpy>=1.11,<2.0",
     "igraph>=1.0,<2.0",
     "leidenalg>=0.12,<1.0",
+    # docs/17-remaining-tools-wiring-plan.md Phase 1, Transcriptomics
+    # cluster -- HunFlair2 biomedical NER (genes/diseases/chemicals/
+    # species/cell lines), pretrained model downloaded and cached on
+    # first use (~1.9GB under ~/.flair/models/, pre-warmed in Dockerfile).
+    "flair>=0.14,<1.0",
 ]
 
 [project.optional-dependencies]
