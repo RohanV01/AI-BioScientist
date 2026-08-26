@@ -67,6 +67,7 @@ from app.tools.pyhmmer_search import build_pyhmmer_search_mcp_server
 from app.tools.pyteomics_mass import build_pyteomics_mass_mcp_server
 from app.tools.reactome import build_reactome_mcp_server
 from app.tools.retraction_watch import build_retraction_watch_mcp_server
+from app.tools.scanpy_clustering import build_scanpy_clustering_mcp_server
 from app.tools.scikit_bio import build_scikit_bio_mcp_server
 from app.tools.soltrannet_solubility import build_soltrannet_solubility_mcp_server
 from app.tools.sourmash_compare import build_sourmash_compare_mcp_server
@@ -179,6 +180,10 @@ TOOL_BUILDERS = {
     "pycombat_correction": (
         "pycombat_correction", build_pycombat_correction_mcp_server,
         ["mcp__pycombat_correction__correct_batch_effect"],
+    ),
+    "scanpy_clustering": (
+        "scanpy_clustering", build_scanpy_clustering_mcp_server,
+        ["mcp__scanpy_clustering__cluster_expression_matrix"],
     ),
     "gprofiler_enrichment": (
         "gprofiler_enrichment", build_gprofiler_enrichment_mcp_server,

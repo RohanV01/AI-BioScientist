@@ -159,6 +159,12 @@ KNOWN_TOOL_SOURCES = {
     # cluster -- real ComBat batch-effect correction on caller-supplied
     # expression data, no external API.
     "pycombat_correction": ("transcriptomics", "free_public", "in-process:app.tools.pycombat_correction", False, False),
+    # docs/17-remaining-tools-wiring-plan.md Phase 1, Transcriptomics
+    # cluster -- real Scanpy QC/normalize/PCA/neighbors/Leiden pipeline
+    # on caller-supplied count matrices. DATA-gated in practice (no real
+    # scRNA-seq-matrix ingestion path exists yet) but wired now per
+    # docs/17's explicit call, so it's real and tested once that exists.
+    "scanpy_clustering": ("transcriptomics", "free_public", "in-process:app.tools.scanpy_clustering", False, False),
     "gprofiler_enrichment": ("transcriptomics", "free_public", "in-process:app.tools.gprofiler_enrichment", False, False),
     # docs/12-biotools-triage-shortlist.md's Proteomics cluster
     # (feature/proteomics branch) -- real in-process mass calculation

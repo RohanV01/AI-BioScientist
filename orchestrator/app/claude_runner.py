@@ -264,6 +264,10 @@ RECORD_REF_PATTERNS: list[tuple[str, re.Pattern]] = [
     # caller-supplied data (app/tools/pycombat_correction.py), same
     # methodological-citation convention as egglib/scikit-bio.
     ("pyComBat {}", re.compile(r"\[pycombat:(\w+)\]")),
+    # Scanpy Leiden clustering -- real local computation on caller-
+    # supplied data (app/tools/scanpy_clustering.py), same
+    # methodological-citation convention as egglib/pycombat.
+    ("Scanpy {}", re.compile(r"\[scanpy:(\w+)\]")),
 ]
 
 
