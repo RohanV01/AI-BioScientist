@@ -258,6 +258,10 @@ RECORD_REF_PATTERNS: list[tuple[str, re.Pattern]] = [
     # poses (app/tools/spyrmsd_pose.py), same methodological-citation
     # convention as vina's [vina:pdb_id] tag.
     ("spyrmsd {}", re.compile(r"\[spyrmsd:(\w+)\]")),
+    # correlationplus ANM dynamics -- real local computation
+    # (app/tools/correlationplus_dynamics.py), same methodological-
+    # citation convention as scikit-bio/cobra.
+    ("correlationplus {}", re.compile(r"\[correlationplus:(\w+)\]")),
 ]
 
 

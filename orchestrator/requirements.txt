@@ -53,6 +53,7 @@ egglib>=3.6,<4.0
 mappy>=2.31,<3.0
 mokapot>=0.10,<1.0
 spyrmsd>=0.9,<1.0
+correlationplus>=0.2,<1.0
 
 # dev/test
 pytest>=8.3,<9.0

@@ -32,6 +32,7 @@ from app.tools.chembl import build_chembl_mcp_server
 from app.tools.clinicaltrials import build_clinicaltrials_mcp_server
 from app.tools.clinvar import build_clinvar_mcp_server
 from app.tools.cobra_fba import build_cobra_fba_mcp_server
+from app.tools.correlationplus_dynamics import build_correlationplus_dynamics_mcp_server
 from app.tools.dailymed import build_dailymed_mcp_server
 from app.tools.egglib_popgen import build_egglib_popgen_mcp_server
 from app.tools.ensembl import build_ensembl_mcp_server
@@ -164,6 +165,10 @@ TOOL_BUILDERS = {
     ),
     "vina_docking": ("vina_docking", build_vina_docking_mcp_server, ["mcp__vina_docking__dock_ligand"]),
     "spyrmsd_pose": ("spyrmsd_pose", build_spyrmsd_pose_mcp_server, ["mcp__spyrmsd_pose__compute_pose_rmsd"]),
+    "correlationplus_dynamics": (
+        "correlationplus_dynamics", build_correlationplus_dynamics_mcp_server,
+        ["mcp__correlationplus_dynamics__compute_residue_correlations"],
+    ),
     "equilibrator_thermo": (
         "equilibrator_thermo", build_equilibrator_thermo_mcp_server,
         ["mcp__equilibrator_thermo__estimate_reaction_gibbs_energy"],

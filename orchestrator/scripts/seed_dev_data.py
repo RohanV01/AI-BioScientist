@@ -125,6 +125,12 @@ KNOWN_TOOL_SOURCES = {
     # shortlist row) investigated and NOT wired -- see docs/17 for why
     # (hard numpy<2 vs. msprime/tskit's numpy>=2 C-API conflict).
     "spyrmsd_pose": ("structural_biology", "free_public", "in-process:app.tools.spyrmsd_pose", False, False),
+    # docs/17-remaining-tools-wiring-plan.md Phase 1, Structural biology
+    # cluster -- real allostery/flexibility signal (Elastic Network
+    # Model) from a single static structure, no MD trajectory needed.
+    "correlationplus_dynamics": (
+        "structural_biology", "free_public", "in-process:app.tools.correlationplus_dynamics", False, False,
+    ),
     # docs/12-biotools-triage-shortlist.md's Sequence analysis fundamentals
     # cluster (feature/sequence-analysis branch) -- both real in-process
     # computation, no external API for the computation itself.
