@@ -50,6 +50,7 @@ anarci>=2026.2.13,<2027.0
 tcrdist3>=0.3,<1.0
 libroadrunner>=2.10,<3.0
 egglib>=3.6,<4.0
+mappy>=2.31,<3.0
 
 # dev/test
 pytest>=8.3,<9.0

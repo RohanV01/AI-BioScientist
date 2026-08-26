@@ -84,6 +84,10 @@ dependencies = [
     # cluster -- real diversity statistics on caller-supplied aligned
     # sequences, no external API.
     "egglib>=3.6,<4.0",
+    # docs/17-remaining-tools-wiring-plan.md Phase 1, Sequence analysis
+    # cluster -- minimap2's official Python bindings, real compiled
+    # aligner, no external API.
+    "mappy>=2.31,<3.0",
 ]
 
 [project.optional-dependencies]

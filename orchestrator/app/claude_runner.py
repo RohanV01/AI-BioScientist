@@ -235,6 +235,10 @@ RECORD_REF_PATTERNS: list[tuple[str, re.Pattern]] = [
     # computation (app/tools/egglib_popgen.py) on caller-supplied aligned
     # sequences, same methodological-citation pattern as msprime.
     ("egglib {}", re.compile(r"\[egglib:(\w+)\]")),
+    # minimap2 pairwise alignment -- real local computation
+    # (app/tools/minimap2_align.py), same methodological-citation pattern
+    # as mafft.
+    ("minimap2 alignment {}", re.compile(r"\[minimap2:([\w-]+)\]")),
 ]
 
 
