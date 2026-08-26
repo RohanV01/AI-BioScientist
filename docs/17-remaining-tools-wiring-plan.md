@@ -197,6 +197,14 @@ BLAST+, DIAMOND, Clustal Omega, EMBOSS, Prodigal, MUMmer4 -- **highest-priority 
 phase**: BLAST+ alone is flagged in `docs/12` as "the single most fundamental missing operation,"
 and this platform currently has *zero* sequence-similarity-search capability at all.
 
+**All 6 live 2026-08-27** as `blast_search`, `diamond_search`, `clustalo_align`, `emboss_water`
+(EMBOSS's `water` command specifically -- exact Smith-Waterman pairwise alignment), `prodigal_genes`,
+and `mummer_align`. DIAMOND isn't apt-installable (checked before assuming it was) -- installed from
+its official prebuilt static binary release instead. All wired on well-documented, stable CLI
+syntax rather than a live host install (this sandbox's Docker daemon lacked apt-installed binaries
+to test against directly) -- verification deferred to the batch Docker build/test pass per
+explicit direction, not skipped.
+
 ### Structural biology -- 6 tools
 Fpocket, US-align, Foldseek, FoldMason, DSSP, HADDOCK3.
 
