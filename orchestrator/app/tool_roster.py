@@ -48,6 +48,7 @@ from app.tools.gnomad import build_gnomad_mcp_server
 from app.tools.gprofiler_enrichment import build_gprofiler_enrichment_mcp_server
 from app.tools.hpo import build_hpo_mcp_server
 from app.tools.huggingface import build_huggingface_mcp_server
+from app.tools.hunflair_ner import build_hunflair_ner_mcp_server
 from app.tools.kegg import build_kegg_mcp_server
 from app.tools.kinetic_simulation import build_kinetic_simulation_mcp_server
 from app.tools.lightdock_docking import build_lightdock_docking_mcp_server
@@ -58,6 +59,7 @@ from app.tools.mokapot_rescoring import build_mokapot_rescoring_mcp_server
 from app.tools.msa import build_msa_mcp_server
 from app.tools.msprime import build_msprime_mcp_server
 from app.tools.nrpcalc_design import build_nrpcalc_design_mcp_server
+from app.tools.omnipath_interactions import build_omnipath_interactions_mcp_server
 from app.tools.ontologies import build_ontologies_mcp_server
 from app.tools.open_targets import build_open_targets_mcp_server
 from app.tools.openfda import build_openfda_mcp_server
@@ -67,10 +69,12 @@ from app.tools.plip_interactions import build_plip_interactions_mcp_server
 from app.tools.primer3 import build_primer3_mcp_server
 from app.tools.pubchem import build_pubchem_mcp_server
 from app.tools.pubmed import build_pubmed_mcp_server
+from app.tools.pycombat_correction import build_pycombat_correction_mcp_server
 from app.tools.pyhmmer_search import build_pyhmmer_search_mcp_server
 from app.tools.pyteomics_mass import build_pyteomics_mass_mcp_server
 from app.tools.reactome import build_reactome_mcp_server
 from app.tools.retraction_watch import build_retraction_watch_mcp_server
+from app.tools.scanpy_clustering import build_scanpy_clustering_mcp_server
 from app.tools.scikit_bio import build_scikit_bio_mcp_server
 from app.tools.soltrannet_solubility import build_soltrannet_solubility_mcp_server
 from app.tools.sourmash_compare import build_sourmash_compare_mcp_server
@@ -154,6 +158,10 @@ TOOL_BUILDERS = {
     ),
     "minimap2_align": ("minimap2_align", build_minimap2_mcp_server, ["mcp__minimap2_align__align_to_reference"]),
     "string": ("string", build_string_mcp_server, ["mcp__string__get_interaction_partners"]),
+    "omnipath_interactions": (
+        "omnipath_interactions", build_omnipath_interactions_mcp_server,
+        ["mcp__omnipath_interactions__get_signaling_interactions"],
+    ),
     "clinicaltrials": ("clinicaltrials", build_clinicaltrials_mcp_server, ["mcp__clinicaltrials__search_trials"]),
     "dailymed": ("dailymed", build_dailymed_mcp_server, ["mcp__dailymed__search_drug_labels"]),
     "openfda": ("openfda", build_openfda_mcp_server, ["mcp__openfda__search_adverse_events"]),
@@ -198,6 +206,18 @@ TOOL_BUILDERS = {
     "gene_set_enrichment": (
         "gene_set_enrichment", build_gene_set_enrichment_mcp_server,
         ["mcp__gene_set_enrichment__enrich_gene_set"],
+    ),
+    "pycombat_correction": (
+        "pycombat_correction", build_pycombat_correction_mcp_server,
+        ["mcp__pycombat_correction__correct_batch_effect"],
+    ),
+    "scanpy_clustering": (
+        "scanpy_clustering", build_scanpy_clustering_mcp_server,
+        ["mcp__scanpy_clustering__cluster_expression_matrix"],
+    ),
+    "hunflair_ner": (
+        "hunflair_ner", build_hunflair_ner_mcp_server,
+        ["mcp__hunflair_ner__extract_biomedical_entities"],
     ),
     "gprofiler_enrichment": (
         "gprofiler_enrichment", build_gprofiler_enrichment_mcp_server,

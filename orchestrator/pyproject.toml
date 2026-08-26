@@ -122,6 +122,27 @@ dependencies = [
     # but confirmed live (unlike DockQ) that it's pure Python and works
     # fine against numpy>=2 -- not the same conflict.
     "correlationplus>=0.2,<1.0",
+    # docs/17-remaining-tools-wiring-plan.md Phase 1, Transcriptomics
+    # cluster -- real directed/signed signaling interactions + ligand-
+    # receptor pairs, distinct from kegg/reactome/string's coverage.
+    "omnipath>=1.0,<2.0",
+    # docs/17-remaining-tools-wiring-plan.md Phase 1, Transcriptomics
+    # cluster -- real ComBat batch-effect correction on caller-supplied
+    # expression data, no external API.
+    "pycombat>=0.20,<1.0",
+    # docs/17-remaining-tools-wiring-plan.md Phase 1, Transcriptomics
+    # cluster -- field-standard scRNA-seq pipeline, DATA-gated in
+    # practice but wired per docs/17's explicit call. leiden clustering
+    # needs igraph+leidenalg installed separately (not a transitive dep,
+    # confirmed live -- scanpy's own error names them).
+    "scanpy>=1.11,<2.0",
+    "igraph>=1.0,<2.0",
+    "leidenalg>=0.12,<1.0",
+    # docs/17-remaining-tools-wiring-plan.md Phase 1, Transcriptomics
+    # cluster -- HunFlair2 biomedical NER (genes/diseases/chemicals/
+    # species/cell lines), pretrained model downloaded and cached on
+    # first use (~1.9GB under ~/.flair/models/, pre-warmed in Dockerfile).
+    "flair>=0.14,<1.0",
 ]
 
 [project.optional-dependencies]

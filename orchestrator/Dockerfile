@@ -90,6 +90,10 @@ RUN mhcflurry-downloads fetch models_class1_pan
 # Auto3D's AIMNET model weights (~8.8MB, small relative to the two
 # above, but same principle -- pay the one-time download at build time).
 RUN TORCHDYNAMO_DISABLE=1 python3 -c "from Auto3D.auto3D import Auto3DOptions, smiles2mols; smiles2mols(['C'], Auto3DOptions(k=1, use_gpu=False, optimizing_engine='AIMNET'))" || true
+# hunflair_ner's HunFlair2 model (~1.9GB under ~/.flair/models/) -- same
+# cache-busting rationale as the two RUN steps above, and genuinely slow
+# to download (confirmed live: ~65min at this environment's throughput).
+RUN python3 -c "from flair.nn import Classifier; Classifier.load('hunflair2')" || true
 
 USER root
 COPY --chown=orchestrator:orchestrator . .

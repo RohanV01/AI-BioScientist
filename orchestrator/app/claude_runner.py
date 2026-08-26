@@ -280,6 +280,24 @@ RECORD_REF_PATTERNS: list[tuple[str, re.Pattern]] = [
     # (app/tools/correlationplus_dynamics.py), same methodological-
     # citation convention as scikit-bio/cobra.
     ("correlationplus {}", re.compile(r"\[correlationplus:(\w+)\]")),
+    # OmniPath signaling interactions -- real curated data from a live
+    # external service (app/tools/omnipath_interactions.py), but no
+    # single per-interaction record ID, so the citable unit is the query
+    # itself, same convention as gseapy/gprofiler's enrichment-library
+    # tags.
+    ("OmniPath query {}", re.compile(r"\[omnipath:(\w+)\]")),
+    # pyComBat batch-effect correction -- real local computation on
+    # caller-supplied data (app/tools/pycombat_correction.py), same
+    # methodological-citation convention as egglib/scikit-bio.
+    ("pyComBat {}", re.compile(r"\[pycombat:(\w+)\]")),
+    # Scanpy Leiden clustering -- real local computation on caller-
+    # supplied data (app/tools/scanpy_clustering.py), same
+    # methodological-citation convention as egglib/pycombat.
+    ("Scanpy {}", re.compile(r"\[scanpy:(\w+)\]")),
+    # HunFlair2 biomedical NER -- real local model inference on caller-
+    # supplied text (app/tools/hunflair_ner.py), same methodological-
+    # citation convention as egglib/pycombat/scanpy.
+    ("HunFlair2 {}", re.compile(r"\[hunflair2:(\w+)\]")),
 ]
 
 

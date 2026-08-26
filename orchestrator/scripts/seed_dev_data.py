@@ -112,6 +112,11 @@ KNOWN_TOOL_SOURCES = {
     # alignment of closely-related sequences.
     "minimap2_align": ("sequence_analysis", "free_public", "in-process:app.tools.minimap2_align", False, False),
     "string": ("systems_biology", "free_public", "in-process:app.tools.string_db", False, False),
+    # docs/17-remaining-tools-wiring-plan.md Phase 1, Transcriptomics
+    # cluster -- real directed/signed signaling interactions with
+    # literature evidence, distinct from kegg/reactome (pathway detail)
+    # and string (undirected confidence network).
+    "omnipath_interactions": ("systems_biology", "free_public", "in-process:app.tools.omnipath_interactions", False, False),
     "clinicaltrials": ("clinical", "free_public", "in-process:app.tools.clinicaltrials", True, False),
     "dailymed": ("clinical", "free_public", "in-process:app.tools.dailymed", True, False),
     # Real-world adverse-event reports (FAERS) -- clinical/regulatory-
@@ -189,6 +194,21 @@ KNOWN_TOOL_SOURCES = {
     # services (Enrichr, g:Profiler), independent backends kept as two
     # tools deliberately so results can cross-check each other.
     "gene_set_enrichment": ("transcriptomics", "free_public", "in-process:app.tools.gene_set_enrichment", False, False),
+    # docs/17-remaining-tools-wiring-plan.md Phase 1, Transcriptomics
+    # cluster -- real ComBat batch-effect correction on caller-supplied
+    # expression data, no external API.
+    "pycombat_correction": ("transcriptomics", "free_public", "in-process:app.tools.pycombat_correction", False, False),
+    # docs/17-remaining-tools-wiring-plan.md Phase 1, Transcriptomics
+    # cluster -- real Scanpy QC/normalize/PCA/neighbors/Leiden pipeline
+    # on caller-supplied count matrices. DATA-gated in practice (no real
+    # scRNA-seq-matrix ingestion path exists yet) but wired now per
+    # docs/17's explicit call, so it's real and tested once that exists.
+    "scanpy_clustering": ("transcriptomics", "free_public", "in-process:app.tools.scanpy_clustering", False, False),
+    # docs/17-remaining-tools-wiring-plan.md Phase 1, Transcriptomics
+    # cluster -- real HunFlair2 (flair) biomedical NER on caller-supplied
+    # free text (genes/diseases/chemicals/species/cell lines), local
+    # model inference, no external API per request.
+    "hunflair_ner": ("transcriptomics", "free_public", "in-process:app.tools.hunflair_ner", False, False),
     "gprofiler_enrichment": ("transcriptomics", "free_public", "in-process:app.tools.gprofiler_enrichment", False, False),
     # docs/12-biotools-triage-shortlist.md's Proteomics cluster
     # (feature/proteomics branch) -- real in-process mass calculation

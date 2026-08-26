@@ -57,6 +57,12 @@ lightdock>=0.9,<1.0
 pybioportal>=1.0,<2.0
 spyrmsd>=0.9,<1.0
 correlationplus>=0.2,<1.0
+omnipath>=1.0,<2.0
+pycombat>=0.20,<1.0
+scanpy>=1.11,<2.0
+igraph>=1.0,<2.0
+leidenalg>=0.12,<1.0
+flair>=0.14,<1.0
 
 # dev/test
 pytest>=8.3,<9.0
