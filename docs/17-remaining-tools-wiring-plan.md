@@ -105,7 +105,7 @@ so roughly 25-40 tools per contributor-week at a sustainable pace, not a sprint.
 ### Phylogenetics (`feature/phylogenetics`) -- 1 tool
 | Tool | Adds |
 |---|---|
-| BioKIT | One-command alignment statistics (PhyKIT's sibling -- PhyKIT's own tree stats are already live) |
+| ~~BioKIT~~ | **Investigated 2026-08-26, not built -- real bug found in the package itself.** The real PyPI package is `jlsteenwyk-biokit` (plain `biokit`/`BioKIT` on PyPI is an unrelated generic viz toolkit -- confirmed before installing, not guessed). Installed and tested `variable_sites`/`alignment_summary` against two hand-built test alignments (one with only singleton SNPs, one with three completely different homogeneous sequences) -- both reported 0 variable sites when the alignments plainly aren't constant. Read the installed package's own source (`biokit/services/alignment/base.py`'s `determine_pis_vs_cs`): it requires each distinct character at a site to occur **at least twice** to count toward variability at all (`v >= 2` filter before checking `len(d) > 1`), so any column whose variation is entirely singleton/private alleles (a real, common case, not an edge case) silently gets classified `Not_pis_vs_cs` -- neither variable nor even constant, contradicting the tool's own documented definition ("variable sites... at least two nucleotide or amino acid characters among all taxa"). Not shipped with a workaround or caveat -- a tool that silently misreports basic alignment statistics is worse than not having it, same standard as the DDGun decision above. Revisit only if a fixed upstream release addresses this.
 
 ### Proteomics (`feature/proteomics`) -- 1 tool
 | Tool | Adds |
