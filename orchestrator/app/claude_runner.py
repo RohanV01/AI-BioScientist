@@ -254,6 +254,10 @@ RECORD_REF_PATTERNS: list[tuple[str, re.Pattern]] = [
     # caller-supplied data (app/tools/mokapot_rescoring.py), same
     # methodological-citation convention as cobra/tcrdist/egglib.
     ("mokapot rescoring (target FDR {}) ", re.compile(r"\[mokapot:([\d.]+)\]")),
+    # cBioPortal sample ID -- app/tools/cbioportal_mutations.py always
+    # formats its own output as "sample <id>:", same "PDB " lookbehind
+    # precedent (a bare sample ID is too ambiguous to match standalone).
+    ("cBioPortal sample {}", re.compile(r"(?<=sample )([\w-]+)(?=:)")),
 ]
 
 

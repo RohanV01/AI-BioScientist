@@ -92,6 +92,11 @@ dependencies = [
     # -- pure-Python PSM rescoring for FDR control, pairs with the
     # already-live pyteomics_mass.
     "mokapot>=0.10,<1.0",
+    # docs/17-remaining-tools-wiring-plan.md's Other cluster -- real
+    # cBioPortal REST client, no external dependency conflicts. cptac
+    # (same cluster) deliberately NOT added -- phones home to Zenodo on
+    # bare import, observed to hang/504 repeatedly in this environment.
+    "pybioportal>=1.0,<2.0",
 ]
 
 [project.optional-dependencies]

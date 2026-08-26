@@ -28,6 +28,7 @@ from app.models import Agent, Credential, ToolBinding, ToolSource
 from app.tools.alphafold import build_alphafold_mcp_server
 from app.tools.anarci_numbering import build_anarci_mcp_server
 from app.tools.biopandas_structure import build_biopandas_structure_mcp_server
+from app.tools.cbioportal_mutations import build_cbioportal_mutations_mcp_server
 from app.tools.chembl import build_chembl_mcp_server
 from app.tools.clinicaltrials import build_clinicaltrials_mcp_server
 from app.tools.clinvar import build_clinvar_mcp_server
@@ -90,6 +91,10 @@ TOOL_BUILDERS = {
         ["mcp__chembl__compound_search", "mcp__chembl__get_bioactivity"],
     ),
     "pubchem": ("pubchem", build_pubchem_mcp_server, ["mcp__pubchem__search_compound"]),
+    "cbioportal_mutations": (
+        "cbioportal_mutations", build_cbioportal_mutations_mcp_server,
+        ["mcp__cbioportal_mutations__get_gene_mutations_in_study"],
+    ),
     "europepmc": ("europepmc", build_europepmc_mcp_server, ["mcp__europepmc__search_europepmc"]),
     "open_targets": (
         "open_targets", build_open_targets_mcp_server,

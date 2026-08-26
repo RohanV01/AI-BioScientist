@@ -56,6 +56,15 @@ KNOWN_TOOL_SOURCES = {
     # real, free, unauthenticated REST APIs outside docs/12's original
     # bio.tools/GitHub triage scope.
     "pubchem": ("drug_discovery", "free_public", "in-process:app.tools.pubchem", False, False),
+    # docs/17-remaining-tools-wiring-plan.md's Other cluster -- real
+    # cancer-genomics mutation data across public TCGA/cBioPortal
+    # studies, a different question than ClinVar/gnomAD (population/
+    # clinical significance) answer: how often is this gene actually
+    # mutated in real patient tumor cohorts. cptac (same cluster) tried
+    # and NOT wired -- see docs/17 for why (phones home to Zenodo on
+    # bare import, observed to hang/504 repeatedly, unsuitable for a
+    # per-request tool call).
+    "cbioportal_mutations": ("drug_discovery", "free_public", "in-process:app.tools.cbioportal_mutations", False, False),
     "europepmc": ("literature", "free_public", "in-process:app.tools.europepmc", False, False),
     "open_targets": ("drug_discovery", "free_public", "in-process:app.tools.open_targets", False, False),
     "literature_discovery": ("literature", "free_public", "in-process:app.tools.literature_discovery", False, False),
