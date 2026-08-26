@@ -21,8 +21,14 @@ FROM python:3.11-slim
 # raised FileNotFoundError for `hmmscan` before this was added) rather
 # than assumed from the package's PyPI listing -- so this is really a
 # CLONE-tier tool, not the PIP-tier docs/17 first assumed.
+# build-essential (gcc) -- found live: python:3.11-slim has no C compiler,
+# and both egglib and mappy (pyproject.toml's newest additions) have no
+# prebuilt wheel for this base image's platform, so `pip install` falls
+# back to building from source and fails with "No such file or directory:
+# 'gcc'" without this. Confirmed the actual failure in a real build before
+# adding it, not guessed pre-emptively.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends curl ca-certificates gnupg mafft hmmer \
+    && apt-get install -y --no-install-recommends curl ca-certificates gnupg mafft hmmer build-essential \
     && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y --no-install-recommends nodejs \
     && npm install -g @anthropic-ai/claude-code \
