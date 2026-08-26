@@ -72,6 +72,9 @@ scanpy>=1.11,<2.0
 igraph>=1.0,<2.0
 leidenalg>=0.12,<1.0
 flair>=0.14,<1.0
+ablang>=0.3,<1.0
+pandasgwas>=1.2,<2.0
+pydna>=5.5,<6.0
 
 # dev/test
 pytest>=8.3,<9.0

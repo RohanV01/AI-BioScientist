@@ -157,6 +157,17 @@ dependencies = [
     # species/cell lines), pretrained model downloaded and cached on
     # first use (~1.9GB under ~/.flair/models/, pre-warmed in Dockerfile).
     "flair>=0.14,<1.0",
+    # docs/17-remaining-tools-wiring-plan.md Phase 1, Immunoinformatics
+    # cluster -- real AbLang model inference (heavy/light chain restore
+    # mode), pretrained checkpoints downloaded and cached on first use.
+    "ablang>=0.3,<1.0",
+    # docs/17-remaining-tools-wiring-plan.md Phase 1, Population
+    # genetics cluster -- real NHGRI-EBI GWAS Catalog client.
+    "pandasgwas>=1.2,<2.0",
+    # docs/17-remaining-tools-wiring-plan.md Phase 1, Synthetic biology
+    # cluster (in place of OpenCloning -- see app/tools/gibson_assembly.py
+    # for why) -- real cloning-simulation engine (Gibson assembly).
+    "pydna>=5.5,<6.0",
 ]
 
 [project.optional-dependencies]

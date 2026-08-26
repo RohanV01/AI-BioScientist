@@ -25,6 +25,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import Agent, Credential, ToolBinding, ToolSource
+from app.tools.ablang_restore import build_ablang_restore_mcp_server
 from app.tools.alphafold import build_alphafold_mcp_server
 from app.tools.anarci_numbering import build_anarci_mcp_server
 from app.tools.auto3d_conformers import build_auto3d_conformers_mcp_server
@@ -44,7 +45,9 @@ from app.tools.epitopepredict import build_epitopepredict_mcp_server
 from app.tools.equilibrator_thermo import build_equilibrator_thermo_mcp_server
 from app.tools.europepmc import build_europepmc_mcp_server
 from app.tools.gene_set_enrichment import build_gene_set_enrichment_mcp_server
+from app.tools.gibson_assembly import build_gibson_assembly_mcp_server
 from app.tools.gnomad import build_gnomad_mcp_server
+from app.tools.gwas_catalog import build_gwas_catalog_mcp_server
 from app.tools.gprofiler_enrichment import build_gprofiler_enrichment_mcp_server
 from app.tools.hpo import build_hpo_mcp_server
 from app.tools.huggingface import build_huggingface_mcp_server
@@ -178,6 +181,18 @@ TOOL_BUILDERS = {
     "tcrdist_repertoire": (
         "tcrdist_repertoire", build_tcrdist_repertoire_mcp_server,
         ["mcp__tcrdist_repertoire__compute_tcr_distances"],
+    ),
+    "ablang_restore": (
+        "ablang_restore", build_ablang_restore_mcp_server,
+        ["mcp__ablang_restore__restore_antibody_sequence"],
+    ),
+    "gwas_catalog": (
+        "gwas_catalog", build_gwas_catalog_mcp_server,
+        ["mcp__gwas_catalog__get_gwas_studies_for_variant"],
+    ),
+    "gibson_assembly": (
+        "gibson_assembly", build_gibson_assembly_mcp_server,
+        ["mcp__gibson_assembly__simulate_gibson_assembly"],
     ),
     "huggingface": ("huggingface", build_huggingface_mcp_server, ["mcp__huggingface__predict_masked_residue"]),
     "scikit_bio": ("scikit_bio", build_scikit_bio_mcp_server, ["mcp__scikit_bio__compute_diversity_metrics"]),

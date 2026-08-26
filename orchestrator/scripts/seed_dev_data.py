@@ -129,6 +129,20 @@ KNOWN_TOOL_SOURCES = {
     "epitopepredict": ("immunoinformatics", "free_public", "in-process:app.tools.epitopepredict", False, False),
     "anarci_numbering": ("immunoinformatics", "free_public", "in-process:app.tools.anarci_numbering", False, False),
     "tcrdist_repertoire": ("immunoinformatics", "free_public", "in-process:app.tools.tcrdist_repertoire", False, False),
+    # docs/17-remaining-tools-wiring-plan.md Phase 1, Immunoinformatics
+    # cluster -- real AbLang model inference (restore mode) on caller-
+    # supplied masked antibody sequences, no external API.
+    "ablang_restore": ("immunoinformatics", "free_public", "in-process:app.tools.ablang_restore", False, False),
+    # docs/17-remaining-tools-wiring-plan.md Phase 1, Population genetics
+    # cluster -- real NHGRI-EBI GWAS Catalog study/trait lookup for a
+    # variant, distinct from ensembl_vep/gnomad/open_targets. Genuinely
+    # slow (60-180s per call, confirmed live) -- expected, not a bug.
+    "gwas_catalog": ("population_genetics", "free_public", "in-process:app.tools.gwas_catalog", False, False),
+    # docs/17-remaining-tools-wiring-plan.md Phase 1, Synthetic biology
+    # cluster (in place of OpenCloning, which is a FastAPI backend, not
+    # a callable library -- see app/tools/gibson_assembly.py). Real
+    # pydna Gibson assembly simulation, no external API.
+    "gibson_assembly": ("synthetic_biology", "free_public", "in-process:app.tools.gibson_assembly", False, False),
     # free_metered, not free_public -- HF's Inference API needs a real
     # (free-to-create) token, unlike the NCBI/EBI/RCSB-style truly
     # anonymous APIs everything else here uses.

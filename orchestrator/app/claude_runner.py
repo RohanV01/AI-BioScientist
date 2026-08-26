@@ -298,6 +298,18 @@ RECORD_REF_PATTERNS: list[tuple[str, re.Pattern]] = [
     # supplied text (app/tools/hunflair_ner.py), same methodological-
     # citation convention as egglib/pycombat/scanpy.
     ("HunFlair2 {}", re.compile(r"\[hunflair2:(\w+)\]")),
+    # AbLang restore -- real local model inference on caller-supplied
+    # data (app/tools/ablang_restore.py), same methodological-citation
+    # convention as HunFlair2/scanpy.
+    ("AbLang {}", re.compile(r"\[ablang:(\w+)\]")),
+    # GWAS Catalog study accession -- a real external record ID
+    # (app/tools/gwas_catalog.py always formats it as "study GCST...:"),
+    # not a methodological tag.
+    ("GWAS Catalog study {}", re.compile(r"\b(GCST\d+)\b")),
+    # pydna Gibson assembly -- real local computation on caller-supplied
+    # fragment sequences (app/tools/gibson_assembly.py), same
+    # methodological-citation convention as egglib/scikit-bio.
+    ("pydna {}", re.compile(r"\[pydna:(\w+)\]")),
 ]
 
 
