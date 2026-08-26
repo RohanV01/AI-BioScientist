@@ -9,12 +9,19 @@ protein chains against each other.
 Fetches one real PDB structure and splits it into receptor/ligand chains
 server-side (same "real PDB ID in, real computation out" pattern as
 vina_docking.py), then runs LightDock's real 3-stage CLI pipeline
-(lightdock3_setup.py -> lightdock3.py -> lgd_rank.py) in a temp
-directory. Confirmed live before wiring (2026-08-26) that a small
-swarm/step count completes well within a chat-tool-scale timeout (5
-swarms x 20 glowworms x 10 steps: under 90s against a real 124-residue
-chain pair) while still producing real, ranked docking poses -- not a
-guess at reasonable defaults.
+(lgd_setup.py -> lgd_run.py -> lgd_rank.py) in a temp directory.
+Confirmed live before wiring (2026-08-26) that a small swarm/step count
+completes well within a chat-tool-scale timeout (5 swarms x 20
+glowworms x 10 steps: under 90s against a real 124-residue chain pair)
+while still producing real, ranked docking poses -- not a guess at
+reasonable defaults.
+
+Pinned to lightdock>=1.0.0rc2 (see pyproject.toml/requirements.txt),
+not the 0.9.x line: confirmed live that 0.9.x's cdfire2 C extension
+fails to compile against numpy>=2 (needed elsewhere in this project),
+and 1.0.0rc2 also renamed its CLI entry points (lightdock3_setup.py ->
+lgd_setup.py, lightdock3.py -> lgd_run.py) -- same arguments, updated
+here to match.
 """
 import asyncio
 import shutil
@@ -56,18 +63,18 @@ def _run_lightdock(receptor_pdb: str, ligand_pdb: str) -> str:
         ligand_path.write_text(ligand_pdb)
 
         setup = subprocess.run(
-            [f"{LD_BIN_DIR}/lightdock3_setup.py", str(receptor_path), str(ligand_path), "-s", str(DEFAULT_SWARMS), "-g", str(DEFAULT_GLOWWORMS)],
+            [f"{LD_BIN_DIR}/lgd_setup.py", str(receptor_path), str(ligand_path), "-s", str(DEFAULT_SWARMS), "-g", str(DEFAULT_GLOWWORMS)],
             cwd=tmp, capture_output=True, text=True, timeout=60,
         )
         if setup.returncode != 0:
-            raise RuntimeError(f"lightdock3_setup.py failed: {setup.stderr.strip() or setup.stdout.strip()}")
+            raise RuntimeError(f"lgd_setup.py failed: {setup.stderr.strip() or setup.stdout.strip()}")
 
         sim = subprocess.run(
-            [f"{LD_BIN_DIR}/lightdock3.py", "setup.json", str(DEFAULT_STEPS)],
+            [f"{LD_BIN_DIR}/lgd_run.py", "setup.json", str(DEFAULT_STEPS)],
             cwd=tmp, capture_output=True, text=True, timeout=120,
         )
         if sim.returncode != 0:
-            raise RuntimeError(f"lightdock3.py simulation failed: {sim.stderr.strip() or sim.stdout.strip()}")
+            raise RuntimeError(f"lgd_run.py simulation failed: {sim.stderr.strip() or sim.stdout.strip()}")
 
         rank = subprocess.run(
             [f"{LD_BIN_DIR}/lgd_rank.py", str(DEFAULT_SWARMS), str(DEFAULT_STEPS), "--ignore_clusters"],

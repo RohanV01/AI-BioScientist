@@ -108,8 +108,13 @@ dependencies = [
     "Auto3D>=3.0,<4.0",
     # docs/17-remaining-tools-wiring-plan.md Phase 1, Cheminformatics
     # cluster -- real protein-protein docking, complementing
-    # vina_docking's small-molecule-only scope.
-    "lightdock>=0.9,<1.0",
+    # vina_docking's small-molecule-only scope. Pinned to >=1.0.0rc2, not
+    # the 0.9.x line originally shortlisted: confirmed live that 0.9.x's
+    # cdfire2 C extension uses numpy's old C-API (PyArray_DATA on a bare
+    # PyObject*) and fails to compile against numpy>=2 (needed elsewhere
+    # in this project, e.g. tskit) -- 1.0.0rc2 fixed the extension for
+    # numpy>=2 and was confirmed to import cleanly against numpy 2.5.2.
+    "lightdock>=1.0.0rc2,<2.0",
     # docs/17-remaining-tools-wiring-plan.md's Other cluster -- real
     # cBioPortal REST client, no external dependency conflicts. cptac
     # (same cluster) deliberately NOT added -- phones home to Zenodo on
