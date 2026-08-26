@@ -115,8 +115,8 @@ so roughly 25-40 tools per contributor-week at a sustainable pace, not a sprint.
 ### Other (`feature/general-tools`) -- 2 tools
 | Tool | Adds |
 |---|---|
-| cptac | CPTAC proteogenomic (mutation+CNV+transcriptomics+proteomics per tumor) data access |
-| pyBioPortal | cBioPortal cancer genomics REST client |
+| ~~cptac~~ | CPTAC proteogenomic (mutation+CNV+transcriptomics+proteomics per tumor) data access. **Tried 2026-08-26, not built** -- phones home to Zenodo on a bare `import cptac`, observed hanging or 504-erroring repeatedly in this environment; unsuitable for a per-request tool call. |
+| pyBioPortal | cBioPortal cancer genomics REST client. **Live 2026-08-26 as `cbioportal_mutations`.** |
 
 **Phase 1 total: 34 tools.** (Structural biology's `Fpocket`/`US-align`/`Foldseek`/`FoldMason`/`DSSP`/`HADDOCK3`,
 sequence analysis's `BLAST+`/`DIAMOND`/`Clustal Omega`/`EMBOSS`/`Prodigal`/`MUMmer4`, and every other
