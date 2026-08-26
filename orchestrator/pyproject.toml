@@ -69,6 +69,10 @@ dependencies = [
     # scikit-learn==1.1.1, which would downgrade this venv's scikit-learn
     # (needed at >=1.9 by mhcflurry) and break an already-shipped tool.
     "nrpcalc>=1.7,<2.0",
+    # docs/17-remaining-tools-wiring-plan.md Phase 1, Sequence analysis
+    # cluster -- minimap2's official Python bindings, real compiled
+    # aligner, no external API.
+    "mappy>=2.31,<3.0",
 ]
 
 [project.optional-dependencies]

@@ -69,6 +69,11 @@ KNOWN_TOOL_SOURCES = {
     # finding is itself a fact a researcher needs to see flagged, same
     # tier as clinical variant/trial/label data.
     "retraction_watch": ("literature", "free_public", "in-process:app.tools.retraction_watch", True, False),
+    # docs/17-remaining-tools-wiring-plan.md Phase 1, Sequence analysis
+    # cluster -- real minimap2 pairwise alignment (long reads/cDNA/
+    # genome-vs-genome), complementing msa's MAFFT multiple-sequence
+    # alignment of closely-related sequences.
+    "minimap2_align": ("sequence_analysis", "free_public", "in-process:app.tools.minimap2_align", False, False),
     "string": ("systems_biology", "free_public", "in-process:app.tools.string_db", False, False),
     "clinicaltrials": ("clinical", "free_public", "in-process:app.tools.clinicaltrials", True, False),
     "dailymed": ("clinical", "free_public", "in-process:app.tools.dailymed", True, False),

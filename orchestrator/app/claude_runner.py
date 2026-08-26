@@ -214,6 +214,10 @@ RECORD_REF_PATTERNS: list[tuple[str, re.Pattern]] = [
     # NRP Calculator non-repetitive part design -- real local computation
     # (app/tools/nrpcalc_design.py), same methodological-citation pattern.
     ("NRP Calculator {}", re.compile(r"\[nrpcalc:(\w+)\]")),
+    # minimap2 pairwise alignment -- real local computation
+    # (app/tools/minimap2_align.py), same methodological-citation pattern
+    # as mafft.
+    ("minimap2 alignment {}", re.compile(r"\[minimap2:([\w-]+)\]")),
 ]
 
 

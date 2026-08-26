@@ -41,6 +41,7 @@ from app.tools.huggingface import build_huggingface_mcp_server
 from app.tools.kegg import build_kegg_mcp_server
 from app.tools.literature_discovery import build_literature_discovery_mcp_server
 from app.tools.mhcflurry_binding import build_mhcflurry_binding_mcp_server
+from app.tools.minimap2_align import build_minimap2_mcp_server
 from app.tools.msa import build_msa_mcp_server
 from app.tools.msprime import build_msprime_mcp_server
 from app.tools.nrpcalc_design import build_nrpcalc_design_mcp_server
@@ -110,6 +111,7 @@ TOOL_BUILDERS = {
         "retraction_watch", build_retraction_watch_mcp_server,
         ["mcp__retraction_watch__check_retraction_status"],
     ),
+    "minimap2_align": ("minimap2_align", build_minimap2_mcp_server, ["mcp__minimap2_align__align_to_reference"]),
     "string": ("string", build_string_mcp_server, ["mcp__string__get_interaction_partners"]),
     "clinicaltrials": ("clinicaltrials", build_clinicaltrials_mcp_server, ["mcp__clinicaltrials__search_trials"]),
     "dailymed": ("dailymed", build_dailymed_mcp_server, ["mcp__dailymed__search_drug_labels"]),
