@@ -124,6 +124,11 @@ KNOWN_TOOL_SOURCES = {
     "biopandas_structure": ("structural_biology", "free_public", "in-process:app.tools.biopandas_structure", False, False),
     "cobra_fba": ("systems_biology", "free_public", "in-process:app.tools.cobra_fba", False, False),
     "vina_docking": ("drug_discovery", "free_public", "in-process:app.tools.vina_docking", False, False),
+    # docs/17-remaining-tools-wiring-plan.md Phase 1, Cheminformatics
+    # cluster -- real protein-protein docking (LightDock glowworm swarm
+    # optimization), complementing vina_docking's small-molecule-only
+    # scope.
+    "lightdock_docking": ("drug_discovery", "free_public", "in-process:app.tools.lightdock_docking", False, False),
     # docs/12-biotools-triage-shortlist.md's Sequence analysis fundamentals
     # cluster (feature/sequence-analysis branch) -- both real in-process
     # computation, no external API for the computation itself.

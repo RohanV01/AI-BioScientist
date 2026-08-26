@@ -97,6 +97,10 @@ dependencies = [
     # a neural network potential (AIMNET), closing the ChEMBL/PubChem
     # 2D-SMILES -> vina_docking 3D-input gap.
     "Auto3D>=3.0,<4.0",
+    # docs/17-remaining-tools-wiring-plan.md Phase 1, Cheminformatics
+    # cluster -- real protein-protein docking, complementing
+    # vina_docking's small-molecule-only scope.
+    "lightdock>=0.9,<1.0",
 ]
 
 [project.optional-dependencies]

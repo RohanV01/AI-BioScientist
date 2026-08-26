@@ -258,6 +258,11 @@ RECORD_REF_PATTERNS: list[tuple[str, re.Pattern]] = [
     # (app/tools/auto3d_conformers.py), same methodological-citation
     # convention as vina's [vina:pdb_id] tag.
     ("Auto3D {}", re.compile(r"\[auto3d:(\w+)\]")),
+    # LightDock protein-protein docking -- real local computation
+    # (app/tools/lightdock_docking.py), same methodological-citation
+    # pattern as vina's [vina:pdb_id] tag. The receptor PDB ID itself is
+    # separately caught by the existing "PDB {}" pattern.
+    ("LightDock docking against {}", re.compile(r"\[lightdock:([A-Za-z0-9]+)\]")),
 ]
 
 

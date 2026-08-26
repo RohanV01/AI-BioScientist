@@ -46,6 +46,7 @@ from app.tools.hpo import build_hpo_mcp_server
 from app.tools.huggingface import build_huggingface_mcp_server
 from app.tools.kegg import build_kegg_mcp_server
 from app.tools.kinetic_simulation import build_kinetic_simulation_mcp_server
+from app.tools.lightdock_docking import build_lightdock_docking_mcp_server
 from app.tools.literature_discovery import build_literature_discovery_mcp_server
 from app.tools.mhcflurry_binding import build_mhcflurry_binding_mcp_server
 from app.tools.minimap2_align import build_minimap2_mcp_server
@@ -167,6 +168,10 @@ TOOL_BUILDERS = {
         ["mcp__cobra_fba__search_metabolic_models", "mcp__cobra_fba__run_flux_balance_analysis"],
     ),
     "vina_docking": ("vina_docking", build_vina_docking_mcp_server, ["mcp__vina_docking__dock_ligand"]),
+    "lightdock_docking": (
+        "lightdock_docking", build_lightdock_docking_mcp_server,
+        ["mcp__lightdock_docking__dock_protein_protein"],
+    ),
     "equilibrator_thermo": (
         "equilibrator_thermo", build_equilibrator_thermo_mcp_server,
         ["mcp__equilibrator_thermo__estimate_reaction_gibbs_energy"],
