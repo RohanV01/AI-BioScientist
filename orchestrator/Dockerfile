@@ -41,7 +41,19 @@ RUN apt-get update \
 WORKDIR /app
 
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Installed via uv, not plain pip. Found live: pip's backtracking
+# resolver repeatedly stalled/failed on this file's larger dependency
+# tree -- ResolutionTooDeep(200000) on cogent3 (piqtree's transitive
+# dependency), then the same backtracking pattern recurring on
+# h5py/biopython (scikit-bio/phykit's transitive deps), each version
+# check costing minutes in this environment's real network conditions.
+# uv's resolver (PubGrub-based, not pip's backtracking one) solved this
+# exact requirements set in seconds with `uv pip compile` -- confirmed
+# live before switching -- so installing via uv sidesteps the whole
+# class of resolver blowups instead of hand-pinning every conflicting
+# transitive dependency as it's discovered.
+RUN pip install --no-cache-dir uv \
+    && uv pip install --system --no-cache -r requirements.txt
 
 # permission_mode="bypassPermissions" in claude_runner.py maps to the CLI's
 # --dangerously-skip-permissions, which the CLI refuses to run as root/UID 0
