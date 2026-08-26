@@ -38,6 +38,15 @@ gseapy>=1.3,<2.0
 gprofiler-official>=1.0,<2.0
 pyteomics>=4.7,<5.0
 piqtree>=0.7,<1.0
+# Pinned explicitly: piqtree's own constraint (cogent3>=2025.7.10a8) plus
+# this file's newer additions gave pip's resolver hundreds of cogent3
+# pre-release candidates to backtrack through, hitting its hard
+# ResolutionTooDeep(200000) limit and failing the whole build (confirmed
+# live in a real `docker compose build`). uv's resolver solves the same
+# requirements set instantly and picks this version -- pinning it here
+# removes the backtracking search space for pip without changing what
+# actually gets installed.
+cogent3==2026.8.26
 dendropy>=5.0,<6.0
 phykit>=2.0,<3.0
 sourmash>=4.8,<5.0
