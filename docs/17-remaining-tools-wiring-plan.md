@@ -208,6 +208,8 @@ explicit direction, not skipped.
 ### Structural biology -- 6 tools
 Fpocket, US-align, Foldseek, FoldMason, DSSP, HADDOCK3.
 
+**5 of 6 live 2026-08-27** as `fpocket_detection`, `usalign_tmscore`, `foldseek_search`, `foldmason_align`, `dssp_secondary_structure`. Foldseek/FoldMason installed from official static binary releases; US-align/Fpocket compiled from source at build time (neither is apt-installable). ~~HADDOCK3~~ **investigated 2026-08-27, not built -- real bug found in the current PyPI release (2026.8.0), not a config error on this platform's side.** Confirmed live via `strace`: `pip install haddock3` genuinely works (no CNS Fortran binary needed -- it bundles a real CNS 1.3 binary and the disclaimer only warns about its license, not a missing dependency), and the bundled CNS binary itself runs and exits cleanly (code 0) for the `topoaa` module's jobs -- but haddock3's own Python wrapper (`CNSJob.run()`/`libparallel.py`) never writes or uses the captured CNS output for this code path, so every `topoaa` run fails with "100% of output not generated" regardless of input. This exact failure mode has open, unresolved GitHub issues against the real project (e.g. issues #1554, #1389, #884) -- a known, reproducible upstream bug, not an environment quirk. Revisit if a fixed release ships.
+
 ### Phylogenetics -- 4 tools
 FastTree, OrthoFinder, PAML, ASTRAL-Pro2.
 
