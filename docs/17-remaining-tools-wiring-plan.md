@@ -58,11 +58,11 @@ so roughly 25-40 tools per contributor-week at a sustainable pace, not a sprint.
 ### Cheminformatics (`feature/cheminformatics`) -- 7 tools
 | Tool | Adds |
 |---|---|
-| LightDock | Protein-protein docking (Vina only does small-molecule) |
+| LightDock | Protein-protein docking (Vina only does small-molecule). **Live 2026-08-26 as `lightdock_docking`.** |
 | Auto3D | SMILES -> 3D conformers (closes the gap between ChEMBL's 2D SMILES and Vina's 3D input requirement). **Live 2026-08-26 as `auto3d_conformers`.** Found and guarded against a real, environment-specific bug: torch's JIT C++ compile (inductor) fails when the install path contains a space (`TORCHDYNAMO_DISABLE=1` set at import time). |
-| AiZynthFinder | Retrosynthetic route planning |
-| Chemprop | Trainable/pretrained molecular property prediction (MPNN) |
-| Pickaxe | Metabolite/biotransformation prediction from a structure |
+| AiZynthFinder | Retrosynthetic route planning -- not attempted this pass (time budget), real pretrained-model download risk similar to HunFlair's, worth its own session. |
+| Chemprop | Trainable/pretrained molecular property prediction (MPNN) -- not attempted this pass; needs a pretrained checkpoint or training data this platform doesn't have on hand, not a simple zero-shot wrap like the other tools here. |
+| ~~Pickaxe~~ | Metabolite/biotransformation prediction from a structure. **Checked 2026-08-26, not built.** The real PyPI package is `minedatabase` (bare `pickaxe` on PyPI is an empty placeholder, confirmed before installing). It pulls a heavy, unexpected dependency chain (pymongo, keras) suggesting the package is architected around a persistent MongoDB-backed reaction database, not a stateless per-request computation, and its `lxml` dependency fails to build without `libxml2-dev`/`libxslt1-dev` system headers (not in the base image). A heavier CLONE-tier integration than docs/12 assumed -- worth a dedicated pass to confirm whether standalone (non-Mongo) use is actually viable, not built speculatively here. |
 | libRoadRunner | SBML kinetic/ODE simulation (dynamic, complements cobrapy's steady-state FBA) |
 | basico | Same SBML kinetic simulation niche, alternate API |
 
