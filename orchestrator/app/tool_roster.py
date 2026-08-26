@@ -26,6 +26,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import Agent, Credential, ToolBinding, ToolSource
 from app.tools.alphafold import build_alphafold_mcp_server
+from app.tools.anarci_numbering import build_anarci_mcp_server
 from app.tools.biopandas_structure import build_biopandas_structure_mcp_server
 from app.tools.chembl import build_chembl_mcp_server
 from app.tools.clinicaltrials import build_clinicaltrials_mcp_server
@@ -33,6 +34,7 @@ from app.tools.clinvar import build_clinvar_mcp_server
 from app.tools.cobra_fba import build_cobra_fba_mcp_server
 from app.tools.dailymed import build_dailymed_mcp_server
 from app.tools.ensembl import build_ensembl_mcp_server
+from app.tools.epitopepredict import build_epitopepredict_mcp_server
 from app.tools.equilibrator_thermo import build_equilibrator_thermo_mcp_server
 from app.tools.gene_set_enrichment import build_gene_set_enrichment_mcp_server
 from app.tools.gnomad import build_gnomad_mcp_server
@@ -60,6 +62,7 @@ from app.tools.soltrannet_solubility import build_soltrannet_solubility_mcp_serv
 from app.tools.sourmash_compare import build_sourmash_compare_mcp_server
 from app.tools.straindesign_intervention import build_straindesign_intervention_mcp_server
 from app.tools.string_db import build_string_mcp_server
+from app.tools.tcrdist_repertoire import build_tcrdist_repertoire_mcp_server
 from app.tools.uniprot import build_uniprot_mcp_server
 from app.tools.vina_docking import build_vina_docking_mcp_server
 from app.tools.virtual_screening import build_virtual_screening_mcp_server
@@ -115,6 +118,18 @@ TOOL_BUILDERS = {
     "dailymed": ("dailymed", build_dailymed_mcp_server, ["mcp__dailymed__search_drug_labels"]),
     "pdb": ("pdb", build_pdb_mcp_server, ["mcp__pdb__search_structures"]),
     "alphafold": ("alphafold", build_alphafold_mcp_server, ["mcp__alphafold__get_predicted_structure"]),
+    "epitopepredict": (
+        "epitopepredict", build_epitopepredict_mcp_server,
+        ["mcp__epitopepredict__predict_mhc_ii_epitopes"],
+    ),
+    "anarci_numbering": (
+        "anarci_numbering", build_anarci_mcp_server,
+        ["mcp__anarci_numbering__number_antibody_sequence"],
+    ),
+    "tcrdist_repertoire": (
+        "tcrdist_repertoire", build_tcrdist_repertoire_mcp_server,
+        ["mcp__tcrdist_repertoire__compute_tcr_distances"],
+    ),
     "huggingface": ("huggingface", build_huggingface_mcp_server, ["mcp__huggingface__predict_masked_residue"]),
     "scikit_bio": ("scikit_bio", build_scikit_bio_mcp_server, ["mcp__scikit_bio__compute_diversity_metrics"]),
     "biopandas_structure": (
