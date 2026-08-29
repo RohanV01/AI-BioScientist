@@ -371,6 +371,10 @@ RECORD_REF_PATTERNS: list[tuple[str, re.Pattern]] = [
     ("pixy {}", re.compile(r"\[pixy:(\w+)\]")),
     ("poolfstat {}", re.compile(r"\[poolfstat:(\w+)\]")),
     ("ToxinPred2 {}", re.compile(r"\[toxinpred2:(\w+)\]")),
+    # docs/17-remaining-tools-wiring-plan.md Phase 1.5, local-GPU
+    # tools -- same methodological-citation convention.
+    ("ProteinMPNN {}", re.compile(r"\[proteinmpnn:(\w+)\]")),
+    ("ProtGPT2 {}", re.compile(r"\[protgpt2:(\w+)\]")),
     # docs/17-remaining-tools-wiring-plan.md Phase 3, R/Bioconductor
     # bridge -- same methodological-citation convention.
     ("TCGAbiolinks {}", re.compile(r"\[tcgabiolinks:(\w+)\]")),

@@ -101,6 +101,8 @@ from app.tools.plip_interactions import build_plip_interactions_mcp_server
 from app.tools.poolfstat_fst import build_poolfstat_fst_mcp_server
 from app.tools.primer3 import build_primer3_mcp_server
 from app.tools.prokka_annotate import build_prokka_annotate_mcp_server
+from app.tools.proteinmpnn_design import build_proteinmpnn_design_mcp_server
+from app.tools.protgpt2_generate import build_protgpt2_generate_mcp_server
 from app.tools.pyir_annotate import build_pyir_annotate_mcp_server
 from app.tools.pubchem import build_pubchem_mcp_server
 from app.tools.pubmed import build_pubmed_mcp_server
@@ -158,6 +160,14 @@ TOOL_BUILDERS = {
     "toxinpred2_toxicity": (
         "toxinpred2_toxicity", build_toxinpred2_toxicity_mcp_server,
         ["mcp__toxinpred2_toxicity__predict_peptide_toxicity"],
+    ),
+    "proteinmpnn_design": (
+        "proteinmpnn_design", build_proteinmpnn_design_mcp_server,
+        ["mcp__proteinmpnn_design__design_sequence_from_structure"],
+    ),
+    "protgpt2_generate": (
+        "protgpt2_generate", build_protgpt2_generate_mcp_server,
+        ["mcp__protgpt2_generate__generate_protein_sequence"],
     ),
     "pubchem": ("pubchem", build_pubchem_mcp_server, ["mcp__pubchem__search_compound"]),
     "cbioportal_mutations": (

@@ -387,6 +387,16 @@ KNOWN_TOOL_SOURCES = {
     # rejection; the crash is fixable with a single documented source
     # patch (see Dockerfile), not a fork -- confirmed live end-to-end.
     "toxinpred2_toxicity": ("drug_discovery", "free_public", "in-process:app.tools.toxinpred2_toxicity", False, False),
+    # docs/17-remaining-tools-wiring-plan.md Phase 1.5 -- local-GPU
+    # tools. Both real, confirmed PyPI-installable (`proteinmpnn`
+    # requires Python >=3.9,<3.13, satisfied by this image's 3.11;
+    # ProtGPT2 has no HF hosted Inference Provider available, confirmed
+    # live -- local inference via `transformers` is the only path).
+    # GPU used automatically when passed through (docker-compose.gpu.yml,
+    # optional), CPU fallback otherwise. RFdiffusion and ChromBPNet NOT
+    # built -- see docs/17 for the real, live-confirmed reasons.
+    "proteinmpnn_design": ("structural_biology", "free_public", "in-process:app.tools.proteinmpnn_design", False, False),
+    "protgpt2_generate": ("structural_biology", "free_public", "in-process:app.tools.protgpt2_generate", False, False),
     "biotransformer_metabolism": ("drug_discovery", "free_public", "in-process:app.tools.biotransformer_metabolism", False, False),
     # Batch virtual screening -- completes the pipeline that was stuck at
     # one-compound-at-a-time (ChEMBL -> Vina -> PLIP). Reuses

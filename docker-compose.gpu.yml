@@ -1,0 +1,29 @@
+# Optional GPU passthrough for the orchestrator container -- Phase 1.5's
+# local-GPU tools (app/tools/proteinmpnn_design.py, protgpt2_generate.py;
+# see docs/17-remaining-tools-wiring-plan.md). Deliberately a *separate*
+# override file, not merged into docker-compose.yml directly: requesting
+# `capabilities: [gpu]` there would make the orchestrator container refuse
+# to start at all on a machine with no NVIDIA GPU (Docker Engine errors
+# out selecting a device driver, not a graceful no-op) -- and most of
+# this platform's 100+ tools need no GPU at all. Keeping this in its own
+# file means the default `docker compose up` still works everywhere;
+# opt in explicitly only if you have an NVIDIA GPU and
+# `nvidia-container-toolkit` installed on the host (confirm first with
+# `docker run --rm --gpus all nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi`):
+#
+#   docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d --build
+#
+# The GPU tools themselves still work without this override -- torch
+# already ships CUDA support by default from PyPI (confirmed live;
+# nothing in this Dockerfile installs a separate CPU-only build), so
+# without this override they just run on CPU automatically
+# (torch.cuda.is_available() is False), correctly slower but not broken.
+services:
+  orchestrator:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]

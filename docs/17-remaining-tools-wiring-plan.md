@@ -147,6 +147,56 @@ batch screening `virtual_screening.py` already handles well. Worth reconsidering
 against a structure with no known pocket" turns out to be a real, recurring ask -- not built
 speculatively here.
 
+**2 of 4 live 2026-08-30**, once GPU passthrough was actually confirmed working on this host
+(`nvidia-container-toolkit` installed, `docker run --gpus all ... nvidia-smi` verified real GPU
+access) -- see `docker-compose.gpu.yml` for the (deliberately optional, not merged into
+`docker-compose.yml` directly) passthrough config, and a real, previously-uncorrected finding along
+the way: the `mhcflurry`/`soltrannet` comments in `requirements.txt`/`pyproject.toml` claiming a
+separate CPU-only torch install step was needed to avoid the full CUDA toolkit were describing a
+manual step that was **never actually wired into the real Dockerfile/uv install** -- confirmed live
+(`pip show torch` on this host: `torch==2.12.1+cu130`, real CUDA support bundled by default from
+PyPI's plain `torch` wheel) -- so this image already carried the full CUDA toolkit's size before
+Phase 1.5 ever needed a GPU; Phase 1.5 just gives that pre-existing size a real use now. Comments
+corrected in place rather than left stale.
+- `proteinmpnn_design`: real, confirmed-live PyPI package `proteinmpnn` ("a slightly cleaned up
+  installable version of ProteinMPNN"), `Requires-Python >=3.9,<3.13` -- satisfied by this image's
+  Python 3.11. Fetches a real PDB by ID (same pattern as `usalign_tmscore.py`), runs the real CLI,
+  parses the real FASTA output format (score/global_score/seq_recovery per design, confirmed against
+  the package's own documented output example).
+- `protgpt2_generate`: real local `transformers` inference against `nferruz/ProtGPT2` -- confirmed
+  in an earlier session this specific model has no HF hosted Inference Provider (unlike ESM2, see
+  `huggingface.py`), so local GPU/CPU inference is the only path, exactly Phase 1.5's premise. Both
+  tools use the GPU automatically when `docker-compose.gpu.yml` is enabled, fall back to CPU
+  otherwise (`torch.cuda.is_available()`) -- correctly slower, not broken, so they work the same way
+  regardless of whether a given deployment has a GPU.
+
+**RFdiffusion investigated, NOT built -- real, hard dependency conflict, not a version-range
+nitpick, same class as the earlier DockQ/PEGG rejections.** RFdiffusion's own documented environment
+(`env/SE3nv.yml`) pins `python=3.9`, `pytorch=1.9`, `cudatoolkit=11.1`, `dgl-cuda11.1` -- a 2021-era
+stack that would need to live in a fully separate, isolated Python environment from the rest of this
+orchestrator (every other torch-dependent tool here -- mhcflurry, flair, Auto3D, soltrannet,
+proteinmpnn, ProtGPT2 -- needs a modern torch 2.x). Confirmed live before committing to that
+isolated-venv approach: even just fetching the pinned `torch==1.9.0+cu111` wheel from
+`download.pytorch.org`'s legacy archive stalled well past a two-minute window in a throwaway
+container, a real, reproducible slow/unreliable-to-provision signal, not a one-off fluke. An
+isolated venv is architecturally possible (same shape as the R bridge's separate `Rscript`
+interpreter), but the real cost here -- an ancient, slow-to-fetch CUDA/torch combination just to
+provision, on top of RFdiffusion's own ~1.5-2.5GB of model-weight checkpoints -- doesn't clear the
+bar the R-bridge/Metagenomics-cluster precedent set for "worth the investment." Revisit if
+RFdiffusion ships a version compatible with modern torch, or if a maintained fork does.
+
+**ChromBPNet investigated, NOT built -- the real package is a training pipeline, not a pretrained-
+inference tool, contrary to this doc's own original framing ("predicts chromatin accessibility from
+DNA sequence").** Confirmed live by reading the real CLI's argument parser
+(`chrombpnet/parsers.py`): the only subcommands that take a raw sequence and a pretrained model
+directly (`pred_custom`, `contribs_custom` -- "Make model predictions on custom sequences") are
+**commented out, not available**, in the current release. The subcommands that do work (`pipeline`,
+`pred_bw`, `train`) all require real BAM/fragment/tagAlign reads, a reference genome FASTA, and real
+peak/non-peak BED files -- the same DATA-gated shape as the R-bridge tools this plan already declined
+to force-build with a fake toy input (dada2, Seurat, ...). Revisit once/if a real pretrained-model-
+plus-sequence inference path is confirmed to exist (e.g. a public checkpoint plus custom Keras
+inference code) rather than assumed from the paper's own framing.
+
 ## Phase 1.6 -- NVIDIA NIM hosted inference (new integration path, unlocks real AlphaFold folding)
 
 A fifth integration path beyond `docs/12`'s PIP/CLONE/DATA/GPU legend: **NIM** (NVIDIA Inference

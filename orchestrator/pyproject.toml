@@ -38,11 +38,14 @@ dependencies = [
     "msprime>=1.3,<2.0",
     "plip>=3.0,<4.0",
     # mhcflurry depends on torch, which by default pulls the full CUDA
-    # toolkit (~2GB+, and prone to flaky downloads) even though this
-    # tool only needs CPU inference. Install CPU-only torch FIRST:
-    #   uv pip install torch --index-url https://download.pytorch.org/whl/cpu
-    # then `uv pip install mhcflurry` reuses it instead of pulling CUDA.
-    # Also requires a one-time model download after installing:
+    # toolkit (~2GB+) even for CPU-only use. This used to say to install
+    # a separate CPU-only torch build first -- checked live while wiring
+    # Phase 1.5's GPU tools: that manual step was never actually wired
+    # into the real Dockerfile/uv install, so the image already carried
+    # the full CUDA toolkit's size regardless; Phase 1.5 (proteinmpnn/
+    # transformers below) just gives it a real use now via
+    # docker-compose.gpu.yml's optional passthrough. Also requires a
+    # one-time model download after installing:
     #   .venv/bin/mhcflurry-downloads fetch models_class1_pan
     "mhcflurry>=2.0,<3.0",
     "gseapy>=1.3,<2.0",
@@ -64,9 +67,8 @@ dependencies = [
     # subprocess in app/tools/phylogenetics.py's compute_tree_statistics.
     "phykit>=2.0,<3.0",
     "sourmash>=4.8,<5.0",
-    # soltrannet also depends on torch -- install CPU-only torch first
-    # (see mhcflurry's note above) to avoid pulling the full CUDA
-    # toolkit; it reuses the CPU wheel if already installed for mhcflurry.
+    # soltrannet also depends on torch -- see mhcflurry's note above,
+    # same corrected finding applies.
     "soltrannet>=1.0,<2.0",
     "equilibrator-api>=0.6,<1.0",
     # virtual_screening.py deliberately does NOT depend on the pyscreener
@@ -206,6 +208,13 @@ dependencies = [
     # (see Dockerfile) rather than needing a fork, and only affects
     # Model 1's output path, not its actual prediction logic.
     "toxinpred2>=1.1,<2.0",
+    # docs/17-remaining-tools-wiring-plan.md Phase 1.5 -- local-GPU
+    # tools. GPU use is automatic when available (torch's plain PyPI
+    # wheel already bundles CUDA support, confirmed live -- see the
+    # mhcflurry note above), CPU fallback otherwise via
+    # docker-compose.gpu.yml's optional device passthrough.
+    "proteinmpnn>=0.1.3,<1.0",
+    "transformers>=4.46,<5.0",
 ]
 
 [project.optional-dependencies]
