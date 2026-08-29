@@ -28,6 +28,7 @@ from app.models import Agent, Credential, ToolBinding, ToolSource
 from app.tools.ablang_restore import build_ablang_restore_mcp_server
 from app.tools.alphafold import build_alphafold_mcp_server
 from app.tools.anarci_numbering import build_anarci_mcp_server
+from app.tools.astral_pro_tree import build_astral_pro_tree_mcp_server
 from app.tools.auto3d_conformers import build_auto3d_conformers_mcp_server
 from app.tools.biopandas_structure import build_biopandas_structure_mcp_server
 from app.tools.blast_search import build_blast_search_mcp_server
@@ -54,6 +55,7 @@ from app.tools.ensembl_vep import build_ensembl_vep_mcp_server
 from app.tools.epitopepredict import build_epitopepredict_mcp_server
 from app.tools.equilibrator_thermo import build_equilibrator_thermo_mcp_server
 from app.tools.europepmc import build_europepmc_mcp_server
+from app.tools.fasttree_tree import build_fasttree_tree_mcp_server
 from app.tools.gene_set_enrichment import build_gene_set_enrichment_mcp_server
 from app.tools.gibson_assembly import build_gibson_assembly_mcp_server
 from app.tools.gnomad import build_gnomad_mcp_server
@@ -76,6 +78,8 @@ from app.tools.omnipath_interactions import build_omnipath_interactions_mcp_serv
 from app.tools.ontologies import build_ontologies_mcp_server
 from app.tools.open_targets import build_open_targets_mcp_server
 from app.tools.openfda import build_openfda_mcp_server
+from app.tools.orthofinder_groups import build_orthofinder_groups_mcp_server
+from app.tools.paml_yn00 import build_paml_yn00_mcp_server
 from app.tools.pdb import build_pdb_mcp_server
 from app.tools.phylogenetics import build_phylogenetics_mcp_server
 from app.tools.plip_interactions import build_plip_interactions_mcp_server
@@ -289,6 +293,16 @@ TOOL_BUILDERS = {
             "mcp__phylogenetics__analyze_tree",
             "mcp__phylogenetics__compute_tree_statistics",
         ],
+    ),
+    "fasttree_tree": ("fasttree_tree", build_fasttree_tree_mcp_server, ["mcp__fasttree_tree__build_fasttree"]),
+    "orthofinder_groups": (
+        "orthofinder_groups", build_orthofinder_groups_mcp_server,
+        ["mcp__orthofinder_groups__find_orthogroups"],
+    ),
+    "paml_yn00": ("paml_yn00", build_paml_yn00_mcp_server, ["mcp__paml_yn00__estimate_dnds"]),
+    "astral_pro_tree": (
+        "astral_pro_tree", build_astral_pro_tree_mcp_server,
+        ["mcp__astral_pro_tree__build_species_tree"],
     ),
     "plip_interactions": (
         "plip_interactions", build_plip_interactions_mcp_server,

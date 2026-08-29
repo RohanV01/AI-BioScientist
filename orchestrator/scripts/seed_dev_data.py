@@ -201,6 +201,17 @@ KNOWN_TOOL_SOURCES = {
     "usalign_tmscore": ("structural_biology", "free_public", "in-process:app.tools.usalign_tmscore", False, False),
     "foldmason_align": ("structural_biology", "free_public", "in-process:app.tools.foldmason_align", False, False),
     "fpocket_detection": ("structural_biology", "free_public", "in-process:app.tools.fpocket_detection", False, False),
+    # docs/17-remaining-tools-wiring-plan.md Phase 2, Phylogenetics
+    # cluster -- fasttree/paml apt-installable (confirmed live before
+    # assuming); astral_pro_tree compiled from ASTER's Linux branch
+    # (docs/17 named it "ASTRAL-Pro2", the project has since moved to
+    # ASTRAL-Pro3, confirmed via its own README); orthofinder_groups
+    # installed from its own self-contained release tarball (not on
+    # apt or PyPI, confirmed live).
+    "fasttree_tree": ("phylogenetics", "free_public", "in-process:app.tools.fasttree_tree", False, False),
+    "orthofinder_groups": ("phylogenetics", "free_public", "in-process:app.tools.orthofinder_groups", False, False),
+    "paml_yn00": ("phylogenetics", "free_public", "in-process:app.tools.paml_yn00", False, False),
+    "astral_pro_tree": ("phylogenetics", "free_public", "in-process:app.tools.astral_pro_tree", False, False),
     # docs/12-biotools-triage-shortlist.md's Sequence analysis fundamentals
     # cluster (feature/sequence-analysis branch) -- both real in-process
     # computation, no external API for the computation itself.

@@ -39,9 +39,14 @@ FROM python:3.11-slim
 # apt-installable (dssp_secondary_structure.py); git+cmake are
 # build-time tools needed to compile fpocket from source below (not
 # apt-installable itself).
+# fasttree/paml (docs/17-remaining-tools-wiring-plan.md Phase 2,
+# Phylogenetics cluster) -- both apt-installable (confirmed live via
+# `apt-cache search`/`apt-get download` before assuming either way):
+# fasttree_tree.py wraps `fasttree`, paml_yn00.py wraps `yn00` from the
+# `paml` package.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl ca-certificates gnupg mafft hmmer build-essential zlib1g-dev \
-       ncbi-blast+ clustalo emboss prodigal mummer dssp git cmake \
+       ncbi-blast+ clustalo emboss prodigal mummer dssp git cmake fasttree paml \
     && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y --no-install-recommends nodejs \
     && npm install -g @anthropic-ai/claude-code \
@@ -75,6 +80,28 @@ RUN curl -fsSL https://raw.githubusercontent.com/pylelab/USalign/master/USalign.
 # compiled from source (real Makefile-based build).
 RUN git clone --depth 1 https://github.com/Discngine/fpocket.git /tmp/fpocket \
     && cd /tmp/fpocket && make && make install && cd / && rm -rf /tmp/fpocket
+
+# ASTRAL-Pro (app/tools/astral_pro_tree.py) -- docs/17 named this tool
+# "ASTRAL-Pro2"; that project (github.com/chaoszhang/ASTER) has since
+# moved to ASTRAL-Pro3 (confirmed live via its own README/tutorial),
+# a faster reimplementation of the same method. Not apt/pip-installable
+# -- the `Linux` branch of the ASTER repo carries prebuilt sources
+# compiled via its own makefile's `astral-pro` target (same
+# "not apt-installable, compile from source" class as US-align/Fpocket
+# above).
+RUN git clone --depth 1 --branch Linux https://github.com/chaoszhang/ASTER.git /tmp/aster \
+    && cd /tmp/aster && make astral-pro \
+    && cp bin/astral-pro /usr/local/bin/astral-pro && cd / && rm -rf /tmp/aster
+
+# OrthoFinder (app/tools/orthofinder_groups.py) -- not apt-installable
+# or on PyPI (confirmed live before assuming either); the project's own
+# self-contained GitHub release tarball bundles its own
+# diamond/mcl/fastme binaries and needs no separate install step beyond
+# extraction, unlike DIAMOND/Foldseek/FoldMason above which are lone
+# binaries.
+RUN curl -fsSL https://github.com/davidemms/OrthoFinder/releases/download/2.5.5/OrthoFinder.tar.gz \
+    | tar xz -C /opt \
+    && ln -s /opt/OrthoFinder/orthofinder /usr/local/bin/orthofinder
 
 WORKDIR /app
 

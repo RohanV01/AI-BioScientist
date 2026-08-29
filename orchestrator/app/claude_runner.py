@@ -327,6 +327,13 @@ RECORD_REF_PATTERNS: list[tuple[str, re.Pattern]] = [
     ("US-align {}", re.compile(r"\[usalign:(\w+)\]")),
     ("FoldMason {}", re.compile(r"\[foldmason:([\w-]+)\]")),
     ("Fpocket {}", re.compile(r"\[fpocket:(\w+)\]")),
+    # docs/17-remaining-tools-wiring-plan.md Phase 2, Phylogenetics
+    # cluster -- same methodological-citation convention as the
+    # structural biology cluster above.
+    ("FastTree {}", re.compile(r"\[fasttree:(\w+)\]")),
+    ("OrthoFinder {}", re.compile(r"\[orthofinder:(\w+)\]")),
+    ("PAML yn00 {}", re.compile(r"\[paml:(\w+)\]")),
+    ("ASTRAL-Pro {}", re.compile(r"\[astral_pro:(\w+)\]")),
 ]
 
 

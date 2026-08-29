@@ -213,6 +213,29 @@ Fpocket, US-align, Foldseek, FoldMason, DSSP, HADDOCK3.
 ### Phylogenetics -- 4 tools
 FastTree, OrthoFinder, PAML, ASTRAL-Pro2.
 
+**All 4 live 2026-08-29** as `fasttree_tree` (approximate-ML tree from an alignment, faster than the
+existing piqtree/IQ-TREE path for large inputs), `orthofinder_groups` (multi-species orthogroup
+inference), `paml_yn00` (real pairwise dN/dS via PAML's `yn00`, not `codeml` -- `codeml`'s
+site/branch-model ML analysis needs a caller-supplied tree topology and per-model config a chat
+caller can't reasonably provide; `yn00` gives the same real omega estimate for the common
+"is this gene under selection" question from a codon alignment alone), and `astral_pro_tree`
+(species tree from multi-copy gene trees, statistically consistent under the multi-species
+coalescent model). FastTree and PAML are apt-installable (`fasttree`, `paml` packages, confirmed
+live via `apt-cache search`/`apt-get download` before assuming either way -- `yn00`/`codeml` ship in
+the `paml` package). ASTRAL-Pro2 renamed: the upstream project (github.com/chaoszhang/ASTER) has
+since moved to ASTRAL-Pro3, a faster reimplementation of the same method (confirmed via its own
+README/tutorial) -- wired as `astral-pro` (ASTER's own binary name), compiled from ASTER's `Linux`
+branch at Docker build time, same "not apt/pip-installable, compile from source" class as
+US-align/Fpocket. OrthoFinder is neither apt- nor PyPI-installable (confirmed live) -- installed
+from its own self-contained GitHub release tarball, which bundles its own diamond/mcl/fastme
+binaries and needs no separate binary-install step beyond extraction. All wired on well-documented,
+stable CLI/config syntax rather than a live host install (same as every other Phase 2 cluster so
+far, no sudo access to install these system binaries locally) -- verification deferred to the batch
+Docker build/test pass per explicit direction, not skipped. OrthoFinder's full pipeline (DIAMOND
+all-vs-all + MCL clustering + gene-tree inference) is genuinely slow even on small inputs -- timeout
+set generously (1hr) rather than treating latency as a rejection reason, per explicit user
+direction.
+
 ### Population genetics -- 6 tools
 poolfstat, ADMIXTURE, Eigensoft, TreeMix, selscan, LDSC.
 
