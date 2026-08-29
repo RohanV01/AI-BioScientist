@@ -4,6 +4,47 @@ All notable changes to this project are logged here. Format loosely follows [Kee
 
 ## [Unreleased]
 
+### Added — 2026-08-29/30 (reconsidered rejects, docs/18 platform features, Phase 1.5 GPU tools -- tool roster 97 -> 105)
+- Per explicit direction to re-add the important earlier rejects rather than leave them all
+  skipped: `poolfstat_fst` (real R package, buildable once the R bridge existed), `pixy_diversity`
+  (confirmed live it's real pure Python under a conda-only distribution -- installed from source),
+  `toxinpred2_toxicity` (its crash was real, but confirmed the broken code path is never used by the
+  model this tool actually calls -- fixed with a one-line documented source patch). RAscore, DDGun,
+  GTDB-Tk, and eggNOG-mapper stay rejected with sharper, re-verified reasons (RAscore's fix would
+  mean trusting an unvalidated ML stack; DDGun has a second bug plus a heavy HHblits-profile
+  requirement; the other two's reference DBs still dwarf the rest of their clusters combined).
+- R/Bioconductor bridge extended: `tcga_clinical`, `recount3_search`, `wgcna_modules` -- all real,
+  none needing file-upload infrastructure this platform doesn't have.
+- Three `docs/18-platform-capability-gaps.md` items built and live-verified against a real running
+  Postgres (not just written and assumed correct): auto-generated Methods sections
+  (`GET /experiments/{id}/methods`), reproducibility export (`GET /reports/{response_id}/bundle`),
+  and a prediction/reality feedback loop (new `prediction_outcome` table + migration, `POST
+  /tool-calls/{id}/outcome`, `GET /tool-sources/{name}/track-record`). Found and fixed a real
+  pytest-asyncio/asyncpg gotcha along the way (a module-level engine singleton's connection pool
+  binding to a stale event loop across tests in the same file).
+- Phase 1.5 (local-GPU tools): `nvidia-container-toolkit` installed and GPU passthrough confirmed
+  working end-to-end on this host's RTX 3050. `proteinmpnn_design` and `protgpt2_generate` both
+  tested live in real GPU containers before being committed -- caught two real, live-only bugs
+  (ProteinMPNN's actual CLI flags are hyphenated, not the underscored ones its own PyPI README
+  shows; ProtGPT2 via `transformers` was silently ignoring the caller's requested output length).
+  `docker-compose.gpu.yml` is a deliberate separate override file so the default `docker compose up`
+  still works on any machine without a GPU. RFdiffusion and ChromBPNet investigated and rejected
+  with real, live-confirmed reasons (documented in `docs/17`).
+- Corrected a stale, never-actually-enforced claim in `requirements.txt`/`pyproject.toml` about
+  needing a separate CPU-only torch install -- confirmed live that step never existed in the real
+  Dockerfile, and PyPI's plain `torch` wheel already bundles CUDA support by default regardless.
+- `README.md`'s tool-roster count corrected (97 -> 105) and a new "Optional GPU passthrough"
+  section added to Getting Started.
+- **Still open, not started**: Phase 1.6 (NVIDIA NIM hosted inference) needs a real NVIDIA API key
+  from the user before it can be built/tested. Several `docs/18` Pass 1/2 items remain genuinely
+  unbuilt (no memory across experiments, no research playbooks, no cost/budget visibility, no
+  offline/air-gapped mode, no side-by-side comparison structure, no uncertainty propagation across
+  chained tool calls, no systematic contradiction detection, no persistent within-experiment
+  correction, no adversarial self-check, no staleness disclosure for local bulk data) -- each is a
+  real product/architecture decision, not a quick tool-wiring pass, and is left documented rather
+  than rushed. All 68 commits from this session are local to this machine, not yet pushed to the
+  GitHub remote.
+
 ### Added — 2026-08-27/29 (Phase 1/2 completion + R/Bioconductor bridge -- tool roster 37 -> 97)
 - Every remaining `docs/17-remaining-tools-wiring-plan.md` Phase 1/2 cluster wired: Immunoinformatics
   (AbLang, PyIR), Cheminformatics (xtb, BioTransformer), Population genetics (GWAS Catalog, EIGENSOFT,
