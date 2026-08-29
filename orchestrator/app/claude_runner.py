@@ -345,6 +345,9 @@ RECORD_REF_PATTERNS: list[tuple[str, re.Pattern]] = [
     # cluster -- same methodological-citation convention.
     ("xtb {}", re.compile(r"\[xtb:(\w+)\]")),
     ("BioTransformer {}", re.compile(r"\[biotransformer:(\w+)\]")),
+    # docs/17-remaining-tools-wiring-plan.md Phase 2, Synthetic biology
+    # cluster -- same methodological-citation convention.
+    ("dnachisel {}", re.compile(r"\[dnachisel:(\w+)\]")),
 ]
 
 

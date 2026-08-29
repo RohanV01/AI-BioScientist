@@ -307,8 +307,30 @@ issue -- same rejection rigor as the earlier HADDOCK3 investigation.
 ### Synthetic biology -- 1 tool
 bebop/poly.
 
+**Live 2026-08-29 as `dnachisel_optimize` -- substituted, not built as bebop/poly directly.**
+Confirmed live before wiring: `github.com/bebop/poly` is a Go *library* (`go get
+github.com/bebop/poly`), not a CLI tool and no prebuilt binary release exists -- using it here would
+mean introducing an entirely new compiled-language toolchain into this Python-first codebase just to
+wrap a thin custom Go binary. `dnachisel` (Edinburgh Genome Foundry, genuinely PyPI-installable, pure
+Python) is a real, well-tested substitute for poly's *codon-optimization* capability specifically --
+confirmed live end-to-end (real optimized sequence produced, translation-preservation/GC-content/
+restriction-site constraints all verified passing across 4 species). poly's other two listed
+capabilities (primers, part assembly) were already covered before this cluster even started, by the
+already-live `primer3` and `gibson_assembly` -- so no real coverage is lost by this substitution.
+
 ### Other -- 1 tool
 DDGun.
+
+**NOT built 2026-08-29** -- confirmed live: the real PyPI `ddgun` package (0.0.2, matches the
+project's own citation/summary text, not a namesquat) crashes unconditionally on import --
+`ImportError: cannot import name 'three_to_one' from 'Bio.PDB.Polypeptide'` -- because
+`Bio.PDB.Polypeptide.three_to_one` was removed from current biopython, and `ddgun/__init__.py`
+imports it unconditionally (even the sequence-only `ddgun_seq` path is unreachable, not just the
+structure-based `ddgun_3d` path). Downgrading biopython to a version old enough to still have
+`three_to_one` (<1.80) isn't viable either -- confirmed live it has no installable wheel for any
+current Python and would risk breaking every other tool on this platform that already depends on the
+current pinned biopython. A genuine, reproducible bug in the package's own source, not an environment
+issue -- same rejection rigor as RAscore/ToxinPred2/HADDOCK3.
 
 ## Phase 3 -- R/Bioconductor bridge (infrastructure, not a tool)
 

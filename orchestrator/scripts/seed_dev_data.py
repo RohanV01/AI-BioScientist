@@ -167,6 +167,18 @@ KNOWN_TOOL_SOURCES = {
     # a callable library -- see app/tools/gibson_assembly.py). Real
     # pydna Gibson assembly simulation, no external API.
     "gibson_assembly": ("synthetic_biology", "free_public", "in-process:app.tools.gibson_assembly", False, False),
+    # docs/17-remaining-tools-wiring-plan.md Phase 2, Synthetic biology
+    # cluster -- real constraint-based codon optimization via dnachisel,
+    # wired in place of the docs/12-listed "bebop/poly" (confirmed live:
+    # that's a Go *library* with no CLI/prebuilt binary, would need an
+    # entirely new compiled-language toolchain just to wrap a thin custom
+    # Go binary; primer3/gibson_assembly already cover poly's other two
+    # listed capabilities). DDGun NOT built -- confirmed live: the real
+    # PyPI `ddgun` 0.0.2 package unconditionally crashes on import
+    # (`ImportError: cannot import name 'three_to_one' from
+    # 'Bio.PDB.Polypeptide'` -- removed from current biopython; no
+    # working biopython<1.80 wheel exists for a current Python either).
+    "dnachisel_optimize": ("synthetic_biology", "free_public", "in-process:app.tools.dnachisel_optimize", False, False),
     # free_metered, not free_public -- HF's Inference API needs a real
     # (free-to-create) token, unlike the NCBI/EBI/RCSB-style truly
     # anonymous APIs everything else here uses.

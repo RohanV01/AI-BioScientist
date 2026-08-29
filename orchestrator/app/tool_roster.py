@@ -47,6 +47,7 @@ from app.tools.clinvar import build_clinvar_mcp_server
 from app.tools.cobra_fba import build_cobra_fba_mcp_server
 from app.tools.correlationplus_dynamics import build_correlationplus_dynamics_mcp_server
 from app.tools.dailymed import build_dailymed_mcp_server
+from app.tools.dnachisel_optimize import build_dnachisel_optimize_mcp_server
 from app.tools.dssp_secondary_structure import build_dssp_secondary_structure_mcp_server
 from app.tools.egglib_popgen import build_egglib_popgen_mcp_server
 from app.tools.eigensoft_pca import build_eigensoft_pca_mcp_server
@@ -255,6 +256,10 @@ TOOL_BUILDERS = {
     "gibson_assembly": (
         "gibson_assembly", build_gibson_assembly_mcp_server,
         ["mcp__gibson_assembly__simulate_gibson_assembly"],
+    ),
+    "dnachisel_optimize": (
+        "dnachisel_optimize", build_dnachisel_optimize_mcp_server,
+        ["mcp__dnachisel_optimize__optimize_codon_usage"],
     ),
     "huggingface": ("huggingface", build_huggingface_mcp_server, ["mcp__huggingface__predict_masked_residue"]),
     "scikit_bio": ("scikit_bio", build_scikit_bio_mcp_server, ["mcp__scikit_bio__compute_diversity_metrics"]),
