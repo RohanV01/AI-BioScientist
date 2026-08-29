@@ -88,12 +88,23 @@ this."
    the next prompt, hoping the model reads it right, not a tracked constraint the system enforces
    on every subsequent tool call in that experiment.
 
-5. **No auto-generated Methods section.** Every computational biology paper needs a "Methods"
-   section listing exactly which software, versions, and parameters were used. This platform
-   already knows precisely which tool, which version, and which inputs produced every claim -- it's
-   sitting right there in the `ToolCall` table -- but there's no button that turns an experiment
-   into a paste-ready Methods paragraph. Small to build, directly useful to the actual target user
-   (someone trying to publish), not speculative.
+5. **No auto-generated Methods section.** ~~Every computational biology paper needs a "Methods"~~
+   **Built and live-verified 2026-08-29.** `GET /experiments/{experiment_id}/methods`
+   (`app/routers/reports.py`, generation logic in `app/methods_report.py`) renders a real Methods
+   section for one Experiment: every tool actually invoked (via real `ToolCall` rows, not the full
+   tool-roster menu -- a bound-but-never-called tool doesn't appear), call counts, and every real
+   record ID it grounded (via `GroundingLink`), plus a separate section for failed/timed-out calls
+   excluded from any reported result. Pure DB query + template render, no external network call, no
+   new architecture -- same "plain markdown file over HTTP" shape as the existing
+   `GET /reports/{response_id}` endpoint. Live-verified against a real running Postgres (not a
+   mocked DB): created a real Experiment -> Task -> ToolCall -> Response -> GroundingLink chain,
+   generated the section, asserted on its real content, confirmed the unknown-experiment 404 path
+   too. Found and fixed a real, previously-latent test-infrastructure gotcha along the way: `app/db.py`'s
+   module-level `engine` singleton binds its asyncpg pool to whichever event loop is running when it
+   first connects, so a second async DB test in the same file (this was the first file in the suite
+   with two) tried reusing connections from the first test's already-closed loop -- fixed with an
+   autouse `engine.dispose()` fixture in the test file, not a global pytest-asyncio config change
+   that could've had broader side effects on the rest of the suite.
 
 6. **No adversarial self-check before the answer ships.** Right now grounding checks "is there a
    citation," not "is this citation actually being interpreted correctly, or is the reasoning
@@ -110,11 +121,12 @@ this."
 
 ## Highest-value, lowest-effort starting points
 
-Of both passes, **retraction detection** and **auto-generated Methods sections** stand out: both
-are concrete, both are checkable/buildable the same way every tool in `docs/17` already is (a
+Of both passes, **retraction detection** and **auto-generated Methods sections** stood out: both
+were concrete, both were checkable/buildable the same way every tool in `docs/17` already is (a
 builder file, a real API or a real DB-table query, a real test), and both attack the platform's
 actual stated mission (grounded, publishable, verifiable science) directly, rather than adding
-surface area the way one more data source would.
+surface area the way one more data source would. **Both are now built and live-verified** -- see
+each item's own entry above for details.
 
 **Retraction detection -- built and live-verified 2026-08-26.** `app/tools/retraction_watch.py`'s
 `check_retraction_status(pmid|doi)` checks PubMed's own record (`PublicationType == "Retracted
