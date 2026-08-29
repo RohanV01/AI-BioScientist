@@ -188,6 +188,12 @@ dependencies = [
     "bakta>=1.12,<2.0",
     "checkm2>=1.0,<2.0",
     "checkv>=1.1,<2.0",
+    # docs/17-remaining-tools-wiring-plan.md Phase 1 Immunoinformatics
+    # cluster, reclassified to Phase 2 CLONE-tier plumbing -- real
+    # IgBLAST-based V(D)J gene assignment (bare `pyir` on PyPI is an
+    # unrelated "Python Intermediate Representation" package; the real
+    # package is `crowelab-pyir`, confirmed before installing).
+    "crowelab-pyir>=1.5,<2.0",
 ]
 
 [project.optional-dependencies]

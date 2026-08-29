@@ -268,6 +268,22 @@ RUN mkdir -p /opt/checkm2_db && curl -fsSL https://zenodo.org/records/14897628/f
 RUN mkdir -p /opt/checkv_db && curl -fsSL https://portal.nersc.gov/CheckV/checkv-db-v1.5.tar.gz -o /tmp/checkv_db.tar.gz \
     && tar xzf /tmp/checkv_db.tar.gz -C /opt/checkv_db --strip-components=1 && rm /tmp/checkv_db.tar.gz
 
+# IgBLAST (app/tools/pyir_annotate.py, docs/17 Phase 1 Immunoinformatics
+# cluster, reclassified to Phase 2 CLONE-tier plumbing -- PyIR
+# genuinely shells out to a real igblastn binary). Real, confirmed-live
+# packaging defect found: the Debian/Ubuntu `igblast` apt package
+# (v1.19.0) ships only the NCBI C++ toolkit's internal build utilities
+# (datatool, project_tree_builder, ...) -- it does NOT contain the
+# actual igblastn/igblastp executables IgBLAST's functionality depends
+# on (confirmed by extracting the real .deb locally and listing every
+# file in it, not assumed from the package name). Fixed by installing
+# NCBI's own official prebuilt Linux binary release directly instead.
+RUN curl -fsSL https://ftp.ncbi.nlm.nih.gov/blast/executables/igblast/release/LATEST/ncbi-igblast-1.22.0-x64-linux.tar.gz \
+    | tar xz -C /opt \
+    && ln -s /opt/ncbi-igblast-1.22.0/bin/igblastn /usr/local/bin/igblastn \
+    && ln -s /opt/ncbi-igblast-1.22.0/bin/igblastp /usr/local/bin/igblastp \
+    && ln -s /opt/ncbi-igblast-1.22.0/bin/edit_imgt_file.pl /usr/local/bin/edit_imgt_file.pl
+
 WORKDIR /app
 
 COPY requirements.txt .
@@ -284,6 +300,18 @@ COPY requirements.txt .
 # transitive dependency as it's discovered.
 RUN pip install --no-cache-dir uv \
     && uv pip install --system --no-cache -r requirements.txt
+
+# PyIR's germline BLAST databases (app/tools/pyir_annotate.py) --
+# `pyir setup` fetches the current IMGT/GENE-DB germline reference (a
+# real, actively-maintained set of gene definitions PyIR's own README
+# recommends refreshing rather than relying solely on the bundled
+# snapshot) using PyIR's own documented system requirements (`wget`,
+# `gawk`, confirmed against its README) -- kept installed afterward
+# (unlike the throwaway build-only tools elsewhere in this file) since
+# nothing else in this image already provides wget.
+RUN apt-get update && apt-get install -y --no-install-recommends wget gawk \
+    && rm -rf /var/lib/apt/lists/* \
+    && pyir setup
 
 # permission_mode="bypassPermissions" in claude_runner.py maps to the CLI's
 # --dangerously-skip-permissions, which the CLI refuses to run as root/UID 0

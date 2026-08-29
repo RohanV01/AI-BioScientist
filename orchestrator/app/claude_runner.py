@@ -359,6 +359,10 @@ RECORD_REF_PATTERNS: list[tuple[str, re.Pattern]] = [
     ("CheckV {}", re.compile(r"\[checkv:(\w+)\]")),
     ("FastANI {}", re.compile(r"\[fastani:(\w+)\]")),
     ("Barrnap {}", re.compile(r"\[barrnap:(\w+)\]")),
+    # docs/17-remaining-tools-wiring-plan.md Phase 1 Immunoinformatics
+    # cluster, reclassified to Phase 2 -- same methodological-citation
+    # convention.
+    ("PyIR {}", re.compile(r"\[pyir:(\w+)\]")),
 ]
 
 

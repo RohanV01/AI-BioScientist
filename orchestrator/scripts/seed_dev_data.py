@@ -187,6 +187,16 @@ KNOWN_TOOL_SOURCES = {
     # cluster -- real AbLang model inference (restore mode) on caller-
     # supplied masked antibody sequences, no external API.
     "ablang_restore": ("immunoinformatics", "free_public", "in-process:app.tools.ablang_restore", False, False),
+    # docs/17-remaining-tools-wiring-plan.md Phase 1 Immunoinformatics
+    # cluster, reclassified to Phase 2 CLONE-tier plumbing -- confirmed
+    # live it genuinely shells out to a real igblastn binary + germline
+    # reference DBs (bare `pyir` on PyPI is unrelated; real package is
+    # `crowelab-pyir`). Real, confirmed-live packaging defect found and
+    # fixed in the Dockerfile: Debian's `igblast` apt package ships only
+    # NCBI C++ toolkit build utilities, not the actual igblastn/igblastp
+    # executables -- installed from NCBI's own official binary release
+    # instead.
+    "pyir_annotate": ("immunoinformatics", "free_public", "in-process:app.tools.pyir_annotate", False, False),
     # docs/17-remaining-tools-wiring-plan.md Phase 1, Population genetics
     # cluster -- real NHGRI-EBI GWAS Catalog study/trait lookup for a
     # variant, distinct from ensembl_vep/gnomad/open_targets. Genuinely

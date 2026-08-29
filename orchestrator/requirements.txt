@@ -80,6 +80,7 @@ dnachisel>=3.2,<4.0
 bakta>=1.12,<2.0
 checkm2>=1.0,<2.0
 checkv>=1.1,<2.0
+crowelab-pyir>=1.5,<2.0
 
 # dev/test
 pytest>=8.3,<9.0

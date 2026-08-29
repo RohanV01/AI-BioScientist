@@ -98,6 +98,7 @@ from app.tools.phylogenetics import build_phylogenetics_mcp_server
 from app.tools.plip_interactions import build_plip_interactions_mcp_server
 from app.tools.primer3 import build_primer3_mcp_server
 from app.tools.prokka_annotate import build_prokka_annotate_mcp_server
+from app.tools.pyir_annotate import build_pyir_annotate_mcp_server
 from app.tools.pubchem import build_pubchem_mcp_server
 from app.tools.pubmed import build_pubmed_mcp_server
 from app.tools.pycombat_correction import build_pycombat_correction_mcp_server
@@ -254,6 +255,10 @@ TOOL_BUILDERS = {
     "barrnap_rrna": (
         "barrnap_rrna", build_barrnap_rrna_mcp_server,
         ["mcp__barrnap_rrna__predict_rrna_genes"],
+    ),
+    "pyir_annotate": (
+        "pyir_annotate", build_pyir_annotate_mcp_server,
+        ["mcp__pyir_annotate__assign_vdj_genes"],
     ),
     "minimap2_align": ("minimap2_align", build_minimap2_mcp_server, ["mcp__minimap2_align__align_to_reference"]),
     "blast_search": ("blast_search", build_blast_search_mcp_server, ["mcp__blast_search__blast_search"]),
