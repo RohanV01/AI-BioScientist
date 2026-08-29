@@ -4,6 +4,26 @@ All notable changes to this project are logged here. Format loosely follows [Kee
 
 ## [Unreleased]
 
+### Added — 2026-08-30 (reference-data freshness checking)
+- Real per-source live staleness checking for the 8 reference databases baked into the Docker image
+  at build time (Kraken2, Kaiju, Bakta, CheckM2, CheckV, LDSC, AMRFinderPlus, PyIR) -- built per
+  explicit direction ("can we make it this way that these are constantly checked for releases")
+  after confirming none of them auto-update on their own. Each check method was independently
+  confirmed live against the real upstream endpoint before being wired in: Zenodo's own
+  `/versions/latest` API for Bakta/CheckM2/LDSC (live-confirmed it correctly resolves to a newer
+  record when one exists -- LDSC's original record now resolves to a real, different, newer one);
+  unauthenticated S3 bucket listing for Kraken2/Kaiju; CheckV's own `CURRENT_RELEASE.txt`; NCBI FTP's
+  `latest/` directory listing for AMRFinderPlus. PyIR is self-refreshing (its own `pyir setup`
+  command always fetches current data, so there's no separate check step for it).
+- New `ReferenceDataSource` table (migration `c4d5e6f7a8b9`), a daily background check
+  (`app/main.py`'s lifespan), and `GET /reference-data/status` / `POST /reference-data/check`.
+  Live-verified end-to-end against the real dev Postgres, not just written and assumed correct:
+  applied the migration, ran the real check against every source, and it correctly flagged exactly
+  the one genuinely stale source with `needs_update: true`.
+- Scope is deliberately detection + reporting, not automated redownload -- swapping in a newer
+  version of a baked DB still means rebuilding the image; documented as an explicit, honest
+  boundary rather than a half-built auto-refresh.
+
 ### Added — 2026-08-30 (real file-upload pipeline + 8 DATA-gated R-bridge tools -- tool roster 105 -> 114)
 - Real Mattermost file-attachment pipeline, unblocking the R-bridge tools Phase 3 explicitly deferred
   for lack of an ingestion path. Confirmed against Mattermost's own server source (not assumed) that

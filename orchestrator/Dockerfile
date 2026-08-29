@@ -257,6 +257,22 @@ RUN mkdir -p /opt/amrfinder && curl -fsSL https://github.com/ncbi/amr/releases/d
 # these defaults can always swap in a larger DB at their own
 # deployment by re-pointing these tools' DB paths -- documented in
 # each tool file's docstring, not hidden.
+#
+# None of these (plus LDSC's ref panel above, AMRFinderPlus's DB, and
+# PyIR's germline DB further down) auto-update -- they're frozen at
+# whatever version was current when this image was built. Per explicit
+# user direction ("can we make it this way that these are constantly
+# checked for releases"), app/reference_data.py runs a real, per-source
+# live check against each one's actual upstream release endpoint
+# (Zenodo's /versions/latest API for Bakta/CheckM2/LDSC, S3 bucket
+# listing for Kraken2/Kaiju, the source's own dated release-file
+# endpoint for CheckV/AMRFinderPlus) on a daily background schedule
+# (app/main.py) and exposes GET /reference-data/status +
+# POST /reference-data/check -- so staleness is surfaced and
+# queryable, not silently invisible. Actually swapping in a newer
+# version still requires a rebuild/redeploy of this image (these RUN
+# layers are the source of truth for what's on disk) -- the freshness
+# check tells you *when* that's worth doing, it doesn't do it for you.
 RUN mkdir -p /opt/kraken2_db && curl -fsSL https://genome-idx.s3.amazonaws.com/kraken/k2_viral_20260626.tar.gz \
     | tar xz -C /opt/kraken2_db
 RUN mkdir -p /opt/kaiju_db && curl -fsSL https://kaiju-idx.s3.eu-central-1.amazonaws.com/2024/kaiju_db_viruses_2024-08-15.tgz \

@@ -354,6 +354,28 @@ built by any researcher, not just one with a server-grade disk/connection:
 - AMRFinderPlus: its own real, maintained `amrfinder_update` command fetches the DB (not hand-curled
   file-by-file from NCBI's FTP listing).
 
+**Reference-data freshness checking built 2026-08-30**, per explicit user direction ("can we make it
+this way that these are constantly checked for releases") after confirming none of Kraken2/Kaiju/
+Bakta/CheckM2/CheckV/LDSC/AMRFinderPlus/PyIR's baked-in DBs auto-update -- they're frozen at whatever
+was current when the image was built. `app/reference_data.py` runs a real, per-source live check
+against each one's actual upstream release endpoint, confirmed live one at a time before wiring in:
+Zenodo's own `GET /api/records/<id>/versions/latest` for Bakta/CheckM2/LDSC (confirmed it correctly
+resolves to a newer record when one exists -- querying LDSC's original record 7768714 live returns a
+real, different, newer record 10515792, "S-LDSC reference files"); unauthenticated S3
+`?list-type=2&prefix=...` bucket listing for Kraken2/Kaiju (both buckets support it, confirmed live);
+CheckV's own NERSC-hosted `CURRENT_RELEASE.txt` (the same file `checkv download_database` itself
+reads); and NCBI FTP's real `latest/` directory listing for AMRFinderPlus. PyIR is marked
+self-refreshing rather than checked separately -- its `pyir setup` command always fetches current
+IMGT/GENE-DB data, so "checking" and "refreshing" are the same real action for that one source, not
+two. Runs daily via a background task (`app/main.py`'s lifespan); `GET /reference-data/status` and
+`POST /reference-data/check` (real DB-backed `ReferenceDataSource` rows, migration
+`c4d5e6f7a8b9`) surface the result. Scope is deliberately staleness *detection + reporting*, not
+automated redownload -- swapping in a newer version still means rebuilding the image (these
+Dockerfile `RUN` layers are the real source of truth for what's on disk); the check tells you *when*
+that's worth doing. Live-verified end-to-end against a real running Postgres before being called
+done: seeded, ran the real check against every source, and it correctly flagged exactly the one
+genuinely stale source (LDSC) with `needs_update: true`, everything else `false`.
+
 Where local testing was possible without root (barrnap, fastANI -- both apt-installable, no huge DB
 needed), **actually ran them live end-to-end before committing**, same rigor as xtb_quantum: caught
 two real, non-obvious bugs this way. (1) **FastANI's default 3000bp fragment length needs a

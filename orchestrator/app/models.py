@@ -247,3 +247,29 @@ class PredictionOutcome(Base):
     recorded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     tool_call: Mapped["ToolCall"] = relationship()
+
+
+class ReferenceDataSource(Base):
+    """Tracks staleness for the reference databases baked into the
+    Docker image at build time (Kraken2/Kaiju/Bakta/CheckM2/CheckV/
+    LDSC/AMRFinderPlus/PyIR -- see Dockerfile lines ~260-269 and
+    app/reference_data.py). Built per explicit user direction ("can we
+    make it this way that these are constantly checked for releases")
+    after confirming none of these auto-update on their own. One row
+    per source, refreshed by a periodic background check
+    (app/reference_data.py's real, source-specific "is a newer release
+    available" query -- Zenodo's /versions/latest API, S3 bucket
+    listing, or the source's own dated release-file endpoint) rather
+    than left to silently go stale forever."""
+
+    __tablename__ = "reference_data_source"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    name: Mapped[str] = mapped_column(String, nullable=False, unique=True)
+    installed_version: Mapped[str] = mapped_column(String, nullable=False)
+    latest_known_version: Mapped[str | None] = mapped_column(String, nullable=True)
+    check_method: Mapped[str] = mapped_column(String, nullable=False)  # zenodo_versions_latest|s3_bucket_listing|release_file|self_refreshing
+    source_url: Mapped[str] = mapped_column(String, nullable=False)
+    last_checked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    needs_update: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    last_check_error: Mapped[str | None] = mapped_column(Text, nullable=True)
