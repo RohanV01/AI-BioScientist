@@ -239,6 +239,35 @@ direction.
 ### Population genetics -- 6 tools
 poolfstat, ADMIXTURE, Eigensoft, TreeMix, selscan, LDSC.
 
+**5 of 6 live 2026-08-29** as `eigensoft_pca` (real EIGENSTRAT PCA via `smartpca`, apt-installable,
+confirmed live), `admixture_ancestry` (real ML ancestry inference via `admixture`, installed from
+its own project site's prebuilt Linux binary -- not apt/pip-installable, confirmed live; the real
+PLINK `.bed`/`.bim`/`.fam` binary trio is constructed directly from a simple caller dict, same
+"build the real input format" pattern as blast_search/mummer_align), `treemix_population_tree` (real
+population-split/migration-graph inference via `treemix`, compiled from source against
+libgsl-dev/libboost-dev -- real build recipe confirmed against the project's own bioconda build
+script, not guessed), `selscan_nsl` (real within-population nSL selection scan via `selscan`,
+installed from its own official prebuilt Linux binary release -- scoped to `--nsl` specifically
+since iHS/XP-EHH/XP-nSL all need a genetic map or a second reference population a chat caller can't
+reasonably supply, while nSL needs only phased haplotypes; reports raw/unstandardized scores since
+genome-wide normalization needs a full-chromosome scan out of scope here), and
+`ldsc_genetic_correlation` (real LD Score Regression genetic-correlation estimation via `ldsc.py` --
+**genuinely PyPI-installable**, confirmed live: the `ldsc` package's wheel installs the real script +
+`ldscore` library despite the upstream README only documenting a conda-from-source install, contrary
+to docs/12's original CLONE-tier assumption). LDSC ships its own baked-in EUR 1000G-Phase3/HapMap3
+LD-score reference panel (~26MB, pulled from a Zenodo mirror since the project's own default hosting
+now 301-redirects to a requester-pays bucket -- real link rot, confirmed live) -- same
+"pre-warm a real one-time download at build time" pattern as equilibrator_thermo/mhcflurry, just a
+much smaller payload; only SNPs overlapping that reference panel's real HapMap3 rsIDs can be scored,
+surfaced as an explicit "no overlap" result rather than fabricated. **poolfstat NOT built** -- it's a
+CRAN-only R package (confirmed live, no PyPI distribution exists), correctly belongs in Phase 3's
+R/Bioconductor bridge once that architecture (rpy2 vs. subprocess `Rscript`) is decided, not this
+CLONE-tier batch. **pixy still NOT built** -- re-confirmed live: not apt-installable, the PyPI `pixy`
+package is still the unrelated terminal-color library, and no GitHub release binary exists either --
+genuinely bioconda-only, same finding as the earlier session. All wired on well-documented, stable
+CLI/config syntax rather than a live host install (no sudo access to install these system binaries
+locally) -- verification deferred to the batch Docker build/test pass per explicit direction.
+
 ### Metagenomics -- 11 tools, heaviest cluster in this phase
 Kraken2, Kaiju, Prokka, Bakta, AMRFinderPlus, CheckM2, CheckV, eggNOG-mapper, FastANI, GTDB-Tk,
 Barrnap. **Caveat, not a blocker**: several of these (Kraken2, GTDB-Tk especially) need multi-GB

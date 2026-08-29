@@ -106,6 +106,19 @@ KNOWN_TOOL_SOURCES = {
     # cluster -- real local diversity-statistics computation, natural
     # downstream step from the already-live msa tool's aligned output.
     "egglib_popgen": ("population_genetics", "free_public", "in-process:app.tools.egglib_popgen", False, False),
+    # docs/17-remaining-tools-wiring-plan.md Phase 2, Population genetics
+    # cluster. poolfstat NOT built here -- CRAN-only (real R package, no
+    # Python distribution), belongs in Phase 3's R/Bioconductor bridge
+    # once that architecture (rpy2 vs. subprocess Rscript) is decided,
+    # not this CLONE-tier batch. pixy NOT built -- confirmed again live:
+    # not apt-installable, not on PyPI (the PyPI `pixy` package is an
+    # unrelated terminal-color library), no GitHub release binary either
+    # -- still genuinely bioconda-only.
+    "eigensoft_pca": ("population_genetics", "free_public", "in-process:app.tools.eigensoft_pca", False, False),
+    "admixture_ancestry": ("population_genetics", "free_public", "in-process:app.tools.admixture_ancestry", False, False),
+    "treemix_population_tree": ("population_genetics", "free_public", "in-process:app.tools.treemix_population_tree", False, False),
+    "selscan_nsl": ("population_genetics", "free_public", "in-process:app.tools.selscan_nsl", False, False),
+    "ldsc_genetic_correlation": ("population_genetics", "free_public", "in-process:app.tools.ldsc_genetic_correlation", False, False),
     # docs/17-remaining-tools-wiring-plan.md Phase 1, Sequence analysis
     # cluster -- real minimap2 pairwise alignment (long reads/cDNA/
     # genome-vs-genome), complementing msa's MAFFT multiple-sequence

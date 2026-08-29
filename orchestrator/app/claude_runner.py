@@ -334,6 +334,13 @@ RECORD_REF_PATTERNS: list[tuple[str, re.Pattern]] = [
     ("OrthoFinder {}", re.compile(r"\[orthofinder:(\w+)\]")),
     ("PAML yn00 {}", re.compile(r"\[paml:(\w+)\]")),
     ("ASTRAL-Pro {}", re.compile(r"\[astral_pro:(\w+)\]")),
+    # docs/17-remaining-tools-wiring-plan.md Phase 2, Population
+    # genetics cluster -- same methodological-citation convention.
+    ("EIGENSOFT smartpca {}", re.compile(r"\[eigensoft:(\w+)\]")),
+    ("ADMIXTURE {}", re.compile(r"\[admixture:(\w+)\]")),
+    ("TreeMix {}", re.compile(r"\[treemix:(\w+)\]")),
+    ("selscan {}", re.compile(r"\[selscan:(\w+)\]")),
+    ("LDSC {}", re.compile(r"\[ldsc:(\w+)\]")),
 ]
 
 

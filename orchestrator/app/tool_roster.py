@@ -27,6 +27,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import Agent, Credential, ToolBinding, ToolSource
 from app.tools.ablang_restore import build_ablang_restore_mcp_server
 from app.tools.alphafold import build_alphafold_mcp_server
+from app.tools.admixture_ancestry import build_admixture_ancestry_mcp_server
 from app.tools.anarci_numbering import build_anarci_mcp_server
 from app.tools.astral_pro_tree import build_astral_pro_tree_mcp_server
 from app.tools.auto3d_conformers import build_auto3d_conformers_mcp_server
@@ -47,6 +48,7 @@ from app.tools.correlationplus_dynamics import build_correlationplus_dynamics_mc
 from app.tools.dailymed import build_dailymed_mcp_server
 from app.tools.dssp_secondary_structure import build_dssp_secondary_structure_mcp_server
 from app.tools.egglib_popgen import build_egglib_popgen_mcp_server
+from app.tools.eigensoft_pca import build_eigensoft_pca_mcp_server
 from app.tools.foldmason_align import build_foldmason_align_mcp_server
 from app.tools.foldseek_search import build_foldseek_search_mcp_server
 from app.tools.fpocket_detection import build_fpocket_detection_mcp_server
@@ -62,6 +64,7 @@ from app.tools.gnomad import build_gnomad_mcp_server
 from app.tools.gwas_catalog import build_gwas_catalog_mcp_server
 from app.tools.gprofiler_enrichment import build_gprofiler_enrichment_mcp_server
 from app.tools.hpo import build_hpo_mcp_server
+from app.tools.ldsc_genetic_correlation import build_ldsc_genetic_correlation_mcp_server
 from app.tools.huggingface import build_huggingface_mcp_server
 from app.tools.hunflair_ner import build_hunflair_ner_mcp_server
 from app.tools.kegg import build_kegg_mcp_server
@@ -93,12 +96,14 @@ from app.tools.reactome import build_reactome_mcp_server
 from app.tools.retraction_watch import build_retraction_watch_mcp_server
 from app.tools.scanpy_clustering import build_scanpy_clustering_mcp_server
 from app.tools.scikit_bio import build_scikit_bio_mcp_server
+from app.tools.selscan_nsl import build_selscan_nsl_mcp_server
 from app.tools.soltrannet_solubility import build_soltrannet_solubility_mcp_server
 from app.tools.sourmash_compare import build_sourmash_compare_mcp_server
 from app.tools.spyrmsd_pose import build_spyrmsd_pose_mcp_server
 from app.tools.straindesign_intervention import build_straindesign_intervention_mcp_server
 from app.tools.string_db import build_string_mcp_server
 from app.tools.tcrdist_repertoire import build_tcrdist_repertoire_mcp_server
+from app.tools.treemix_population_tree import build_treemix_population_tree_mcp_server
 from app.tools.uniprot import build_uniprot_mcp_server
 from app.tools.usalign_tmscore import build_usalign_tmscore_mcp_server
 from app.tools.vina_docking import build_vina_docking_mcp_server
@@ -173,6 +178,26 @@ TOOL_BUILDERS = {
     "egglib_popgen": (
         "egglib_popgen", build_egglib_popgen_mcp_server,
         ["mcp__egglib_popgen__compute_diversity_statistics"],
+    ),
+    "eigensoft_pca": (
+        "eigensoft_pca", build_eigensoft_pca_mcp_server,
+        ["mcp__eigensoft_pca__compute_population_pca"],
+    ),
+    "admixture_ancestry": (
+        "admixture_ancestry", build_admixture_ancestry_mcp_server,
+        ["mcp__admixture_ancestry__infer_ancestry"],
+    ),
+    "treemix_population_tree": (
+        "treemix_population_tree", build_treemix_population_tree_mcp_server,
+        ["mcp__treemix_population_tree__build_population_tree"],
+    ),
+    "selscan_nsl": (
+        "selscan_nsl", build_selscan_nsl_mcp_server,
+        ["mcp__selscan_nsl__scan_selection_nsl"],
+    ),
+    "ldsc_genetic_correlation": (
+        "ldsc_genetic_correlation", build_ldsc_genetic_correlation_mcp_server,
+        ["mcp__ldsc_genetic_correlation__estimate_genetic_correlation"],
     ),
     "minimap2_align": ("minimap2_align", build_minimap2_mcp_server, ["mcp__minimap2_align__align_to_reference"]),
     "blast_search": ("blast_search", build_blast_search_mcp_server, ["mcp__blast_search__blast_search"]),

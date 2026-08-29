@@ -44,9 +44,14 @@ FROM python:3.11-slim
 # `apt-cache search`/`apt-get download` before assuming either way):
 # fasttree_tree.py wraps `fasttree`, paml_yn00.py wraps `yn00` from the
 # `paml` package.
+# eigensoft (same phase, Population genetics cluster) -- apt-installable
+# (confirmed live), gives eigensoft_pca.py the real `smartpca` binary.
+# libgsl-dev/libboost-dev (same cluster) are build-time deps for
+# compiling TreeMix from source below (neither is itself apt-installable
+# as a program).
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl ca-certificates gnupg mafft hmmer build-essential zlib1g-dev \
-       ncbi-blast+ clustalo emboss prodigal mummer dssp git cmake fasttree paml \
+       ncbi-blast+ clustalo emboss prodigal mummer dssp git cmake fasttree paml eigensoft libgsl-dev libboost-dev \
     && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y --no-install-recommends nodejs \
     && npm install -g @anthropic-ai/claude-code \
@@ -102,6 +107,48 @@ RUN git clone --depth 1 --branch Linux https://github.com/chaoszhang/ASTER.git /
 RUN curl -fsSL https://github.com/davidemms/OrthoFinder/releases/download/2.5.5/OrthoFinder.tar.gz \
     | tar xz -C /opt \
     && ln -s /opt/OrthoFinder/orthofinder /usr/local/bin/orthofinder
+
+# ADMIXTURE (app/tools/admixture_ancestry.py, docs/17-remaining-tools-
+# wiring-plan.md Phase 2, Population genetics cluster) -- not
+# apt-installable (checked before assuming); installed from its own
+# project site's prebuilt static Linux binary, same class as
+# DIAMOND/Foldseek above.
+RUN curl -fsSL https://dalexander.github.io/admixture/binaries/admixture_linux-1.4.0.tar.gz | tar xz -C /tmp \
+    && mv /tmp/dist/admixture_linux-1.4.0/admixture /usr/local/bin/admixture && rm -rf /tmp/dist
+
+# selscan (app/tools/selscan_nsl.py, same cluster) -- not apt-installable,
+# installed from its own official prebuilt static Linux binary release
+# (github.com/szpiech/selscan), same class as ADMIXTURE above.
+RUN curl -fsSL -o /usr/local/bin/selscan \
+      https://github.com/szpiech/selscan/releases/download/v3.0.1/selscan-v3.0.1-linux \
+    && chmod +x /usr/local/bin/selscan
+
+# TreeMix (app/tools/treemix_population_tree.py, same cluster) -- not
+# apt-installable, compiled from source (autotools build, real recipe
+# confirmed against the project's own bioconda build script rather than
+# guessed) against the libgsl-dev/libboost-dev apt packages installed
+# above.
+RUN curl -fsSL https://bitbucket.org/nygcresearch/treemix/downloads/treemix-1.13.tar.gz -o /tmp/treemix.tar.gz \
+    && tar xzf /tmp/treemix.tar.gz -C /tmp && cd /tmp/treemix-1.13 \
+    && ./configure && make && make install \
+    && cd / && rm -rf /tmp/treemix.tar.gz /tmp/treemix-1.13
+
+# LDSC's reference LD-score panel (app/tools/ldsc_genetic_correlation.py,
+# same cluster) -- ldsc's own default hosting (data.broadinstitute.org)
+# 301-redirects to a requester-pays bucket now (confirmed live, real
+# link rot); the project's own README points at a free-access Zenodo
+# mirror (doi.org/10.5281/zenodo.7768714) instead. Only the two files
+# genuinely needed to run `ldsc.py --rg` (EUR 1000G-Phase3 LD scores +
+# HapMap3 regression weights, ~26MB combined) are pulled, not the full
+# Zenodo record (which also carries multi-GB baseline-annotation files
+# this tool doesn't use) -- same "pre-warm a real one-time download at
+# build time" pattern as equilibrator_thermo/mhcflurry above, just a
+# much smaller payload.
+RUN mkdir -p /opt/ldsc_ref \
+    && curl -fsSL "https://zenodo.org/records/7768714/files/1000G_Phase3_ldscores.tgz?download=1" \
+       | tar xz -C /opt/ldsc_ref \
+    && curl -fsSL "https://zenodo.org/records/7768714/files/1000G_Phase3_weights_hm3_no_MHC.tgz?download=1" \
+       | tar xz -C /opt/ldsc_ref
 
 WORKDIR /app
 
