@@ -428,6 +428,21 @@ KNOWN_TOOL_SOURCES = {
     # HTML shell instead of JSON (200 for any path, no clean 404 to
     # signal a wrong guess), so this needs real API docs, not more
     # trial and error.
+    # R/Bioconductor bridge (docs/17 Phase 3), file-upload-gated --
+    # Mattermost's real file_ids webhook payload is downloaded and
+    # classified by app/file_uploads.py, surfaced to the agent only via
+    # experiment_uploads' real list_uploaded_files call (no direct
+    # prompt injection). Each downstream tool subprocess-calls its own
+    # Rscript under app/tools/r_scripts/.
+    "experiment_uploads": ("data_infrastructure", "free_public", "in-process:app.tools.experiment_uploads", False, False),
+    "dada2_denoise": ("genomics", "free_public", "in-process:app.tools.dada2_denoise", False, False),
+    "seurat_analyze": ("transcriptomics", "free_public", "in-process:app.tools.seurat_analyze", False, False),
+    "soupx_correct": ("transcriptomics", "free_public", "in-process:app.tools.soupx_correct", False, False),
+    "monocle_pseudotime": ("transcriptomics", "free_public", "in-process:app.tools.monocle_pseudotime", False, False),
+    "infercnv_analyze": ("transcriptomics", "free_public", "in-process:app.tools.infercnv_analyze", False, False),
+    "giotto_spatial": ("transcriptomics", "free_public", "in-process:app.tools.giotto_spatial", False, False),
+    "tximport_summarize": ("transcriptomics", "free_public", "in-process:app.tools.tximport_summarize", False, False),
+    "sleuth_diffexp": ("transcriptomics", "free_public", "in-process:app.tools.sleuth_diffexp", False, False),
 }
 
 # Every tool source with a real builder, i.e. everything except the

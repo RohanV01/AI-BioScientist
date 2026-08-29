@@ -24,6 +24,7 @@ from app.config import settings
 from app.db import async_session, get_db
 from app.experiment_context import current_experiment_dir
 from app.experiment_synthesis import format_conclusion_markdown, load_all_findings, synthesize_conclusion
+from app.file_uploads import handle_uploaded_files
 from app.grounding import Citation, create_response
 from app.llm_backend import LLMBackendError
 from app.mattermost_client import MattermostClient
@@ -118,7 +119,7 @@ async def _build_conversation_history(db: AsyncSession, experiment_id) -> list[s
 
 
 async def _run_agent_and_respond(
-    task_id, agent_id: str, channel_id: str, user_message: str, experiment_id, post_id: str
+    task_id, agent_id: str, channel_id: str, user_message: str, experiment_id, post_id: str, file_ids: str = ""
 ) -> None:
     """Runs in the background, after the webhook has already returned a
     receipt to Mattermost. Owns its own DB session -- the request-scoped
@@ -156,6 +157,29 @@ async def _run_agent_and_respond(
             conversation_history = await _build_conversation_history(db, experiment_id)
             exp_dir = Path(experiment.folder_path) if experiment is not None else None
             current_experiment_dir.set(exp_dir)
+
+            # Real file attachments on the triggering post (Mattermost's
+            # own Outgoing Webhook payload carries these in `file_ids`,
+            # confirmed against its server source -- see
+            # app/file_uploads.py's module docstring). Downloaded and
+            # classified *before* run_agent so list_uploaded_files
+            # (app/tools/experiment_uploads.py) can see them the moment
+            # the agent's first tool call happens -- never injected
+            # directly into user_message, so a researcher's uploaded
+            # data still only reaches the agent through a real, auditable
+            # tool call, same grounding discipline as everything else.
+            ids = [f for f in file_ids.split(",") if f.strip()]
+            if ids and exp_dir is not None:
+                uploaded = await handle_uploaded_files(mm, ids, exp_dir)
+                summary_lines = []
+                for u in uploaded:
+                    if u["format"] == "download_failed":
+                        summary_lines.append(f"- {u['filename']}: failed to download")
+                    else:
+                        summary_lines.append(f"- {u['filename']} ({u['size']} bytes, detected as `{u['format']}`)")
+                await mm.post_message(
+                    channel_id, "📎 Received file(s):\n" + "\n".join(summary_lines), root_id=post_id,
+                )
 
             try:
                 result = await run_agent(
@@ -304,6 +328,11 @@ async def mattermost_outgoing_webhook(
     post_id: str = Form(...),
     text: str = Form(...),
     trigger_word: str = Form(""),
+    # Real Mattermost Outgoing Webhook field, confirmed against
+    # Mattermost's own server source (OutgoingWebhookPayload.FileIds) --
+    # a comma-separated list of file IDs attached to the triggering
+    # post. See app/file_uploads.py.
+    file_ids: str = Form(""),
 ):
     if settings.mattermost_webhook_secret and token != settings.mattermost_webhook_secret:
         raise HTTPException(status_code=403, detail="invalid webhook token")
@@ -333,7 +362,7 @@ async def mattermost_outgoing_webhook(
     await db.commit()
 
     background_tasks.add_task(
-        _run_agent_and_respond, task.id, str(agent.id), channel_id, text, experiment.id, post_id
+        _run_agent_and_respond, task.id, str(agent.id), channel_id, text, experiment.id, post_id, file_ids
     )
 
     # Synchronous receipt only (docs/05-ux-behavior.md Section 1) -- the

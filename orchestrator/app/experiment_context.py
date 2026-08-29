@@ -31,6 +31,16 @@ def findings_dir() -> Path | None:
     return (exp_dir / "findings") if exp_dir is not None else None
 
 
+def uploads_dir() -> Path | None:
+    """Where real researcher-uploaded files for the current experiment
+    live (a Mattermost message's file attachments, downloaded by
+    app/routers/mattermost_webhook.py before the agent run starts --
+    see app/file_uploads.py). Same contextvar-based pattern as
+    papers_dir()/findings_dir() above."""
+    exp_dir = current_experiment_dir.get()
+    return (exp_dir / "uploads") if exp_dir is not None else None
+
+
 def _manifest_path() -> Path | None:
     exp_dir = current_experiment_dir.get()
     return (exp_dir / "papers.json") if exp_dir is not None else None

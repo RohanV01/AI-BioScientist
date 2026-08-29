@@ -42,5 +42,24 @@ class MattermostClient:
         resp.raise_for_status()
         return resp.json()
 
+    async def get_file_info(self, file_id: str) -> dict:
+        """Real Mattermost endpoint `GET /api/v4/files/{file_id}/info` --
+        confirmed against Mattermost's own server source
+        (server/channels/api4/file.go) before relying on it. Returns
+        real metadata: name, size, mime_type, extension, etc."""
+        resp = await self._client.get(f"/api/v4/files/{file_id}/info")
+        resp.raise_for_status()
+        return resp.json()
+
+    async def download_file(self, file_id: str) -> bytes:
+        """Real Mattermost endpoint `GET /api/v4/files/{file_id}` -- returns
+        the raw file bytes directly (confirmed against Mattermost's own
+        server source, same file as get_file_info above). Uses a longer
+        timeout than the base client's 15s default since real uploaded
+        research files (count matrices, FASTQ) can be large."""
+        resp = await self._client.get(f"/api/v4/files/{file_id}", timeout=120.0)
+        resp.raise_for_status()
+        return resp.content
+
     async def aclose(self) -> None:
         await self._client.aclose()

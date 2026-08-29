@@ -4,6 +4,34 @@ All notable changes to this project are logged here. Format loosely follows [Kee
 
 ## [Unreleased]
 
+### Added — 2026-08-30 (real file-upload pipeline + 8 DATA-gated R-bridge tools -- tool roster 105 -> 114)
+- Real Mattermost file-attachment pipeline, unblocking the R-bridge tools Phase 3 explicitly deferred
+  for lack of an ingestion path. Confirmed against Mattermost's own server source (not assumed) that
+  `OutgoingWebhookPayload` carries a real `file_ids` field and that `GET /api/v4/files/{id}[/info]`
+  are real endpoints. `app/file_uploads.py` downloads each attached file into the current
+  Experiment's own `uploads/` folder and classifies it by real content inspection (opens archives
+  and checks member names rather than trusting the filename). Grounding discipline preserved: upload
+  info is surfaced only via a new real tool, `list_uploaded_files` (`experiment_uploads`), never
+  injected into the prompt directly.
+- Eight DATA-gated R-bridge tools built against that pipeline: `dada2_denoise`, `seurat_analyze`,
+  `soupx_correct`, `monocle_pseudotime`, `infercnv_analyze`, `giotto_spatial`,
+  `tximport_summarize`, `sleuth_diffexp`. Per the explicit real-time-data requirement, none of them
+  bake in a reference snapshot -- `infercnv_analyze`/`tximport_summarize`/`sleuth_diffexp` fetch
+  gene/transcript coordinates and tx2gene mappings live from Ensembl (via `biomaRt`) at run time.
+  Monocle3 and sleuth install via `remotes::install_github` (not on CRAN/Bioconductor). 33 new
+  validation-path tests added (`tests/test_*`); happy-path runs deferred to the batch Docker
+  build/test pass, same as every other R-bridge tool (no R interpreter in this sandbox).
+- `README.md`'s tool-roster count corrected (105 -> 114); `docs/17`'s Phase 3 section and its
+  "DATA-gated, needs a dedicated plan" out-of-scope note both updated to reflect that the file-upload
+  path now exists as real infrastructure other DATA-gated tools (BWA, GATK, celltypist, ...) can be
+  wired against individually going forward.
+- **Still open, not started**: the reference-database freshness-checking work (Kraken2/Kaiju/
+  Bakta/CheckM2/CheckV/LDSC/PyIR/AMRFinderPlus are all static, frozen at Docker build time) --
+  researched and a concrete architecture validated (Zenodo `/versions/latest`, S3 bucket listing,
+  self-update commands, per-source `CURRENT_RELEASE.txt` checks) per explicit user direction to make
+  this "constantly checked for releases," but paused mid-investigation to prioritize this
+  file-upload batch first; resuming next.
+
 ### Added — 2026-08-29/30 (reconsidered rejects, docs/18 platform features, Phase 1.5 GPU tools -- tool roster 97 -> 105)
 - Per explicit direction to re-add the important earlier rejects rather than leave them all
   skipped: `poolfstat_fst` (real R package, buildable once the R bridge existed), `pixy_diversity`

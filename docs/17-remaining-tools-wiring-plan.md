@@ -513,23 +513,61 @@ weighted gene co-expression network + module detection via `WGCNA::blockwiseModu
 caller-supplied expression matrix the same way `dnachisel_optimize`/`treemix_population_tree` accept
 caller-supplied structured data -- not a DATA-gated pipeline needing an uploaded raw-count file.
 
-**Remaining ~10 R tools (dada2, Seurat, scran, scater, SoupX, monocle, InferCNV, Giotto, tximport,
-sleuth) NOT built.** Real scoping check: all of them need a real uploaded dataset (FASTQ, a
-10x-format droplet matrix, or Salmon/Kallisto quantification output) to be useful -- this platform
-still has no file-upload/ingestion path (same explicit out-of-scope finding as the DATA-gated tools
-listed below), so building them now would mean either a fake toy input that misrepresents the tool's
-real value, or silently expanding scope into the file-upload problem this plan deliberately doesn't
-try to solve. Revisit once a real ingestion path exists.
+**File-upload pipeline + remaining ~8 DATA-gated R tools built 2026-08-30**, unblocking the
+"revisit once a real ingestion path exists" note above. Real Mattermost outgoing-webhook payload
+carries a `file_ids` field (confirmed against Mattermost's own server source,
+`OutgoingWebhookPayload.FileIds` in `server/public/model/outgoing_webhook.go`); `app/file_uploads.py`
+downloads each real attached file (`MattermostClient.get_file_info`/`download_file`, real
+`GET /api/v4/files/{id}[/info]`) into the current Experiment's own `uploads/` folder and classifies
+it by real content inspection (not filename alone -- an archive is opened and its member names
+checked for a 10x `matrix.mtx`+`barcodes.tsv`+`features.tsv` trio vs. a Salmon/Kallisto
+`quant.sf`/`abundance.h5` bundle). Grounding discipline preserved: upload info is never injected
+into the prompt directly -- the agent must call the real `list_uploaded_files` tool
+(`app/tools/experiment_uploads.py`) to learn what's available, same as every other fact on this
+platform. Per the project's real-time-data requirement, no reference data is baked in for any of
+these: `infercnv_analyze`, `tximport_summarize`, and `sleuth_diffexp` fetch gene/transcript
+positions and tx2gene mappings live from Ensembl via `biomaRt` at run time, not from a static
+gene-order/tx2gene snapshot.
+
+- `dada2_denoise` -- real amplicon ASV inference from an uploaded FASTQ (`filterAndTrim` ->
+  `learnErrors` -> `dada` -> `makeSequenceTable` -> `removeBimeraDenovo`).
+- `seurat_analyze` -- real scRNA-seq clustering + marker genes from an uploaded 10x `.h5`/mtx-bundle
+  (Seurat's own canonical tutorial pipeline through `FindAllMarkers`).
+- `soupx_correct` -- real ambient-RNA correction, needs both a raw and a filtered 10x bundle from
+  the same sample; derives its own quick Seurat clustering since SoupX needs approximate clusters
+  and cellranger's graph-clust output isn't guaranteed present in an arbitrary upload.
+- `monocle_pseudotime` -- real Monocle3 trajectory + pseudotime; requires a real root-cell barcode
+  from the dataset (e.g. from a prior `seurat_analyze` call) rather than an auto-guessed root, since
+  pseudotime=0 has no principled definition without one.
+- `infercnv_analyze` -- real per-cell CNV-deviation detection; requires a second uploaded
+  cell-annotations table (group labels) since only the researcher knows which cells are
+  reference/normal.
+- `giotto_spatial` -- real spatial clustering + marker genes; requires a second uploaded spatial
+  coordinates table, since Giotto's whole value is spatial context a plain count matrix can't supply.
+- `tximport_summarize` -- real transcript-to-gene-level summarization from an uploaded
+  Salmon/Kallisto quant-directory bundle.
+- `sleuth_diffexp` -- real likelihood-ratio differential expression across conditions; requires a
+  second uploaded sample-to-condition design table, since sample groupings can't be inferred.
+
+Not on CRAN/Bioconductor -- Monocle3 and sleuth ship only via GitHub per their own install docs
+(`cole-trapnell-lab/monocle3`, `pachterlab/sleuth`), so the Dockerfile installs them via
+`remotes::install_github` rather than `BiocManager::install`/`install.packages`. Not locally
+testable in this sandbox (no R interpreter available) -- each tool's validation-path tests
+(`tests/test_<name>.py`) run directly and pass; the happy-path runs are deferred to the batch Docker
+build/test pass, same as every other R-bridge tool.
 
 ## Explicitly out of scope for this plan
 
-**DATA-gated** (real capability, but needs a dataset -- FASTQ/BAM/VCF/scRNA-seq matrix -- this
-platform has no upload/ingestion path for today): BWA, GATK, FreeBayes, RepeatMasker, DeepVariant,
-kallisto, MetaPhlAn/HUMAnN (functionally, per the Phase 2 caveat above), celltypist, MACA, Scaden,
-xCell2, and the broader cell-type-annotation/deconvolution group. **Unblocking these as a group is
-worth a dedicated plan of its own** (a real file-upload path through Mattermost/the orchestrator,
-storage, and a "which of these tools applies to this file type" dispatch) -- not something to
-half-solve tool-by-tool here.
+**DATA-gated** (real capability, but needs a dataset -- FASTQ/BAM/VCF/scRNA-seq matrix): BWA, GATK,
+FreeBayes, RepeatMasker, DeepVariant, kallisto, MetaPhlAn/HUMAnN (functionally, per the Phase 2
+caveat above), celltypist, MACA, Scaden, xCell2, and the broader cell-type-annotation/deconvolution
+group. **The real file-upload path this note originally called for now exists** (`app/file_uploads.py`
++ `app/tools/experiment_uploads.py`, built 2026-08-30 to unblock the Phase 3 R-bridge tools above) --
+downloading a real Mattermost attachment into the current Experiment's `uploads/` folder and
+classifying it by real content inspection. Each of these tools is now a matter of wiring its own
+Python/R subprocess wrapper against that existing pipeline (following the "which format does this
+tool need" pattern the R-bridge tools already establish), not building new infrastructure -- revisit
+individually rather than as a blocked group.
 
 **GPU-heavy, deferred**: **OpenFold** only. AlphaFold2-scale attention memory (roughly quadratic in
 sequence length) genuinely needs 12GB+ VRAM for real protein lengths -- a consumer card like a 3050

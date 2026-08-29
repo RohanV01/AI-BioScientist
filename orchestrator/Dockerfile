@@ -306,15 +306,36 @@ RUN curl -fsSL https://ftp.ncbi.nlm.nih.gov/blast/executables/igblast/release/LA
 # recount3's own study catalog) -- real next R-bridge candidates per
 # docs/17's Phase 3 scoping note, none of them DATA-gated the way most
 # of the remaining R-bridge tools are.
+#
+# The remaining R-bridge tools (docs/17 Phase 3, file-upload-gated:
+# dada2, Seurat, SoupX, Monocle3, InferCNV, Giotto, tximport, sleuth --
+# unblocked by app/file_uploads.py's real Mattermost file-attachment
+# pipeline) add: libhdf5-dev (hdf5r/rhdf5, for reading CellRanger .h5
+# and Kallisto abundance.h5 files -- confirmed real dependency, not
+# guessed) and libgdal-dev/libgeos-dev/libproj-dev/libudunits2-dev
+# (monocle3's own documented system requirements, pulled in
+# transitively via its spatial/terra dependencies). Monocle3 and
+# sleuth are not on CRAN/Bioconductor -- both ship only via GitHub per
+# their own install docs (cole-trapnell-lab/monocle3,
+# pachterlab/sleuth), hence remotes::install_github here rather than
+# install.packages/BiocManager::install. Gene/transcript positions for
+# infercnv_analyze.R and tximport_summarize.R/sleuth_diffexp.R are
+# fetched live from Ensembl via biomaRt at run time (per the project's
+# real-time-data constraint) -- no baked-in gene-order or tx2gene
+# reference snapshot.
 RUN apt-get update && apt-get install -y --no-install-recommends \
        r-base libcurl4-openssl-dev libssl-dev libxml2-dev libfontconfig1-dev \
        libharfbuzz-dev libfribidi-dev libfreetype6-dev libpng-dev libtiff5-dev libjpeg-dev \
+       libhdf5-dev libgdal-dev libgeos-dev libproj-dev libudunits2-dev \
     && rm -rf /var/lib/apt/lists/* \
-    && Rscript -e 'install.packages("BiocManager", repos="https://cloud.r-project.org")' \
+    && Rscript -e 'install.packages(c("BiocManager", "remotes"), repos="https://cloud.r-project.org")' \
     && Rscript -e 'BiocManager::install(c("clusterProfiler", "org.Hs.eg.db", "org.Mm.eg.db"), update=FALSE, ask=FALSE)' \
     && Rscript -e 'install.packages("poolfstat", repos="https://cloud.r-project.org")' \
     && Rscript -e 'install.packages("WGCNA", repos="https://cloud.r-project.org")' \
-    && Rscript -e 'BiocManager::install(c("TCGAbiolinks", "recount3"), update=FALSE, ask=FALSE)'
+    && Rscript -e 'BiocManager::install(c("TCGAbiolinks", "recount3"), update=FALSE, ask=FALSE)' \
+    && Rscript -e 'BiocManager::install(c("dada2", "infercnv", "tximport", "biomaRt", "rhdf5"), update=FALSE, ask=FALSE)' \
+    && Rscript -e 'install.packages(c("Seurat", "hdf5r", "SoupX", "Giotto"), repos="https://cloud.r-project.org")' \
+    && Rscript -e 'remotes::install_github(c("cole-trapnell-lab/monocle3", "pachterlab/sleuth"), upgrade="never")'
 # app/tools/r_scripts/*.R ships with the full app source COPY near the
 # end of this file (not copied separately here) -- Rscript reads it
 # from disk at call time, no build-time compile step needed for it.

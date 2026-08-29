@@ -380,6 +380,18 @@ RECORD_REF_PATTERNS: list[tuple[str, re.Pattern]] = [
     ("TCGAbiolinks {}", re.compile(r"\[tcgabiolinks:(\w+)\]")),
     ("recount3 {}", re.compile(r"\[recount3:(\w+)\]")),
     ("WGCNA {}", re.compile(r"\[wgcna:(\w+)\]")),
+    # docs/17-remaining-tools-wiring-plan.md Phase 3, R-bridge
+    # file-upload-gated tools -- same methodological-citation
+    # convention, unblocked by app/file_uploads.py.
+    ("Uploaded experiment file {}", re.compile(r"\[experiment_uploads:(\w+)\]")),
+    ("dada2 {}", re.compile(r"\[dada2:(\w+)\]")),
+    ("Seurat {}", re.compile(r"\[seurat:(\w+)\]")),
+    ("SoupX {}", re.compile(r"\[soupx:(\w+)\]")),
+    ("Monocle3 {}", re.compile(r"\[monocle:(\w+)\]")),
+    ("InferCNV {}", re.compile(r"\[infercnv:(\w+)\]")),
+    ("Giotto {}", re.compile(r"\[giotto:(\w+)\]")),
+    ("tximport {}", re.compile(r"\[tximport:(\w+)\]")),
+    ("sleuth {}", re.compile(r"\[sleuth:(\w+)\]")),
 ]
 
 

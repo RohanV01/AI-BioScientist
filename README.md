@@ -21,7 +21,7 @@ flowchart TB
 
     O -.->|"background run"| A["Master Agent<br/>(claude CLI via claude_agent_sdk)"]
     A -->|"1. PLAN"| PL["Plan posted to channel"]
-    A -->|"2. EXECUTE -- real tool calls"| T["Tool Roster<br/>105 in-process MCP servers"]
+    A -->|"2. EXECUTE -- real tool calls"| T["Tool Roster<br/>114 in-process MCP servers"]
 
     T --> EXT["External APIs<br/>PubMed · ChEMBL · UniProt · PDB · KEGG · ..."]
     T --> LOC["Local computation<br/>AutoDock Vina · COBRApy FBA · MAFFT · ..."]
@@ -52,7 +52,7 @@ Every factual claim in step 3 must trace back to an actual tool result from step
 The MIT license is the easy part. What actually makes this open science infrastructure, not just open-source code:
 
 - **Runs on your own machine, under your own control.** Nothing about a research question you ask it has to leave your infrastructure -- self-hosted Mattermost, your own Postgres, your own Docker stack. No API waits on a vendor's roadmap or a subscription tier to get access to a real capability.
-- **The tool roster is a pattern anyone can extend**, not a fixed menu: a new scientific tool is a builder file plus a registration line (`CONTRIBUTING.md`'s documented recipe), the same shape every one of the 105 tools wired in today already follows. Every one of them is real, live-verified code, not a wrapper around a promise.
+- **The tool roster is a pattern anyone can extend**, not a fixed menu: a new scientific tool is a builder file plus a registration line (`CONTRIBUTING.md`'s documented recipe), the same shape every one of the 114 tools wired in today already follows. Every one of them is real, live-verified code, not a wrapper around a promise.
 - **Works with a Claude subscription, not just a metered API key** -- the whole point of connecting an LLM to real tools shouldn't come with a second paywall on top of the first.
 - **Every claim is checkable against the exact tool call that produced it** -- an open agent that can't show its work isn't meaningfully more trustworthy than a closed one. Grounding isn't a feature flag here; it's enforced in code (`app/grounding.py`) on every single response.
 

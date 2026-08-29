@@ -130,6 +130,15 @@ from app.tools.usalign_tmscore import build_usalign_tmscore_mcp_server
 from app.tools.vina_docking import build_vina_docking_mcp_server
 from app.tools.virtual_screening import build_virtual_screening_mcp_server
 from app.tools.xtb_quantum import build_xtb_quantum_mcp_server
+from app.tools.experiment_uploads import build_experiment_uploads_mcp_server
+from app.tools.dada2_denoise import build_dada2_denoise_mcp_server
+from app.tools.seurat_analyze import build_seurat_analyze_mcp_server
+from app.tools.soupx_correct import build_soupx_correct_mcp_server
+from app.tools.monocle_pseudotime import build_monocle_pseudotime_mcp_server
+from app.tools.infercnv_analyze import build_infercnv_analyze_mcp_server
+from app.tools.giotto_spatial import build_giotto_spatial_mcp_server
+from app.tools.tximport_summarize import build_tximport_summarize_mcp_server
+from app.tools.sleuth_diffexp import build_sleuth_diffexp_mcp_server
 from app.vault import decrypt
 
 # Tool source names whose builder takes an api_key positional arg instead
@@ -465,6 +474,42 @@ TOOL_BUILDERS = {
     "virtual_screening": (
         "virtual_screening", build_virtual_screening_mcp_server,
         ["mcp__virtual_screening__batch_dock_ligands"],
+    ),
+    "experiment_uploads": (
+        "experiment_uploads", build_experiment_uploads_mcp_server,
+        ["mcp__experiment_uploads__list_uploaded_files"],
+    ),
+    "dada2_denoise": (
+        "dada2_denoise", build_dada2_denoise_mcp_server,
+        ["mcp__dada2_denoise__dada2_denoise_amplicons"],
+    ),
+    "seurat_analyze": (
+        "seurat_analyze", build_seurat_analyze_mcp_server,
+        ["mcp__seurat_analyze__seurat_analyze_scrna"],
+    ),
+    "soupx_correct": (
+        "soupx_correct", build_soupx_correct_mcp_server,
+        ["mcp__soupx_correct__soupx_correct_ambient_rna"],
+    ),
+    "monocle_pseudotime": (
+        "monocle_pseudotime", build_monocle_pseudotime_mcp_server,
+        ["mcp__monocle_pseudotime__monocle_pseudotime_trajectory"],
+    ),
+    "infercnv_analyze": (
+        "infercnv_analyze", build_infercnv_analyze_mcp_server,
+        ["mcp__infercnv_analyze__infercnv_detect_cnv"],
+    ),
+    "giotto_spatial": (
+        "giotto_spatial", build_giotto_spatial_mcp_server,
+        ["mcp__giotto_spatial__giotto_analyze_spatial"],
+    ),
+    "tximport_summarize": (
+        "tximport_summarize", build_tximport_summarize_mcp_server,
+        ["mcp__tximport_summarize__tximport_summarize_quants"],
+    ),
+    "sleuth_diffexp": (
+        "sleuth_diffexp", build_sleuth_diffexp_mcp_server,
+        ["mcp__sleuth_diffexp__sleuth_differential_expression"],
     ),
 }
 
