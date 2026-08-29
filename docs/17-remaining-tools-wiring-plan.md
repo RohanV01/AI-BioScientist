@@ -282,6 +282,28 @@ CLONE/PIP in `docs/12`; wire last in this cluster, after confirming whether that
 ### Cheminformatics -- 4 tools
 BioTransformer, RAscore, ToxinPred2, xtb.
 
+**2 of 4 live 2026-08-29** as `xtb_quantum` (real GFN2-xTB semi-empirical quantum chemistry via `xtb`,
+apt-installable -- **confirmed live end-to-end before wiring**: apt-downloaded the real deb outside
+Docker, generated a real RDKit 3D conformer, and ran a real xtb geometry optimization on it, catching
+a real non-obvious bug in the process -- xtb writes its "normal termination" status line to stderr,
+not stdout, opposite of most CLI tools; the results summary itself is on stdout) and
+`biotransformer_metabolism` (real small-molecule metabolism/metabolite prediction via BioTransformer
+3.0, compiled from source via Maven -- real recipe confirmed against the project's own
+`install-via-maven.sh`, not guessed; not locally buildable in this sandbox since Maven isn't
+bootstrappable without root, so its CSV output schema -- undocumented in BioTransformer's own
+README -- is parsed generically rather than assuming fixed column names, and the happy-path test is
+deferred to the batch Docker build/test pass). **RAscore NOT built** -- confirmed live: its
+`setup.cfg` pins `tensorflow-gpu==2.5.0`, which no longer exists as an installable distribution for
+any current platform (`pip install --dry-run` found only `2.12.0` remaining on PyPI, itself since
+deprecated/merged into plain `tensorflow`) -- a real, unfixable-without-a-fork installability
+blocker, not a config error. **ToxinPred2 NOT built** -- confirmed live against both PyPI releases
+(1.0 and 1.1): `toxinpred2.py` unconditionally crashes on any real FASTA input at
+`CM.to_csv("Sequence_1", header=False, index=None, sep="\n")` -- Python's own `csv` module has always
+rejected `"\n"` as a delimiter (`ValueError: bad delimiter value`, reproduced directly against the
+bare `csv` module, independent of pandas version), so this line has likely never worked against any
+reasonably modern Python. A genuine, reproducible bug in the package's own source, not an environment
+issue -- same rejection rigor as the earlier HADDOCK3 investigation.
+
 ### Synthetic biology -- 1 tool
 bebop/poly.
 

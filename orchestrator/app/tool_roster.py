@@ -31,6 +31,7 @@ from app.tools.admixture_ancestry import build_admixture_ancestry_mcp_server
 from app.tools.anarci_numbering import build_anarci_mcp_server
 from app.tools.astral_pro_tree import build_astral_pro_tree_mcp_server
 from app.tools.auto3d_conformers import build_auto3d_conformers_mcp_server
+from app.tools.biotransformer_metabolism import build_biotransformer_metabolism_mcp_server
 from app.tools.biopandas_structure import build_biopandas_structure_mcp_server
 from app.tools.blast_search import build_blast_search_mcp_server
 from app.tools.cbioportal_mutations import build_cbioportal_mutations_mcp_server
@@ -108,6 +109,7 @@ from app.tools.uniprot import build_uniprot_mcp_server
 from app.tools.usalign_tmscore import build_usalign_tmscore_mcp_server
 from app.tools.vina_docking import build_vina_docking_mcp_server
 from app.tools.virtual_screening import build_virtual_screening_mcp_server
+from app.tools.xtb_quantum import build_xtb_quantum_mcp_server
 from app.vault import decrypt
 
 # Tool source names whose builder takes an api_key positional arg instead
@@ -126,6 +128,14 @@ TOOL_BUILDERS = {
     "auto3d_conformers": (
         "auto3d_conformers", build_auto3d_conformers_mcp_server,
         ["mcp__auto3d_conformers__generate_3d_conformer"],
+    ),
+    "biotransformer_metabolism": (
+        "biotransformer_metabolism", build_biotransformer_metabolism_mcp_server,
+        ["mcp__biotransformer_metabolism__predict_metabolites"],
+    ),
+    "xtb_quantum": (
+        "xtb_quantum", build_xtb_quantum_mcp_server,
+        ["mcp__xtb_quantum__compute_quantum_properties"],
     ),
     "pubchem": ("pubchem", build_pubchem_mcp_server, ["mcp__pubchem__search_compound"]),
     "cbioportal_mutations": (

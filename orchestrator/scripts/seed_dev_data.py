@@ -293,6 +293,18 @@ KNOWN_TOOL_SOURCES = {
     # no external API for the prediction/calculation itself.
     "soltrannet_solubility": ("drug_discovery", "free_public", "in-process:app.tools.soltrannet_solubility", False, False),
     "equilibrator_thermo": ("drug_discovery", "free_public", "in-process:app.tools.equilibrator_thermo", False, False),
+    # docs/17-remaining-tools-wiring-plan.md Phase 2, Cheminformatics
+    # cluster. RAscore NOT built -- confirmed live: pins
+    # tensorflow-gpu==2.5.0, which no longer exists as an installable
+    # distribution on any current platform (only 2.12.0 remains on
+    # PyPI, itself since deprecated/merged into plain tensorflow).
+    # ToxinPred2 NOT built -- confirmed live: both PyPI releases
+    # (1.0, 1.1) crash unconditionally on any real FASTA input via
+    # `CM.to_csv(..., sep="\n")`, which Python's own csv module has
+    # always rejected ("bad delimiter value") -- a real, reproducible
+    # bug in the package's own source, not an environment issue.
+    "xtb_quantum": ("drug_discovery", "free_public", "in-process:app.tools.xtb_quantum", False, False),
+    "biotransformer_metabolism": ("drug_discovery", "free_public", "in-process:app.tools.biotransformer_metabolism", False, False),
     # Batch virtual screening -- completes the pipeline that was stuck at
     # one-compound-at-a-time (ChEMBL -> Vina -> PLIP). Reuses
     # vina_docking.py's own proven internals rather than the pyscreener

@@ -341,6 +341,10 @@ RECORD_REF_PATTERNS: list[tuple[str, re.Pattern]] = [
     ("TreeMix {}", re.compile(r"\[treemix:(\w+)\]")),
     ("selscan {}", re.compile(r"\[selscan:(\w+)\]")),
     ("LDSC {}", re.compile(r"\[ldsc:(\w+)\]")),
+    # docs/17-remaining-tools-wiring-plan.md Phase 2, Cheminformatics
+    # cluster -- same methodological-citation convention.
+    ("xtb {}", re.compile(r"\[xtb:(\w+)\]")),
+    ("BioTransformer {}", re.compile(r"\[biotransformer:(\w+)\]")),
 ]
 
 

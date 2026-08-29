@@ -49,9 +49,19 @@ FROM python:3.11-slim
 # libgsl-dev/libboost-dev (same cluster) are build-time deps for
 # compiling TreeMix from source below (neither is itself apt-installable
 # as a program).
+# xtb (docs/17-remaining-tools-wiring-plan.md Phase 2, Cheminformatics
+# cluster) -- apt-installable; confirmed live end-to-end before wiring
+# (apt-downloaded the real deb, generated a real RDKit 3D conformer, ran
+# a real xtb GFN2-xTB optimization on it -- not guessed from docs).
+# openjdk-17-jdk/maven (same cluster) -- build-time deps for compiling
+# BioTransformer from source below (its own pom.xml targets Java 8
+# bytecode, which JDK 17's javac still supports via -source/-target 8;
+# confirmed the JDK/javac compatibility, not the full Maven build itself
+# -- Maven isn't bootstrappable without root in this sandbox).
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl ca-certificates gnupg mafft hmmer build-essential zlib1g-dev \
        ncbi-blast+ clustalo emboss prodigal mummer dssp git cmake fasttree paml eigensoft libgsl-dev libboost-dev \
+       xtb openjdk-17-jdk-headless maven \
     && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y --no-install-recommends nodejs \
     && npm install -g @anthropic-ai/claude-code \
@@ -149,6 +159,33 @@ RUN mkdir -p /opt/ldsc_ref \
        | tar xz -C /opt/ldsc_ref \
     && curl -fsSL "https://zenodo.org/records/7768714/files/1000G_Phase3_weights_hm3_no_MHC.tgz?download=1" \
        | tar xz -C /opt/ldsc_ref
+
+# BioTransformer (app/tools/biotransformer_metabolism.py, docs/17
+# Phase 2, Cheminformatics cluster) -- not distributed as a prebuilt
+# jar (checked the repo and its GitHub releases before assuming
+# otherwise); real Maven build recipe confirmed against the project's
+# own install-via-maven.sh script: three vendored local jars
+# (lib/*.jar) must be `mvn install:install-file`'d into the local repo
+# before `mvn package` can resolve them, then the packaged jar is
+# renamed to a stable path since the exact shaded-jar filename/
+# classifier Maven produces isn't knowable without actually running
+# the build (not reproducible without root in this sandbox -- Maven
+# itself isn't bootstrappable there). RAscore/ToxinPred2 (same
+# cluster) NOT built -- see docs/17 for the real, live-confirmed bugs
+# in each (RAscore pins tensorflow-gpu==2.5.0, unavailable for any
+# current platform; ToxinPred2 v1.0/v1.1 both crash unconditionally on
+# any real input via a `pandas.to_csv(sep="\n")` call the `csv` module
+# has always rejected).
+RUN git clone --depth 1 https://github.com/Wishartlab-openscience/Biotransformer.git /tmp/biotransformer \
+    && cd /tmp/biotransformer \
+    && mvn -q org.apache.maven.plugins:maven-install-plugin:3.0.0-M1:install-file -Dfile=lib/phase2filter-1.0.2.jar -DgroupId=djoumbou -DartifactId=phase2filter -Dversion=1.0.2 -Dpackaging=jar \
+    && mvn -q org.apache.maven.plugins:maven-install-plugin:3.0.0-M1:install-file -Dfile=lib/CypReact.jar -DgroupId=wishartlab -DartifactId=CypReact -Dversion=1.0.0-SNAPSHOT -Dpackaging=jar \
+    && mvn -q org.apache.maven.plugins:maven-install-plugin:3.0.0-M1:install-file -Dfile=lib/CyProduct.jar -DgroupId=wishartlab -DartifactId=CyProduct -Dversion=1.0.0-SNAPSHOT -Dpackaging=jar \
+    && mvn -q package -DskipTests \
+    && mkdir -p /opt/biotransformer \
+    && cp -r database supportfiles config.json /opt/biotransformer/ \
+    && ls -S target/*.jar | head -1 | xargs -I{} cp {} /opt/biotransformer/biotransformer.jar \
+    && cd / && rm -rf /tmp/biotransformer /root/.m2
 
 WORKDIR /app
 
