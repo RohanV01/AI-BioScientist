@@ -450,20 +450,26 @@ documented requirement set. Not locally testable in this sandbox (no R interpret
 Bioconductor package compilation is itself a real, substantial build-time step) -- verification
 deferred to the batch Docker build/test pass, same as every DB/environment-dependent Phase 2 tool.
 
-**Remaining ~13 R tools (dada2, WGCNA, Seurat, scran, scater, SoupX, monocle, InferCNV, Giotto,
-TCGAbiolinks, recount3, tximport, sleuth) NOT yet built.** Real scoping check done before committing
-further: dada2/SoupX/monocle/InferCNV/Giotto/tximport/sleuth all need a real uploaded dataset
-(FASTQ, a 10x-format droplet matrix, or Salmon/Kallisto quantification output) to be useful -- this
-platform still has no file-upload/ingestion path (same explicit out-of-scope finding as the
-DATA-gated tools listed below), so building them now would mean either a fake toy input that
-misrepresents the tool's real value, or silently expanding scope into the file-upload problem this
-plan deliberately doesn't try to solve. Seurat/scran/scater are the same DATA-gated class in
-practice (need a realistically-sized count matrix, impractical as inline JSON in a chat tool call).
-**TCGAbiolinks, recount3, and WGCNA are the real next candidates** -- TCGAbiolinks/recount3 fetch
-public data themselves (real API-based tools, same shape as the already-live cbioportal_mutations,
-not DATA-gated), and WGCNA can be scoped to a caller-supplied expression matrix the same way
-`dnachisel_optimize`/`treemix_population_tree` accept caller-supplied structured data -- left for a
-follow-up pass rather than rushed in the same turn as the architecture decision itself.
+**TCGAbiolinks, recount3, and WGCNA live 2026-08-29** as `tcga_clinical`, `recount3_search`, and
+`wgcna_modules` -- the three real next candidates identified right after the architecture decision,
+built the same day per explicit direction to keep going rather than pause. `tcga_clinical`: real
+patient clinical data (diagnosis, stage, vital status) for a named TCGA project via
+`TCGAbiolinks::GDCquery_clinic`, hitting the GDC REST API directly -- no BAM/expression-matrix
+download, so not DATA-gated like most of this cluster. `recount3_search`: real public RNA-seq study
+catalog (SRA/GTEx/TCGA, with real sample counts) via `recount3::available_projects` -- a discovery
+step before any downstream expression analysis, deliberately scoped short of fetching full expression
+matrices (which would need real file-handling this platform doesn't have). `wgcna_modules`: real
+weighted gene co-expression network + module detection via `WGCNA::blockwiseModules`, scoped to a
+caller-supplied expression matrix the same way `dnachisel_optimize`/`treemix_population_tree` accept
+caller-supplied structured data -- not a DATA-gated pipeline needing an uploaded raw-count file.
+
+**Remaining ~10 R tools (dada2, Seurat, scran, scater, SoupX, monocle, InferCNV, Giotto, tximport,
+sleuth) NOT built.** Real scoping check: all of them need a real uploaded dataset (FASTQ, a
+10x-format droplet matrix, or Salmon/Kallisto quantification output) to be useful -- this platform
+still has no file-upload/ingestion path (same explicit out-of-scope finding as the DATA-gated tools
+listed below), so building them now would mean either a fake toy input that misrepresents the tool's
+real value, or silently expanding scope into the file-upload problem this plan deliberately doesn't
+try to solve. Revisit once a real ingestion path exists.
 
 ## Explicitly out of scope for this plan
 

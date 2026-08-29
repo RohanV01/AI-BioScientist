@@ -108,7 +108,10 @@ from app.tools.pycombat_correction import build_pycombat_correction_mcp_server
 from app.tools.pyhmmer_search import build_pyhmmer_search_mcp_server
 from app.tools.pyteomics_mass import build_pyteomics_mass_mcp_server
 from app.tools.reactome import build_reactome_mcp_server
+from app.tools.recount3_search import build_recount3_search_mcp_server
 from app.tools.retraction_watch import build_retraction_watch_mcp_server
+from app.tools.tcga_clinical import build_tcga_clinical_mcp_server
+from app.tools.wgcna_modules import build_wgcna_modules_mcp_server
 from app.tools.scanpy_clustering import build_scanpy_clustering_mcp_server
 from app.tools.scikit_bio import build_scikit_bio_mcp_server
 from app.tools.selscan_nsl import build_selscan_nsl_mcp_server
@@ -385,6 +388,18 @@ TOOL_BUILDERS = {
     "cluster_profiler_enrichment": (
         "cluster_profiler_enrichment", build_cluster_profiler_enrichment_mcp_server,
         ["mcp__cluster_profiler_enrichment__enrich_gene_ontology_clusterprofiler"],
+    ),
+    "tcga_clinical": (
+        "tcga_clinical", build_tcga_clinical_mcp_server,
+        ["mcp__tcga_clinical__get_tcga_clinical_data"],
+    ),
+    "recount3_search": (
+        "recount3_search", build_recount3_search_mcp_server,
+        ["mcp__recount3_search__search_recount3_studies"],
+    ),
+    "wgcna_modules": (
+        "wgcna_modules", build_wgcna_modules_mcp_server,
+        ["mcp__wgcna_modules__detect_coexpression_modules"],
     ),
     "mhcflurry_binding": (
         "mhcflurry_binding", build_mhcflurry_binding_mcp_server,

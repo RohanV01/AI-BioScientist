@@ -341,6 +341,15 @@ KNOWN_TOOL_SOURCES = {
     # rest of that cluster (WGCNA, TCGAbiolinks, recount3, ... -- see
     # docs/17) to the same pattern.
     "cluster_profiler_enrichment": ("transcriptomics", "free_public", "in-process:app.tools.cluster_profiler_enrichment", False, False),
+    # docs/17-remaining-tools-wiring-plan.md Phase 3 -- the R/
+    # Bioconductor bridge's next real candidates after clusterProfiler:
+    # TCGAbiolinks/recount3 fetch public data themselves (GDC REST API /
+    # recount3's own study catalog), WGCNA works from a caller-supplied
+    # expression matrix -- none are DATA-gated the way most of the
+    # remaining R-bridge candidates are.
+    "tcga_clinical": ("drug_discovery", "free_public", "in-process:app.tools.tcga_clinical", False, False),
+    "recount3_search": ("transcriptomics", "free_public", "in-process:app.tools.recount3_search", False, False),
+    "wgcna_modules": ("transcriptomics", "free_public", "in-process:app.tools.wgcna_modules", False, False),
     # docs/12-biotools-triage-shortlist.md's Proteomics cluster
     # (feature/proteomics branch) -- real in-process mass calculation
     # (Pyteomics), no external API. First proteomics coverage in the

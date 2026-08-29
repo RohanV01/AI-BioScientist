@@ -297,14 +297,24 @@ RUN curl -fsSL https://ftp.ncbi.nlm.nih.gov/blast/executables/igblast/release/LA
 # systemfonts/ragg/textshaping dependencies need these) -- not guessed,
 # this is R/Bioconductor's own standard documented system requirement
 # set, same class of "confirmed real requirement, not assumed" as every
-# other apt addition in this file.
+# other apt addition in this file. poolfstat (app/tools/poolfstat_fst.py,
+# CRAN) and WGCNA (app/tools/wgcna_modules.py, CRAN) both work from
+# caller-supplied structured data (an allele-count matrix / an
+# expression matrix), no file-upload infra needed. TCGAbiolinks
+# (app/tools/tcga_clinical.py) and recount3 (app/tools/recount3_search.py,
+# both Bioconductor) fetch public data themselves (the GDC REST API /
+# recount3's own study catalog) -- real next R-bridge candidates per
+# docs/17's Phase 3 scoping note, none of them DATA-gated the way most
+# of the remaining R-bridge tools are.
 RUN apt-get update && apt-get install -y --no-install-recommends \
        r-base libcurl4-openssl-dev libssl-dev libxml2-dev libfontconfig1-dev \
        libharfbuzz-dev libfribidi-dev libfreetype6-dev libpng-dev libtiff5-dev libjpeg-dev \
     && rm -rf /var/lib/apt/lists/* \
     && Rscript -e 'install.packages("BiocManager", repos="https://cloud.r-project.org")' \
     && Rscript -e 'BiocManager::install(c("clusterProfiler", "org.Hs.eg.db", "org.Mm.eg.db"), update=FALSE, ask=FALSE)' \
-    && Rscript -e 'install.packages("poolfstat", repos="https://cloud.r-project.org")'
+    && Rscript -e 'install.packages("poolfstat", repos="https://cloud.r-project.org")' \
+    && Rscript -e 'install.packages("WGCNA", repos="https://cloud.r-project.org")' \
+    && Rscript -e 'BiocManager::install(c("TCGAbiolinks", "recount3"), update=FALSE, ask=FALSE)'
 # app/tools/r_scripts/*.R ships with the full app source COPY near the
 # end of this file (not copied separately here) -- Rscript reads it
 # from disk at call time, no build-time compile step needed for it.
