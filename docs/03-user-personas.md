@@ -28,7 +28,7 @@ Four personas, matched to the academic/commercial split the research report uses
 
 **Pain today:** Assembling a target rationale report today means manually pulling Open Targets scores, ChEMBL bioactivity, and literature support into a slide deck by hand — a half-day task for one target.
 
-**What he needs from this platform:** The Drug Discovery Agent (RxDis-backed) and Flagship 5.2 (Literature-Grounded Target Rationale Report), which the research report already flags as ready today with zero new wiring. BYO-credentials for DrugBank/Reaxys once his org decides to license them (FR-6). Higher confidence-scoring bar than Priya — a genetic-association score alone isn't enough, he wants to see the supporting literature, not just a number.
+**What he needs from this platform:** The Drug Discovery Agent and Flagship 5.2 (Literature-Grounded Target Rationale Report), which the research report already flags as ready today with zero new wiring. BYO-credentials for DrugBank/Reaxys once his org decides to license them (FR-6). Higher confidence-scoring bar than Priya — a genetic-association score alone isn't enough, he wants to see the supporting literature, not just a number.
 
 **Persona-specific requirement this drives:** FR-6 (BYO-credential registration) and local-first deployment (compound lists never transit a third-party server) are hard requirements for his org to even approve using this platform.
 

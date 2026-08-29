@@ -56,7 +56,7 @@ class Agent(Base):
 
 class ToolSource(Base):
     """A named data source/tool an agent can call -- ChEMBL, PubMed MCP,
-    RxDis's FastAPI service, a BYO-credentialed source like DrugBank, etc."""
+    a BYO-credentialed source like DrugBank, etc."""
 
     __tablename__ = "tool_source"
 

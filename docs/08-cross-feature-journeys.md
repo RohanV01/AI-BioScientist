@@ -20,19 +20,19 @@ End-to-end walkthroughs, each exercising multiple components (`04`–`07`) toget
 
 ---
 
-## Journey 2: Marcus runs an RxDis repurposing scan (MVP, agent wrapping existing service)
+## Journey 2: Marcus runs a repurposing scan (MVP, agent wrapping a long-running pipeline)
 
-*Exercises: RxDis MCP wrapper, long-running task progress updates, structured-output rendering.*
+*Exercises: drug-discovery pipeline MCP wrapper, long-running task progress updates, structured-output rendering.*
 
 1. Marcus, in `#drug-discovery`: `@drug-discovery-agent run repurposing scan for pancreatic cancer, seed genes KRAS TP53`.
-2. Agent reacts (receipt confirmation), posts "starting repurposing scan, ~5-10 min" (mirrors RxDis's actual Phase 4 runtime).
-3. Orchestrator's RxDis wrapper triggers the existing FastAPI pipeline endpoint; polls status; posts progress updates per phase transition ("Phase 4: ChEMBL repurposing — docking 42 candidates against KRAS pocket...").
-4. On completion, agent posts a summary attachment (top 5 repurposing candidates, docking scores, clinical-stage signal) with a link-out to the full RxDis report (existing PDF-packaging output, Phase 9).
-5. Grounding block cites: ChEMBL query IDs, Vina docking run ID, PrimeKG signal — sourced from RxDis's own existing provenance data, mapped into `GROUNDING_LINK` rows by the wrapper.
+2. Agent reacts (receipt confirmation), posts "starting repurposing scan, ~5-10 min".
+3. Orchestrator's pipeline wrapper triggers the repurposing run; polls status; posts progress updates per phase transition ("Phase 4: ChEMBL repurposing — docking 42 candidates against KRAS pocket...").
+4. On completion, agent posts a summary attachment (top 5 repurposing candidates, docking scores, clinical-stage signal) with a link-out to the full report (PDF-packaging output).
+5. Grounding block cites: ChEMBL query IDs, Vina docking run ID, PrimeKG signal — sourced from the pipeline's own provenance data, mapped into `GROUNDING_LINK` rows by the wrapper.
 
 **Acceptance tie-in:** AC-3, AC-5, AC-6.
 
-**Failure branch:** if the RxDis pipeline errors mid-run (e.g. a docking step fails), the agent reports the failure and which phase it occurred in — never silently returns a truncated/wrong result as if it were complete (UX Behavior §1 failure behavior).
+**Failure branch:** if the pipeline errors mid-run (e.g. a docking step fails), the agent reports the failure and which phase it occurred in — never silently returns a truncated/wrong result as if it were complete (UX Behavior §1 failure behavior).
 
 ---
 

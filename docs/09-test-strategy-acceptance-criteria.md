@@ -8,12 +8,12 @@
 
 | Layer | What's tested | Tooling |
 |---|---|---|
-| **MCP tool wrappers** (ChEMBL/Open Targets/PubMed configs, RxDis wrapper) | Each wrapper returns correctly-shaped data and fails gracefully (timeout, malformed response, auth failure) | Unit tests per wrapper, mocking the underlying API/service |
+| **MCP tool wrappers** (ChEMBL/Open Targets/PubMed configs, pipeline wrappers) | Each wrapper returns correctly-shaped data and fails gracefully (timeout, malformed response, auth failure) | Unit tests per wrapper, mocking the underlying API/service |
 | **Grounding Layer** | Every `RESPONSE` has a `provenance_type`; `grounded` responses have ≥1 `GROUNDING_LINK`; `ungroundable` responses are never silently rendered as `grounded` | Unit tests against the Grounding Layer's own logic, independent of any real LLM call |
 | **Message Router** | Correct `TASK` created from a Mattermost webhook payload; correct agent resolved from `@mention` | Unit tests with fixture webhook payloads |
 | **Credential Vault** | Encryption/decryption round-trips correctly; a credential is never returned in plaintext via any read path except the one call site that injects it into a tool call | Unit tests + a deliberate "grep the logs for plaintext secrets" check in CI |
 | **Orchestrator ↔ Mattermost integration** | A real message posted to a real (test) Mattermost instance triggers the full router → agent → response cycle | Integration tests against a docker-composed Mattermost test instance |
-| **Orchestrator ↔ RxDis integration** | Triggering a pipeline run via the wrapper produces the same result as triggering it via RxDis's own existing interface (regression, not new behavior) | Integration test comparing wrapper output to RxDis's own known-good output for a fixed input |
+| **Orchestrator ↔ pipeline integration** | Triggering a pipeline run via the wrapper produces the same result as triggering it via the pipeline's own existing interface (regression, not new behavior) | Integration test comparing wrapper output to the pipeline's own known-good output for a fixed input |
 | **End-to-end journeys** | The six journeys in `08-cross-feature-journeys.md`, run against a real (test) deployment | Manual QA pass at MVP; scripted E2E automation is a fast-follow, not MVP-blocking |
 
 ### What's explicitly *not* tested at MVP
@@ -36,13 +36,13 @@ Written Given/When/Then, numbered for cross-reference from `08-cross-feature-jou
 
 **AC-2** — Given an agent cannot find a grounded source for part of its answer, when it responds, then that part is explicitly labeled as ungrounded synthesis, not presented with the same visual/textual weight as a sourced claim. *(Journey 1, UX Behavior §2)*
 
-**AC-3** — Given a researcher triggers an RxDis pipeline run via the Drug Discovery Agent, when the run takes longer than 30 seconds, then the agent posts at least one progress update before final completion. *(Journey 2, FR-7)*
+**AC-3** — Given a researcher triggers a repurposing pipeline run via the Drug Discovery Agent, when the run takes longer than 30 seconds, then the agent posts at least one progress update before final completion. *(Journey 2, FR-7)*
 
 **AC-4** — Given a researcher asks a follow-up question in an existing task thread, when the agent responds, then the new response is grounded independently (does not silently reuse stale grounding from the earlier response without re-verifying it still applies). *(Journey 1)*
 
-**AC-5** — Given an RxDis pipeline run completes, when the agent posts the summary, then the grounding block cites the specific ChEMBL query ID(s), docking run ID, and any other RxDis-internal provenance data — not just "RxDis says so." *(Journey 2)*
+**AC-5** — Given a repurposing pipeline run completes, when the agent posts the summary, then the grounding block cites the specific ChEMBL query ID(s), docking run ID, and any other pipeline-internal provenance data — not just "the pipeline says so." *(Journey 2)*
 
-**AC-6** — Given an RxDis pipeline run fails partway through, when the agent reports back, then the failure message names the specific phase that failed and does not present any downstream (unrun) phase's output. *(Journey 2 failure branch)*
+**AC-6** — Given a repurposing pipeline run fails partway through, when the agent reports back, then the failure message names the specific phase that failed and does not present any downstream (unrun) phase's output. *(Journey 2 failure branch)*
 
 **AC-7** — Given an agent needs a BYO-credentialed tool the org hasn't configured, when it responds, then it names the specific missing credential, points to where to add it, and — if a lower-tier free alternative exists — offers to proceed with that instead, explicitly labeled as a fallback. *(Journey 3, Section 9's fallback-tier rule)*
 

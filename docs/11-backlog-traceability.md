@@ -18,7 +18,7 @@ This document is that place. It does not re-describe anything the report already
 | Cluster | Count | Status | Note |
 |---|---|---|---|
 | 4.1 Literature | 12 | 🔜 Partial — MVP Literature Agent (Phase 1) covers #3 (SLR, PubMed-only mode), #9 (Related-Work Generator, Tier 1), #7 (Research-Gap Assistant, needs Open Targets too → Phase 2). Remainder enabled once Phase 0's DOI-join lands. | See `10-build-plan.md` Phase 0/1 |
-| 4.2 Drug Discovery | 18 | 🔜 Partial — RxDis wrapping (Phase 2) covers repurposing (#5), and RxDis's own pipeline overlaps #1–4, #7, #9, #18 (all already Tier 1 per the report). #6, #8, #10–14 need individual MCP wiring not yet scheduled. #15/#16 (patent search, Reaxys) are procurement/legal-gated, not build tasks. | See `10-build-plan.md` Phase 2 |
+| 4.2 Drug Discovery | 18 | 🔜 Partial — repurposing pipeline wiring (Phase 2) covers repurposing (#5), overlapping #1–4, #7, #9, #18 (all already Tier 1 per the report). #6, #8, #10–14 need individual MCP wiring not yet scheduled. #15/#16 (patent search, Reaxys) are procurement/legal-gated, not build tasks. | See `10-build-plan.md` Phase 2 |
 | 4.3 Genomics | 16 | 🔜 Enabled once Genomics Agent lands (Phase 4) — #1,2,3,6,7,12,15,16 explicitly named. #8 (PRS), #13 (UK Biobank), #14 (HGMD) remain Tier 3 per the report even after wiring — access/compute gated, not just wiring-gated. | See `10-build-plan.md` Phase 4 |
 | 4.4 Structural Biology | 15 | ⏸ Unscheduled beyond PDB/AlphaFold DB wiring (Phase 4, unlocks #1 specifically). #5 (docking), #6 (cryo-EM), #11 (MD) need the compute layer (Phase 5) on top of data wiring — two dependencies stacked, not one. | See `10-build-plan.md` Phase 4/5 |
 | 4.5 Systems Biology | 16 | 🔜 Enabled once Systems Biology Agent lands (Phase 4) — KEGG/Reactome/STRING wiring unlocks #1, #2, #16 directly per the report. #4, #9 (genome-wide), #13, #14, #15 need real compute (Phase 5), not just wiring. | See `10-build-plan.md` Phase 4 |
@@ -95,7 +95,7 @@ The report's Tier 1/2/3 rubric wasn't previously tagged onto anything in these d
 |---|---|
 | Phase 0 DOI join | Tier 2 (engineering, not access-gated) |
 | Phase 1 Literature Agent (PubMed-only) | Tier 1 |
-| Phase 2 Drug Discovery Agent (RxDis + live ChEMBL/Open Targets legs) | Tier 1 |
+| Phase 2 Drug Discovery Agent (repurposing pipeline + live ChEMBL/Open Targets legs) | Tier 1 |
 | Phase 2 DrugBank BYO credential | Tier 2 (procurement, not engineering — per Section 9's blocker-type distinction) |
 | Phase 4 Genomics/Systems Biology/Clinical/Structural agents (wiring only) | Tier 2 |
 | Phase 5 compute layer (build path) | Tier 3, compute-infra blocker |

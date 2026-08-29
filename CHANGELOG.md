@@ -23,7 +23,7 @@ All notable changes to this project are logged here. Format loosely follows [Kee
 - `test-and-fix` (32 commits, everything above) merged into `main` and pushed -- previously all of this work was unreachable by a real `git clone`.
 
 ### Changed — 2026-08-24
-- **Extracted `rxdis/` into its own standalone project** at `/home/rohanvyas/Documents/rxdis` (own git repo, history preserved via `git subtree split -P rxdis`). It's a self-contained pipeline with no dependency from `orchestrator/` on it, so this doesn't affect the platform. `docs/10-build-plan.md`'s open task about wrapping RxDis phases as individually-callable tools is unaffected by the extraction — it will just pull from the new path.
+- **Extracted the legacy drug-discovery pipeline into its own standalone project**, kept in a separate repo with its own history. It's self-contained with no dependency from `orchestrator/` on it, so this doesn't affect the platform.
 
 ### Changed — 2026-08-17
 - **Containerized the Claude Code/Codex Runner and made setup cross-platform** (Mac/Linux/Windows), closing the "Ongoing" item tracked in `docs/10-build-plan.md`. `orchestrator/Dockerfile` now installs Node.js 20 + the `claude` CLI and runs as a non-root user; the orchestrator no longer depends on a `claude` CLI already installed and authenticated on the developer's own host, which was a real bug found live: the host-run orchestrator had silently drifted to binding `127.0.0.1` instead of `0.0.0.0`, making it unreachable from Mattermost's `host.docker.internal` webhook callback with no error surfaced anywhere. Both Claude auth methods are supported without forcing a switch: `ANTHROPIC_API_KEY` (headless) or a one-time `docker compose exec orchestrator claude login` for a Pro/Max subscription with no API key, persisted in a new `claude_config` Docker volume — `docker-compose.yml` documents both. Replaced `scripts/bootstrap_mattermost.sh` (bash+curl+jq) with `scripts/bootstrap_mattermost.py` (stdlib-only Python), since the SDK itself refuses to run npm's Windows `claude.cmd` shim — native Windows host execution was never viable, so everything now runs in Linux containers via Docker Desktop instead, with `README.md`'s Getting Started section rewritten to match.
@@ -39,16 +39,16 @@ All notable changes to this project are logged here. Format loosely follows [Kee
 
 ### Added — 2026-08-15
 - Full planning document suite in `docs/`: project goals, PRD, user personas, information architecture, UX behavior, data model, system architecture, cross-feature journeys, test strategy + acceptance criteria, and a phased build plan.
-- `README.md` rewritten for the new project direction (Mattermost-based multi-agent messaging platform, superseding the prior single-purpose RxDis README at that path).
+- `README.md` rewritten for the new project direction (Mattermost-based multi-agent messaging platform, superseding the prior single-purpose pipeline README at that path).
 - This changelog and the project's auto-memory entry.
 
 ### Changed — 2026-08-15
-- Repository re-scoped from a single drug-discovery pipeline (RxDis) to a broader multi-agent research platform, per the confirmed product vision in [[researcher-lab-experiment-catalog-2026-08-15]] Section 11.
-- Reorganized the folder: legacy RxDis docs/notes moved to `reference/rxdis-legacy/`; bulk data (`scihub.sql`, `Databases/`) moved to `data/`.
+- Repository re-scoped from a single drug-discovery pipeline to a broader multi-agent research platform, per the confirmed product vision in [[researcher-lab-experiment-catalog-2026-08-15]] Section 11.
+- Reorganized the folder: legacy pipeline docs/notes moved out to a separate reference location; bulk data (`scihub.sql`, `Databases/`) moved to `data/`.
 - `.gitignore` rewritten for the new project structure (data/, node_modules, Go build artifacts, Mattermost runtime config).
 
 ### Removed — 2026-08-15
-- RxDis's application code (`src/`, `frontend/`, `scripts/`, `tools/`, `testing/`, `docker-compose.yml`, `Dockerfile`) and its build artifacts (`.venv/`, `.serena/`). Design docs, memory notes, and data were explicitly kept — see `reference/rxdis-legacy/` and `data/`. RxDis's FastAPI service is planned to be re-wrapped as an MCP tool source in Build Plan Phase 2, not reimplemented.
+- The legacy pipeline's application code (`src/`, `frontend/`, `scripts/`, `tools/`, `testing/`, `docker-compose.yml`, `Dockerfile`) and its build artifacts (`.venv/`, `.serena/`). Design docs, memory notes, and data were kept separately.
 
 ### Discovered — 2026-08-15
 - `data/scihub.sql` (32.7GB) turns out to be a full Sci-Hub `scimag` metadata dump (DOI, Title, Author, Year, Journal, PubmedID, PMC per record) — potentially resolves Gap 1 from the Researcher's Lab report (the DOI-biology-classifier corpus having no metadata) via a local join, without rebuilding the CrossRef/Unpaywall enrichment pipeline that report originally proposed. Confirming this is Build Plan Phase 0's first task.

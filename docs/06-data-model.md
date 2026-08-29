@@ -2,11 +2,11 @@
 
 ## Architecture pivot (2026-08-15)
 
-The schema below is unchanged structurally — it already supported "one `AGENT` row, many `TOOL_BINDING` rows" — but its *meaning* changed: this project no longer has one `AGENT` row per research-report domain cluster with a bot to route to. There is **one master `AGENT` per org**, and its `TOOL_BINDING` rows span the *entire* wired tool roster (PubMed, ChEMBL, RxDis, everything Section 7 adds over time), not a domain subset. See `07-system-architecture.md`'s pivot note for the full picture. Two fields below are annotated with what changed.
+The schema below is unchanged structurally — it already supported "one `AGENT` row, many `TOOL_BINDING` rows" — but its *meaning* changed: this project no longer has one `AGENT` row per research-report domain cluster with a bot to route to. There is **one master `AGENT` per org**, and its `TOOL_BINDING` rows span the *entire* wired tool roster (PubMed, ChEMBL, everything Section 7 adds over time), not a domain subset. See `07-system-architecture.md`'s pivot note for the full picture. Two fields below are annotated with what changed.
 
 ## Scope
 
-This covers the **Orchestrator Service's own schema** — the tables the new code owns. Mattermost owns its own schema (Postgres, its own migrations, not modified by this project — see `07-system-architecture.md` for why Mattermost is treated as a dependency, not a fork). RxDis owns its own Supabase schema (kept as-is at MVP; see Open Question in `02-prd.md`). The bulk data assets (`data/scihub.sql`, `data/Databases/`) are treated as read-only source data that tool wrappers query, not data this schema duplicates wholesale.
+This covers the **Orchestrator Service's own schema** — the tables the new code owns. Mattermost owns its own schema (Postgres, its own migrations, not modified by this project — see `07-system-architecture.md` for why Mattermost is treated as a dependency, not a fork). The bulk data assets (`data/scihub.sql`, `data/Databases/`) are treated as read-only source data that tool wrappers query, not data this schema duplicates wholesale.
 
 ## Entity overview
 
