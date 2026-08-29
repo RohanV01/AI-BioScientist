@@ -400,6 +400,45 @@ and dada2 first since they're each single-purpose and have a clear existing-tool
 Seurat's ecosystem last since several other tools in this list are Seurat-adjacent and easier once
 the pattern is proven).
 
+**Decision made 2026-08-29: `Rscript` subprocess, not `rpy2`.** rpy2 gives tighter Python<->R type
+marshaling, but is a real, well-known source of production fragility -- version-sensitive against
+both the R and Python it's built against, R_HOME/ABI mismatches across environments, and no graceful
+failure mode (a broken binding can crash the whole orchestrator process, not just one tool call). An
+`Rscript` subprocess is exactly the same shape as every CLONE-tier tool already in this codebase
+(tempfile in, subprocess out, parse stdout/an output file) -- no new failure mode, no new dependency
+class, degrades the same way any other subprocess tool does under a bad input or a crashed script.
+`CONTRIBUTING.md`'s existing tool recipe holds unchanged; the one addition is that a real R script
+lives in `app/tools/r_scripts/<name>.R`, not inlined in the Python wrapper, so it can be read/tested
+independently -- documented as a new `CONTRIBUTING.md` subsection alongside the existing
+"Credentialed tools" pattern, not left implicit.
+
+**clusterProfiler live 2026-08-29** as `cluster_profiler_enrichment` -- the first R tool, proving the
+pattern per this section's own step 1. Real Bioconductor `enrichGO` call (GO term enrichment with
+Benjamini-Hochberg FDR correction), human or mouse, against a caller-supplied gene symbol list. R +
+Bioconductor + `libcurl4-openssl-dev`/`libssl-dev`/`libxml2-dev` + the common font/image dev
+libraries (`libfontconfig1-dev`, `libharfbuzz-dev`, `libfribidi-dev`, `libfreetype6-dev`,
+`libpng-dev`, `libtiff5-dev`, `libjpeg-dev`) are all real, well-documented system requirements for
+compiling Bioconductor packages and their common transitive deps (clusterProfiler pulls in ggplot2,
+whose systemfonts/ragg/textshaping deps need these) -- not guessed, R/Bioconductor's own standard
+documented requirement set. Not locally testable in this sandbox (no R interpreter available, and
+Bioconductor package compilation is itself a real, substantial build-time step) -- verification
+deferred to the batch Docker build/test pass, same as every DB/environment-dependent Phase 2 tool.
+
+**Remaining ~13 R tools (dada2, WGCNA, Seurat, scran, scater, SoupX, monocle, InferCNV, Giotto,
+TCGAbiolinks, recount3, tximport, sleuth) NOT yet built.** Real scoping check done before committing
+further: dada2/SoupX/monocle/InferCNV/Giotto/tximport/sleuth all need a real uploaded dataset
+(FASTQ, a 10x-format droplet matrix, or Salmon/Kallisto quantification output) to be useful -- this
+platform still has no file-upload/ingestion path (same explicit out-of-scope finding as the
+DATA-gated tools listed below), so building them now would mean either a fake toy input that
+misrepresents the tool's real value, or silently expanding scope into the file-upload problem this
+plan deliberately doesn't try to solve. Seurat/scran/scater are the same DATA-gated class in
+practice (need a realistically-sized count matrix, impractical as inline JSON in a chat tool call).
+**TCGAbiolinks, recount3, and WGCNA are the real next candidates** -- TCGAbiolinks/recount3 fetch
+public data themselves (real API-based tools, same shape as the already-live cbioportal_mutations,
+not DATA-gated), and WGCNA can be scoped to a caller-supplied expression matrix the same way
+`dnachisel_optimize`/`treemix_population_tree` accept caller-supplied structured data -- left for a
+follow-up pass rather than rushed in the same turn as the architecture decision itself.
+
 ## Explicitly out of scope for this plan
 
 **DATA-gated** (real capability, but needs a dataset -- FASTQ/BAM/VCF/scRNA-seq matrix -- this

@@ -40,6 +40,7 @@ from app.tools.blast_search import build_blast_search_mcp_server
 from app.tools.cbioportal_mutations import build_cbioportal_mutations_mcp_server
 from app.tools.checkm2_quality import build_checkm2_quality_mcp_server
 from app.tools.checkv_quality import build_checkv_quality_mcp_server
+from app.tools.cluster_profiler_enrichment import build_cluster_profiler_enrichment_mcp_server
 from app.tools.clustalo_align import build_clustalo_align_mcp_server
 from app.tools.diamond_search import build_diamond_search_mcp_server
 from app.tools.emboss_water import build_emboss_water_mcp_server
@@ -365,6 +366,10 @@ TOOL_BUILDERS = {
     "gprofiler_enrichment": (
         "gprofiler_enrichment", build_gprofiler_enrichment_mcp_server,
         ["mcp__gprofiler_enrichment__profile_gene_list"],
+    ),
+    "cluster_profiler_enrichment": (
+        "cluster_profiler_enrichment", build_cluster_profiler_enrichment_mcp_server,
+        ["mcp__cluster_profiler_enrichment__enrich_gene_ontology_clusterprofiler"],
     ),
     "mhcflurry_binding": (
         "mhcflurry_binding", build_mhcflurry_binding_mcp_server,

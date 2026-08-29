@@ -324,6 +324,13 @@ KNOWN_TOOL_SOURCES = {
     # model inference, no external API per request.
     "hunflair_ner": ("transcriptomics", "free_public", "in-process:app.tools.hunflair_ner", False, False),
     "gprofiler_enrichment": ("transcriptomics", "free_public", "in-process:app.tools.gprofiler_enrichment", False, False),
+    # docs/17-remaining-tools-wiring-plan.md Phase 3 -- the R/
+    # Bioconductor bridge's first tool, proving the Rscript-subprocess
+    # architecture decision (see app/tools/cluster_profiler_enrichment.py
+    # for the full rpy2-vs-Rscript reasoning) before committing the
+    # rest of that cluster (WGCNA, TCGAbiolinks, recount3, ... -- see
+    # docs/17) to the same pattern.
+    "cluster_profiler_enrichment": ("transcriptomics", "free_public", "in-process:app.tools.cluster_profiler_enrichment", False, False),
     # docs/12-biotools-triage-shortlist.md's Proteomics cluster
     # (feature/proteomics branch) -- real in-process mass calculation
     # (Pyteomics), no external API. First proteomics coverage in the

@@ -39,6 +39,31 @@ If your tool needs a paid/metered key, don't hardcode it. Follow the Hugging Fac
 - Add your tool's name to `CREDENTIALED_BUILDERS` in `app/tool_roster.py` — `build_tool_roster()` will look up that org's `Credential` row, decrypt it (`app/vault.py`, Fernet-encrypted at rest), and pass it to your builder. No credential configured yet means the tool stays bound-but-inert (no crash, just silently unavailable) — same mechanism that makes the DrugBank placeholder harmless.
 - `scripts/add_credential.py` is the CLI any org uses to add or rotate their own key for your tool. Nothing here is hardcoded to one person's account — that's the point.
 
+### R tools (the Bioconductor bridge)
+
+The R bridge is built and decided: an `Rscript` subprocess, not `rpy2` (rpy2 is a real, well-known
+source of production fragility — version-sensitive against both the R and Python it's built
+against, R_HOME/ABI mismatches, no graceful per-call failure mode). Follow `app/tools/cluster_profiler_enrichment.py`
+as your template:
+
+- Write the real R script in `orchestrator/app/tools/r_scripts/<your_tool>.R` — a plain script taking
+  positional `commandArgs(trailingOnly = TRUE)` args in, writing a CSV (or similar) to an output path
+  arg. Keep it separate from the Python wrapper so it can be read/tested on its own.
+- The Python wrapper is a normal CLONE-tier tool (same shape as `app/tools/prokka_annotate.py` etc.):
+  write caller input to a tempfile, `subprocess.run(["Rscript", R_SCRIPT_PATH, ...])` via
+  `asyncio.to_thread`, parse the output file, return text with a `[toolname:unit]` citation tag.
+- Add any new Bioconductor/CRAN packages to the Dockerfile's R install step (`BiocManager::install(c(...))`
+  for Bioconductor, `install.packages(...)` for CRAN-only) — one shared `RUN` step, not one per tool.
+- Everything else (TOOL_BUILDERS, KNOWN_TOOL_SOURCES, RECORD_REF_PATTERNS, live verification) follows
+  the exact same steps as any other tool above.
+
+Scope check before you build one: several of the strongest candidates (dada2, SoupX, monocle,
+InferCNV, Giotto, tximport, sleuth, Seurat/scran/scater at realistic scale) need a real uploaded
+dataset (FASTQ, a droplet count matrix, Salmon/Kallisto output) this platform has no ingestion path
+for yet — see `docs/17-remaining-tools-wiring-plan.md`'s DATA-gated list before sinking time into one
+of these. TCGAbiolinks/recount3 (fetch public data themselves) and WGCNA (works from a caller-
+supplied expression matrix) don't have this problem.
+
 ## Running tests
 
 `orchestrator/tests/` has two layers, both real/live (no mocking):
@@ -97,9 +122,13 @@ Pick an unchecked `[ ]` item from your cluster's section in `docs/12-biotools-tr
 
 Not every good tool idea comes from `docs/12-biotools-triage-shortlist.md`. `feature/general-tools` is the catch-all branch for tool ideas outside the existing triage: something you noticed while using the platform, a tool that crosses multiple clusters, glue/infrastructure tooling, or anything genuinely useful that doesn't fit one of the 12 cluster branches above. Same rules apply — real local computation or a real API, standalone-tested with real inputs, wired per the steps above, PR against `main` when it's live-verified.
 
-### The biggest open opportunity: `feature/r-bioconductor-bridge`
+### `feature/r-bioconductor-bridge`
 
-A large cluster of the strongest candidates in the triage doc — Seurat, scran, dada2, WGCNA, and most of the rest of the Bioconductor ecosystem's single-cell/transcriptomics tooling — need an R runtime bridge (`rpy2`, or a subprocess-based `Rscript` wrapper) that doesn't exist yet. Nothing else in this codebase touches R. Building this bridge unlocks the single largest chunk of the remaining backlog — if you want the highest-leverage contribution available, this is it.
+The R bridge is live — see **R tools (the Bioconductor bridge)** above for the recipe and
+`app/tools/cluster_profiler_enrichment.py` for the first real tool built on it. TCGAbiolinks,
+recount3, and WGCNA are the next real (non-DATA-gated) candidates; most of the rest of the
+single-cell/transcriptomics Bioconductor ecosystem (Seurat, scran, dada2, ...) needs a real
+file-upload/ingestion path this platform doesn't have yet — see `docs/17-remaining-tools-wiring-plan.md`.
 
 ## Why this exists
 

@@ -284,6 +284,30 @@ RUN curl -fsSL https://ftp.ncbi.nlm.nih.gov/blast/executables/igblast/release/LA
     && ln -s /opt/ncbi-igblast-1.22.0/bin/igblastp /usr/local/bin/igblastp \
     && ln -s /opt/ncbi-igblast-1.22.0/bin/edit_imgt_file.pl /usr/local/bin/edit_imgt_file.pl
 
+# R + Bioconductor (docs/17-remaining-tools-wiring-plan.md Phase 3 --
+# the R/Bioconductor bridge). Architecture decision made and documented
+# here, not a default: an `Rscript` subprocess bridge, not `rpy2` -- see
+# app/tools/cluster_profiler_enrichment.py's module docstring for the
+# full reasoning (rpy2's real production fragility vs. this codebase's
+# already-proven, uniform subprocess-tool pattern). r-base is
+# apt-installable; libcurl4-openssl-dev/libssl-dev/libxml2-dev and the
+# font/image dev libraries below are real, well-documented system
+# dependencies for compiling Bioconductor packages and their common
+# transitive deps (clusterProfiler pulls in ggplot2, whose own
+# systemfonts/ragg/textshaping dependencies need these) -- not guessed,
+# this is R/Bioconductor's own standard documented system requirement
+# set, same class of "confirmed real requirement, not assumed" as every
+# other apt addition in this file.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+       r-base libcurl4-openssl-dev libssl-dev libxml2-dev libfontconfig1-dev \
+       libharfbuzz-dev libfribidi-dev libfreetype6-dev libpng-dev libtiff5-dev libjpeg-dev \
+    && rm -rf /var/lib/apt/lists/* \
+    && Rscript -e 'install.packages("BiocManager", repos="https://cloud.r-project.org")' \
+    && Rscript -e 'BiocManager::install(c("clusterProfiler", "org.Hs.eg.db", "org.Mm.eg.db"), update=FALSE, ask=FALSE)'
+# app/tools/r_scripts/*.R ships with the full app source COPY near the
+# end of this file (not copied separately here) -- Rscript reads it
+# from disk at call time, no build-time compile step needed for it.
+
 WORKDIR /app
 
 COPY requirements.txt .

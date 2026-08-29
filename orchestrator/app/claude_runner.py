@@ -363,6 +363,9 @@ RECORD_REF_PATTERNS: list[tuple[str, re.Pattern]] = [
     # cluster, reclassified to Phase 2 -- same methodological-citation
     # convention.
     ("PyIR {}", re.compile(r"\[pyir:(\w+)\]")),
+    # docs/17-remaining-tools-wiring-plan.md Phase 3, R/Bioconductor
+    # bridge -- same methodological-citation convention.
+    ("clusterProfiler {}", re.compile(r"\[clusterprofiler:(\w+)\]")),
 ]
 
 
