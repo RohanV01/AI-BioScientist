@@ -4,6 +4,34 @@ All notable changes to this project are logged here. Format loosely follows [Kee
 
 ## [Unreleased]
 
+### Added — 2026-08-27/29 (Phase 1/2 completion + R/Bioconductor bridge -- tool roster 37 -> 97)
+- Every remaining `docs/17-remaining-tools-wiring-plan.md` Phase 1/2 cluster wired: Immunoinformatics
+  (AbLang, PyIR), Cheminformatics (xtb, BioTransformer), Population genetics (GWAS Catalog, EIGENSOFT,
+  ADMIXTURE, TreeMix, selscan, LDSC), Sequence analysis (BLAST+, DIAMOND, Clustal Omega, EMBOSS water,
+  Prodigal, MUMmer4), Synthetic biology (gibson_assembly, dnachisel), Structural biology (DSSP,
+  Foldseek, US-align, FoldMason, Fpocket), Phylogenetics (FastTree, OrthoFinder, PAML yn00,
+  ASTRAL-Pro), Metagenomics (Kraken2, Kaiju, Prokka, Bakta, AMRFinderPlus, CheckM2, CheckV, FastANI,
+  Barrnap -- 9 of 11; GTDB-Tk/eggNOG-mapper deferred, their reference DBs alone are ~110GB/~11GB).
+  Each DB-dependent tool ships the smallest real, still-useful official reference database baked into
+  the image at build time (not the largest), keeping the image buildable by any researcher's
+  connection/disk rather than only a server-grade one.
+- **The R/Bioconductor bridge, decided and built**: `Rscript` subprocess (not `rpy2` -- a real,
+  well-known source of production fragility), with `clusterProfiler` (real Bioconductor GO enrichment)
+  as the first tool proving the pattern. Recipe documented in `CONTRIBUTING.md`; ~13 more R tools
+  scoped in `docs/17` (TCGAbiolinks/recount3/WGCNA are real next candidates; the rest need a real
+  file-upload path this platform doesn't have yet).
+- Several real, confirmed-live bugs/blockers found and fixed or documented along the way: xtb prints
+  its "normal termination" status to stderr, not stdout; FastANI's default fragment length needs a
+  genome-scale input, not a short contig; Debian's `prokka`/`igblast` apt packages are respectively
+  missing a working `tbl2asn` and the actual `igblastn`/`igblastp` executables entirely (both fixed
+  via NCBI's own official binary releases); RAscore/ToxinPred2/DDGun all have genuine, reproducible
+  installability/source bugs (dead pinned `tensorflow-gpu`, an unconditional `csv`-module crash, and a
+  removed biopython API respectively) -- rejected with the same live-verification rigor as the
+  session's earlier HADDOCK3 investigation, not guessed.
+- All references to the legacy "RxDis" drug-discovery pipeline removed from planning docs and code
+  comments per explicit instruction -- it was never actually wired into any live code.
+- `README.md`'s tool-roster count corrected (37 -> 97) to match actual `tool_roster.py` state.
+
 ### Added — 2026-08-24/25 (full test suite, live battle-testing, launch-readiness pass)
 - Real, live test coverage for the full 37-tool roster: one test file per tool (`orchestrator/tests/test_*.py`, no mocking, hits real external APIs or runs real local computation), plus 12 cross-tool E2E combo tests (`orchestrator/tests/e2e/`) chaining tools the way the master agent actually would. Full findings and known external-API flakiness documented in `docs/13-test-report.md`.
 - 12 deliberately hard, adversarial questions run through the real live product (Mattermost -> webhook -> authenticated `claude` CLI agent -> real tool calls), not just direct tool-chain calls -- zero hallucinations across all 12, every real tool limitation disclosed honestly instead of guessed around. Found and fixed 6 real gaps this uncovered (equilibrator/mhcflurry first-use latency bombs, Camofox missing from the compose stack, no coordinate-based ClinVar lookup, no MSA tool, undocumented enrichment library defaults) -- see `docs/15-battle-test-report.md`.
