@@ -348,6 +348,17 @@ RECORD_REF_PATTERNS: list[tuple[str, re.Pattern]] = [
     # docs/17-remaining-tools-wiring-plan.md Phase 2, Synthetic biology
     # cluster -- same methodological-citation convention.
     ("dnachisel {}", re.compile(r"\[dnachisel:(\w+)\]")),
+    # docs/17-remaining-tools-wiring-plan.md Phase 2, Metagenomics
+    # cluster -- same methodological-citation convention.
+    ("Kraken2 {}", re.compile(r"\[kraken2:(\w+)\]")),
+    ("Kaiju {}", re.compile(r"\[kaiju:(\w+)\]")),
+    ("Prokka {}", re.compile(r"\[prokka:(\w+)\]")),
+    ("Bakta {}", re.compile(r"\[bakta:(\w+)\]")),
+    ("AMRFinderPlus {}", re.compile(r"\[amrfinder:(\w+)\]")),
+    ("CheckM2 {}", re.compile(r"\[checkm2:(\w+)\]")),
+    ("CheckV {}", re.compile(r"\[checkv:(\w+)\]")),
+    ("FastANI {}", re.compile(r"\[fastani:(\w+)\]")),
+    ("Barrnap {}", re.compile(r"\[barrnap:(\w+)\]")),
 ]
 
 

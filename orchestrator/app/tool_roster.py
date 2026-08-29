@@ -28,13 +28,18 @@ from app.models import Agent, Credential, ToolBinding, ToolSource
 from app.tools.ablang_restore import build_ablang_restore_mcp_server
 from app.tools.alphafold import build_alphafold_mcp_server
 from app.tools.admixture_ancestry import build_admixture_ancestry_mcp_server
+from app.tools.amrfinder_resistance import build_amrfinder_resistance_mcp_server
 from app.tools.anarci_numbering import build_anarci_mcp_server
 from app.tools.astral_pro_tree import build_astral_pro_tree_mcp_server
 from app.tools.auto3d_conformers import build_auto3d_conformers_mcp_server
+from app.tools.bakta_annotate import build_bakta_annotate_mcp_server
+from app.tools.barrnap_rrna import build_barrnap_rrna_mcp_server
 from app.tools.biotransformer_metabolism import build_biotransformer_metabolism_mcp_server
 from app.tools.biopandas_structure import build_biopandas_structure_mcp_server
 from app.tools.blast_search import build_blast_search_mcp_server
 from app.tools.cbioportal_mutations import build_cbioportal_mutations_mcp_server
+from app.tools.checkm2_quality import build_checkm2_quality_mcp_server
+from app.tools.checkv_quality import build_checkv_quality_mcp_server
 from app.tools.clustalo_align import build_clustalo_align_mcp_server
 from app.tools.diamond_search import build_diamond_search_mcp_server
 from app.tools.emboss_water import build_emboss_water_mcp_server
@@ -59,6 +64,7 @@ from app.tools.ensembl_vep import build_ensembl_vep_mcp_server
 from app.tools.epitopepredict import build_epitopepredict_mcp_server
 from app.tools.equilibrator_thermo import build_equilibrator_thermo_mcp_server
 from app.tools.europepmc import build_europepmc_mcp_server
+from app.tools.fastani_similarity import build_fastani_similarity_mcp_server
 from app.tools.fasttree_tree import build_fasttree_tree_mcp_server
 from app.tools.gene_set_enrichment import build_gene_set_enrichment_mcp_server
 from app.tools.gibson_assembly import build_gibson_assembly_mcp_server
@@ -69,8 +75,10 @@ from app.tools.hpo import build_hpo_mcp_server
 from app.tools.ldsc_genetic_correlation import build_ldsc_genetic_correlation_mcp_server
 from app.tools.huggingface import build_huggingface_mcp_server
 from app.tools.hunflair_ner import build_hunflair_ner_mcp_server
+from app.tools.kaiju_classify import build_kaiju_classify_mcp_server
 from app.tools.kegg import build_kegg_mcp_server
 from app.tools.kinetic_simulation import build_kinetic_simulation_mcp_server
+from app.tools.kraken2_classify import build_kraken2_classify_mcp_server
 from app.tools.lightdock_docking import build_lightdock_docking_mcp_server
 from app.tools.literature_discovery import build_literature_discovery_mcp_server
 from app.tools.mhcflurry_binding import build_mhcflurry_binding_mcp_server
@@ -89,6 +97,7 @@ from app.tools.pdb import build_pdb_mcp_server
 from app.tools.phylogenetics import build_phylogenetics_mcp_server
 from app.tools.plip_interactions import build_plip_interactions_mcp_server
 from app.tools.primer3 import build_primer3_mcp_server
+from app.tools.prokka_annotate import build_prokka_annotate_mcp_server
 from app.tools.pubchem import build_pubchem_mcp_server
 from app.tools.pubmed import build_pubmed_mcp_server
 from app.tools.pycombat_correction import build_pycombat_correction_mcp_server
@@ -209,6 +218,42 @@ TOOL_BUILDERS = {
     "ldsc_genetic_correlation": (
         "ldsc_genetic_correlation", build_ldsc_genetic_correlation_mcp_server,
         ["mcp__ldsc_genetic_correlation__estimate_genetic_correlation"],
+    ),
+    "kraken2_classify": (
+        "kraken2_classify", build_kraken2_classify_mcp_server,
+        ["mcp__kraken2_classify__classify_sequence_kraken2"],
+    ),
+    "kaiju_classify": (
+        "kaiju_classify", build_kaiju_classify_mcp_server,
+        ["mcp__kaiju_classify__classify_sequence_kaiju"],
+    ),
+    "prokka_annotate": (
+        "prokka_annotate", build_prokka_annotate_mcp_server,
+        ["mcp__prokka_annotate__annotate_genome_prokka"],
+    ),
+    "bakta_annotate": (
+        "bakta_annotate", build_bakta_annotate_mcp_server,
+        ["mcp__bakta_annotate__annotate_genome_bakta"],
+    ),
+    "amrfinder_resistance": (
+        "amrfinder_resistance", build_amrfinder_resistance_mcp_server,
+        ["mcp__amrfinder_resistance__detect_resistance_genes"],
+    ),
+    "checkm2_quality": (
+        "checkm2_quality", build_checkm2_quality_mcp_server,
+        ["mcp__checkm2_quality__assess_genome_quality"],
+    ),
+    "checkv_quality": (
+        "checkv_quality", build_checkv_quality_mcp_server,
+        ["mcp__checkv_quality__assess_viral_genome_quality"],
+    ),
+    "fastani_similarity": (
+        "fastani_similarity", build_fastani_similarity_mcp_server,
+        ["mcp__fastani_similarity__compute_genome_ani"],
+    ),
+    "barrnap_rrna": (
+        "barrnap_rrna", build_barrnap_rrna_mcp_server,
+        ["mcp__barrnap_rrna__predict_rrna_genes"],
     ),
     "minimap2_align": ("minimap2_align", build_minimap2_mcp_server, ["mcp__minimap2_align__align_to_reference"]),
     "blast_search": ("blast_search", build_blast_search_mcp_server, ["mcp__blast_search__blast_search"]),

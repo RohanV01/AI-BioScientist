@@ -58,10 +58,26 @@ FROM python:3.11-slim
 # bytecode, which JDK 17's javac still supports via -source/-target 8;
 # confirmed the JDK/javac compatibility, not the full Maven build itself
 # -- Maven isn't bootstrappable without root in this sandbox).
+# kraken2/prokka/barrnap/bedtools/fastani (docs/17-remaining-tools-
+# wiring-plan.md Phase 2, Metagenomics cluster) -- all apt-installable
+# (confirmed live via `apt-cache search`/`apt-get download`, and
+# barrnap/prokka's real transitive tool dependencies traced by
+# extracting their .deb files locally rather than assumed: barrnap
+# needs `nhmmer` (already covered by `hmmer` above) and `bedtools`
+# (added here); prokka needs `barrnap`, `blast+` (already have),
+# `prodigal` (already have), and bundles its own ~104MB curated
+# annotation DB directly in the .deb -- no separate DB download needed
+# for prokka itself. Real, confirmed-live gotcha found the same way:
+# Debian's `prokka` package still hard-requires the discontinued NCBI
+# `tbl2asn` tool (which now has a hard-coded expiration and was pulled
+# from public download) -- fixed below by installing NCBI's own
+# designated replacement, `table2asn`, renamed to `tbl2asn` (a
+# well-established community workaround, not a hack of this platform's
+# own invention).
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl ca-certificates gnupg mafft hmmer build-essential zlib1g-dev \
        ncbi-blast+ clustalo emboss prodigal mummer dssp git cmake fasttree paml eigensoft libgsl-dev libboost-dev \
-       xtb openjdk-17-jdk-headless maven \
+       xtb openjdk-17-jdk-headless maven kraken2 prokka barrnap bedtools fastani \
     && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y --no-install-recommends nodejs \
     && npm install -g @anthropic-ai/claude-code \
@@ -186,6 +202,71 @@ RUN git clone --depth 1 https://github.com/Wishartlab-openscience/Biotransformer
     && cp -r database supportfiles config.json /opt/biotransformer/ \
     && ls -S target/*.jar | head -1 | xargs -I{} cp {} /opt/biotransformer/biotransformer.jar \
     && cd / && rm -rf /tmp/biotransformer /root/.m2
+
+# table2asn renamed to tbl2asn (see the apt-get RUN step above for why)
+# -- installed to /usr/local/bin, which takes PATH precedence over
+# apt's /usr/bin, so prokka picks this up instead of erroring on a
+# missing tool.
+RUN curl -fsSL https://ftp.ncbi.nlm.nih.gov/asn1-converters/by_program/table2asn/linux64.table2asn.gz -o /tmp/table2asn.gz \
+    && gunzip /tmp/table2asn.gz && mv /tmp/table2asn /usr/local/bin/tbl2asn && chmod +x /usr/local/bin/tbl2asn
+
+# Kaiju (app/tools/kaiju_classify.py, docs/17 Phase 2, Metagenomics
+# cluster) -- not apt-installable (checked before assuming), compiled
+# from source (simple `make` build, same class of solution as
+# TreeMix/ASTER above).
+RUN git clone --depth 1 https://github.com/bioinformatics-centre/kaiju.git /tmp/kaiju \
+    && cd /tmp/kaiju/src && make \
+    && mkdir -p /opt/kaiju && cp -r /tmp/kaiju/bin/* /opt/kaiju/ \
+    && ln -s /opt/kaiju/kaiju /usr/local/bin/kaiju \
+    && cd / && rm -rf /tmp/kaiju
+
+# AMRFinderPlus (app/tools/amrfinder_resistance.py, same cluster) --
+# not apt-installable, installed from its own official prebuilt static
+# Linux binary release (github.com/ncbi/amr), same class as
+# DIAMOND/Foldseek above. Its reference database is fetched via the
+# tool's own `amrfinder_update` command (the real, maintained way to
+# get it -- not hand-curled file-by-file from NCBI's FTP listing).
+RUN mkdir -p /opt/amrfinder && curl -fsSL https://github.com/ncbi/amr/releases/download/amrfinder_v4.2.7/amrfinder_binaries_v4.2.7.tar.gz \
+    | tar xz -C /opt/amrfinder \
+    && ln -sf /opt/amrfinder/amrfinder /usr/local/bin/amrfinder \
+    && ln -sf /opt/amrfinder/amrfinder_update /usr/local/bin/amrfinder_update \
+    && ln -sf /opt/amrfinder/amrfinder_index /usr/local/bin/amrfinder_index \
+    && amrfinder_update -d /opt/amrfinder/data
+
+# Reference databases for the Metagenomics cluster's remaining tools
+# (Kraken2, Kaiju, Bakta, CheckM2, CheckV) -- pre-warmed at build time,
+# same "pay the one-time download once, at build time" pattern as
+# equilibrator_thermo/mhcflurry above. Each is deliberately the
+# *smallest real, still-useful* official database for its tool, not
+# the full/largest one -- keeping this already-large batch of
+# downloads from growing the image by another 100+GB (see GTDB-Tk's
+# rejection in docs/17: its reference DB alone is ~110GB, which is
+# exactly the class of bloat being avoided here for a platform meant
+# to be `git clone`d and built by any researcher, not just one with a
+# server-grade disk/connection):
+#   - Kraken2: k2_viral (~570MB compressed) instead of the ~8-16GB
+#     standard/pluspf DBs -- real viral taxonomic classification, not
+#     full bacterial/archaeal coverage.
+#   - Kaiju: kaiju_db_viruses (~280MB) instead of the ~100GB+ nr index.
+#   - Bakta: the project's own official "light" DB (~1.3GB) instead of
+#     the ~30GB "full" DB -- real annotation, at reduced sensitivity
+#     per Bakta's own documented light/full tradeoff.
+#   - CheckM2/CheckV: each ships only one real DB size (~1.7GB each),
+#     no smaller official option exists -- used as-is.
+# A scientist who needs broader taxonomic/functional coverage than
+# these defaults can always swap in a larger DB at their own
+# deployment by re-pointing these tools' DB paths -- documented in
+# each tool file's docstring, not hidden.
+RUN mkdir -p /opt/kraken2_db && curl -fsSL https://genome-idx.s3.amazonaws.com/kraken/k2_viral_20260626.tar.gz \
+    | tar xz -C /opt/kraken2_db
+RUN mkdir -p /opt/kaiju_db && curl -fsSL https://kaiju-idx.s3.eu-central-1.amazonaws.com/2024/kaiju_db_viruses_2024-08-15.tgz \
+    | tar xz -C /opt/kaiju_db
+RUN mkdir -p /opt/bakta_db && curl -fsSL https://zenodo.org/record/14916843/files/db-light.tar.xz -o /tmp/db-light.tar.xz \
+    && tar xJf /tmp/db-light.tar.xz -C /opt/bakta_db --strip-components=1 && rm /tmp/db-light.tar.xz
+RUN mkdir -p /opt/checkm2_db && curl -fsSL https://zenodo.org/records/14897628/files/checkm2_database.tar.gz -o /tmp/checkm2_db.tar.gz \
+    && tar xzf /tmp/checkm2_db.tar.gz -C /opt/checkm2_db --strip-components=1 && rm /tmp/checkm2_db.tar.gz
+RUN mkdir -p /opt/checkv_db && curl -fsSL https://portal.nersc.gov/CheckV/checkv-db-v1.5.tar.gz -o /tmp/checkv_db.tar.gz \
+    && tar xzf /tmp/checkv_db.tar.gz -C /opt/checkv_db --strip-components=1 && rm /tmp/checkv_db.tar.gz
 
 WORKDIR /app
 

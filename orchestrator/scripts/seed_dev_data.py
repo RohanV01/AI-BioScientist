@@ -119,6 +119,36 @@ KNOWN_TOOL_SOURCES = {
     "treemix_population_tree": ("population_genetics", "free_public", "in-process:app.tools.treemix_population_tree", False, False),
     "selscan_nsl": ("population_genetics", "free_public", "in-process:app.tools.selscan_nsl", False, False),
     "ldsc_genetic_correlation": ("population_genetics", "free_public", "in-process:app.tools.ldsc_genetic_correlation", False, False),
+    # docs/17-remaining-tools-wiring-plan.md Phase 2, Metagenomics
+    # cluster -- the heaviest remaining cluster, several tools needing
+    # real multi-GB reference databases baked into the image at build
+    # time (see Dockerfile). Each database was deliberately chosen as
+    # the smallest real, still-useful official option (e.g. Kraken2's
+    # k2_viral instead of the ~8-16GB standard DB, Bakta's official
+    # "light" DB instead of "full") to keep image growth in check for a
+    # platform meant to be cloned and built by any researcher.
+    # GTDB-Tk NOT built -- its reference DB alone is ~110GB, an order of
+    # magnitude beyond every other tool in this cluster combined; a real
+    # infra decision (external volume/download-on-demand), not something
+    # to bake into a general-purpose image. eggNOG-mapper NOT built --
+    # confirmed live its minimal real functional-annotation DB
+    # (eggnog.db + eggnog_proteins.dmnd) is ~11GB compressed, alone
+    # bigger than every other tool in this cluster combined; same class
+    # of infra decision as GTDB-Tk, deferred rather than silently
+    # dropped. Real, confirmed-live gotcha found and fixed for Prokka:
+    # Debian's `prokka` package still hard-requires the discontinued
+    # NCBI `tbl2asn` (hard-coded expiration, pulled from public
+    # download) -- fixed in the Dockerfile via NCBI's own designated
+    # replacement, `table2asn`, renamed to `tbl2asn`.
+    "kraken2_classify": ("metagenomics", "free_public", "in-process:app.tools.kraken2_classify", False, False),
+    "kaiju_classify": ("metagenomics", "free_public", "in-process:app.tools.kaiju_classify", False, False),
+    "prokka_annotate": ("metagenomics", "free_public", "in-process:app.tools.prokka_annotate", False, False),
+    "bakta_annotate": ("metagenomics", "free_public", "in-process:app.tools.bakta_annotate", False, False),
+    "amrfinder_resistance": ("metagenomics", "free_public", "in-process:app.tools.amrfinder_resistance", False, False),
+    "checkm2_quality": ("metagenomics", "free_public", "in-process:app.tools.checkm2_quality", False, False),
+    "checkv_quality": ("metagenomics", "free_public", "in-process:app.tools.checkv_quality", False, False),
+    "fastani_similarity": ("metagenomics", "free_public", "in-process:app.tools.fastani_similarity", False, False),
+    "barrnap_rrna": ("metagenomics", "free_public", "in-process:app.tools.barrnap_rrna", False, False),
     # docs/17-remaining-tools-wiring-plan.md Phase 1, Sequence analysis
     # cluster -- real minimap2 pairwise alignment (long reads/cDNA/
     # genome-vs-genome), complementing msa's MAFFT multiple-sequence

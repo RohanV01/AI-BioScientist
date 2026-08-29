@@ -279,6 +279,46 @@ way the equilibrator download was discovered mid-battle-test. MetaPhlAn/HUMAnN n
 FASTQ input to be useful even once wired -- functionally DATA-gated despite being listed as
 CLONE/PIP in `docs/12`; wire last in this cluster, after confirming whether that caveat still holds.
 
+**9 of 11 live 2026-08-29** as `kraken2_classify`, `kaiju_classify`, `prokka_annotate`,
+`bakta_annotate`, `amrfinder_resistance`, `checkm2_quality`, `checkv_quality`, `fastani_similarity`,
+`barrnap_rrna`. Kraken2/Prokka/Barrnap/FastANI apt-installable (confirmed live); Kaiju compiled from
+source (not apt-installable, simple `make` build); AMRFinderPlus installed from NCBI's own prebuilt
+Linux binary release; Bakta/CheckM2/CheckV genuinely PyPI-installable. Each DB-dependent tool ships
+the **smallest real, still-useful** official reference database baked into the image at build time,
+not the largest -- keeping this cluster's image growth in check for a platform meant to be cloned and
+built by any researcher, not just one with a server-grade disk/connection:
+- Kraken2: `k2_viral` (~570MB) instead of the ~8-16GB standard/pluspf DBs -- real viral taxonomic
+  classification, not full bacterial/archaeal coverage.
+- Kaiju: `kaiju_db_viruses` (~280MB) instead of the ~100GB+ `nr` index -- same viral scoping.
+- Bakta: the project's own official "light" DB (~1.3GB) instead of the ~30GB "full" DB.
+- CheckM2/CheckV: each ships only one real DB size (~1.7GB each) -- no smaller official option
+  exists, used as-is.
+- AMRFinderPlus: its own real, maintained `amrfinder_update` command fetches the DB (not hand-curled
+  file-by-file from NCBI's FTP listing).
+
+Where local testing was possible without root (barrnap, fastANI -- both apt-installable, no huge DB
+needed), **actually ran them live end-to-end before committing**, same rigor as xtb_quantum: caught
+two real, non-obvious bugs this way. (1) **FastANI's default 3000bp fragment length needs a
+genome-scale input, not a short contig** -- a query near that length produced zero alignment;
+confirmed live and fixed the tool's own minimum-length validation (1000bp -> 20000bp) rather than
+guessing a safe threshold. (2) **Debian's `prokka` package still hard-requires the discontinued NCBI
+`tbl2asn` tool** (a real, well-known issue acknowledged in upstream prokka's own FAQ -- `tbl2asn` has
+a hard-coded expiration and NCBI pulled it from public download entirely) -- fixed in the Dockerfile
+by installing NCBI's own designated replacement, `table2asn`, renamed to `tbl2asn` (a well-established
+community workaround, confirmed the real binary is still hosted on NCBI's FTP before relying on it).
+Also traced barrnap's full transitive tool dependency chain (`nhmmer`, `bedtools`) and prokka's
+(`barrnap`, `blast+`, `prodigal`, all already in this image) by extracting the real `.deb` files
+locally rather than assumed.
+
+**GTDB-Tk NOT built** -- its reference database alone is ~110GB, an order of magnitude beyond every
+other tool in this cluster combined; baking that into a general-purpose image would make it
+genuinely unclonable/unbuildable for a typical researcher's connection and disk. A real infra
+decision (external volume, download-on-demand, or a dedicated GTDB-Tk service), not something to
+silently bake in. **eggNOG-mapper NOT built** -- confirmed live its minimal real functional-
+annotation database (`eggnog.db` + `eggnog_proteins.dmnd` via DIAMOND search mode) is ~11GB
+compressed, alone bigger than every other tool in this cluster's baked-in DBs combined -- same class
+of infra decision as GTDB-Tk, deferred with the same reasoning rather than silently dropped.
+
 ### Cheminformatics -- 4 tools
 BioTransformer, RAscore, ToxinPred2, xtb.
 

@@ -180,6 +180,14 @@ dependencies = [
     # place of the docs/12-listed "bebop/poly" (a Go library with no
     # CLI/binary -- see app/tools/dnachisel_optimize.py for why).
     "dnachisel>=3.2,<4.0",
+    # docs/17-remaining-tools-wiring-plan.md Phase 2, Metagenomics
+    # cluster -- real genome annotation (bakta), genome-bin completeness/
+    # contamination (checkm2), and viral genome quality (checkv). Each
+    # ships a real reference DB baked into the image at build time (see
+    # Dockerfile) rather than fetched on first use.
+    "bakta>=1.12,<2.0",
+    "checkm2>=1.0,<2.0",
+    "checkv>=1.1,<2.0",
 ]
 
 [project.optional-dependencies]
