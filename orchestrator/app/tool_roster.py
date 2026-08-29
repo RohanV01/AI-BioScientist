@@ -96,7 +96,9 @@ from app.tools.orthofinder_groups import build_orthofinder_groups_mcp_server
 from app.tools.paml_yn00 import build_paml_yn00_mcp_server
 from app.tools.pdb import build_pdb_mcp_server
 from app.tools.phylogenetics import build_phylogenetics_mcp_server
+from app.tools.pixy_diversity import build_pixy_diversity_mcp_server
 from app.tools.plip_interactions import build_plip_interactions_mcp_server
+from app.tools.poolfstat_fst import build_poolfstat_fst_mcp_server
 from app.tools.primer3 import build_primer3_mcp_server
 from app.tools.prokka_annotate import build_prokka_annotate_mcp_server
 from app.tools.pyir_annotate import build_pyir_annotate_mcp_server
@@ -115,6 +117,7 @@ from app.tools.sourmash_compare import build_sourmash_compare_mcp_server
 from app.tools.spyrmsd_pose import build_spyrmsd_pose_mcp_server
 from app.tools.straindesign_intervention import build_straindesign_intervention_mcp_server
 from app.tools.string_db import build_string_mcp_server
+from app.tools.toxinpred2_toxicity import build_toxinpred2_toxicity_mcp_server
 from app.tools.tcrdist_repertoire import build_tcrdist_repertoire_mcp_server
 from app.tools.treemix_population_tree import build_treemix_population_tree_mcp_server
 from app.tools.uniprot import build_uniprot_mcp_server
@@ -148,6 +151,10 @@ TOOL_BUILDERS = {
     "xtb_quantum": (
         "xtb_quantum", build_xtb_quantum_mcp_server,
         ["mcp__xtb_quantum__compute_quantum_properties"],
+    ),
+    "toxinpred2_toxicity": (
+        "toxinpred2_toxicity", build_toxinpred2_toxicity_mcp_server,
+        ["mcp__toxinpred2_toxicity__predict_peptide_toxicity"],
     ),
     "pubchem": ("pubchem", build_pubchem_mcp_server, ["mcp__pubchem__search_compound"]),
     "cbioportal_mutations": (
@@ -220,6 +227,14 @@ TOOL_BUILDERS = {
     "ldsc_genetic_correlation": (
         "ldsc_genetic_correlation", build_ldsc_genetic_correlation_mcp_server,
         ["mcp__ldsc_genetic_correlation__estimate_genetic_correlation"],
+    ),
+    "pixy_diversity": (
+        "pixy_diversity", build_pixy_diversity_mcp_server,
+        ["mcp__pixy_diversity__compute_nucleotide_diversity"],
+    ),
+    "poolfstat_fst": (
+        "poolfstat_fst", build_poolfstat_fst_mcp_server,
+        ["mcp__poolfstat_fst__compute_pool_fst"],
     ),
     "kraken2_classify": (
         "kraken2_classify", build_kraken2_classify_mcp_server,

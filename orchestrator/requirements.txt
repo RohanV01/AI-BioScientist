@@ -81,6 +81,12 @@ bakta>=1.12,<2.0
 checkm2>=1.0,<2.0
 checkv>=1.1,<2.0
 crowelab-pyir>=1.5,<2.0
+# pixy (github.com/ksamuk/pixy) -- real, actively-maintained pure Python
+# under the hood despite being conda-forge-only distributed (confirmed
+# live before installing this way); pip install from source rather than
+# standing up a new conda/mamba toolchain for one tool.
+pixy @ git+https://github.com/ksamuk/pixy.git@master
+toxinpred2>=1.1,<2.0
 
 # dev/test
 pytest>=8.3,<9.0

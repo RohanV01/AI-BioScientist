@@ -194,6 +194,18 @@ dependencies = [
     # unrelated "Python Intermediate Representation" package; the real
     # package is `crowelab-pyir`, confirmed before installing).
     "crowelab-pyir>=1.5,<2.0",
+    # docs/17-remaining-tools-wiring-plan.md Phase 2 Population genetics
+    # cluster, re-investigated -- pixy is real, actively-maintained pure
+    # Python (confirmed live) despite being conda-forge-only distributed;
+    # installed from source instead of standing up a new conda toolchain.
+    "pixy @ git+https://github.com/ksamuk/pixy.git@master",
+    # docs/17-remaining-tools-wiring-plan.md Phase 2 Cheminformatics
+    # cluster -- re-investigated after the earlier live-confirmed
+    # rejection (unconditional crash on `to_csv(sep="\n")`); confirmed
+    # live the crash is fixable with a single documented source patch
+    # (see Dockerfile) rather than needing a fork, and only affects
+    # Model 1's output path, not its actual prediction logic.
+    "toxinpred2>=1.1,<2.0",
 ]
 
 [project.optional-dependencies]

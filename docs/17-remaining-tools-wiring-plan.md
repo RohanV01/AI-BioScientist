@@ -239,7 +239,7 @@ direction.
 ### Population genetics -- 6 tools
 poolfstat, ADMIXTURE, Eigensoft, TreeMix, selscan, LDSC.
 
-**5 of 6 live 2026-08-29** as `eigensoft_pca` (real EIGENSTRAT PCA via `smartpca`, apt-installable,
+**6 of 6 live 2026-08-29** (poolfstat added later the same day via the R bridge -- see below) as `eigensoft_pca` (real EIGENSTRAT PCA via `smartpca`, apt-installable,
 confirmed live), `admixture_ancestry` (real ML ancestry inference via `admixture`, installed from
 its own project site's prebuilt Linux binary -- not apt/pip-installable, confirmed live; the real
 PLINK `.bed`/`.bim`/`.fam` binary trio is constructed directly from a simple caller dict, same
@@ -259,12 +259,20 @@ LD-score reference panel (~26MB, pulled from a Zenodo mirror since the project's
 now 301-redirects to a requester-pays bucket -- real link rot, confirmed live) -- same
 "pre-warm a real one-time download at build time" pattern as equilibrator_thermo/mhcflurry, just a
 much smaller payload; only SNPs overlapping that reference panel's real HapMap3 rsIDs can be scored,
-surfaced as an explicit "no overlap" result rather than fabricated. **poolfstat NOT built** -- it's a
-CRAN-only R package (confirmed live, no PyPI distribution exists), correctly belongs in Phase 3's
-R/Bioconductor bridge once that architecture (rpy2 vs. subprocess `Rscript`) is decided, not this
-CLONE-tier batch. **pixy still NOT built** -- re-confirmed live: not apt-installable, the PyPI `pixy`
-package is still the unrelated terminal-color library, and no GitHub release binary exists either --
-genuinely bioconda-only, same finding as the earlier session. All wired on well-documented, stable
+surfaced as an explicit "no overlap" result rather than fabricated.
+
+**poolfstat and pixy live 2026-08-29, both re-investigated per explicit direction to build the
+important rejects rather than leave them all skipped.** `poolfstat_fst`: real R package (CRAN),
+built once the R/Bioconductor bridge existed (Phase 3) -- genome-wide Fst via `computeFST` with
+block-jackknife CIs, from a caller-supplied allele-count matrix built directly into a `countdata` S4
+object (no pool-seq sync/VCF file format needed). `pixy_diversity`: confirmed live it's genuinely
+real, actively-maintained pure Python underneath (Poetry-managed, real PyPI-hosted deps: numpy,
+scikit-allel, numcodecs) despite being conda-forge-only *distributed* -- installed via
+`pip install git+https://github.com/ksamuk/pixy.git` instead of standing up a whole new conda/mamba
+toolchain for one tool, and its own internal vectorized `calc_pi`/`calc_dxy` functions (from
+`pixy.calc`) called in-process on a caller-built scikit-allel `GenotypeArray` -- sidesteps pixy's own
+VCF-only CLI entirely. Both confirmed live end-to-end (real pi/dxy/Fst values) before wiring. All
+remaining tools wired on well-documented, stable
 CLI/config syntax rather than a live host install (no sudo access to install these system binaries
 locally) -- verification deferred to the batch Docker build/test pass per explicit direction.
 
@@ -336,13 +344,31 @@ deferred to the batch Docker build/test pass). **RAscore NOT built** -- confirme
 `setup.cfg` pins `tensorflow-gpu==2.5.0`, which no longer exists as an installable distribution for
 any current platform (`pip install --dry-run` found only `2.12.0` remaining on PyPI, itself since
 deprecated/merged into plain `tensorflow`) -- a real, unfixable-without-a-fork installability
-blocker, not a config error. **ToxinPred2 NOT built** -- confirmed live against both PyPI releases
-(1.0 and 1.1): `toxinpred2.py` unconditionally crashes on any real FASTA input at
-`CM.to_csv("Sequence_1", header=False, index=None, sep="\n")` -- Python's own `csv` module has always
-rejected `"\n"` as a delimiter (`ValueError: bad delimiter value`, reproduced directly against the
-bare `csv` module, independent of pandas version), so this line has likely never worked against any
-reasonably modern Python. A genuine, reproducible bug in the package's own source, not an environment
-issue -- same rejection rigor as the earlier HADDOCK3 investigation.
+blocker, not a config error -- left rejected (fixing it correctly would mean re-validating a whole
+pretrained ML stack against a live TF version it was never tested against, a real correctness risk,
+not just an installability one).
+
+**ToxinPred2 live 2026-08-29 as `toxinpred2_toxicity`, re-investigated per explicit direction to fix
+the important rejects rather than leave them all skipped.** The original rejection was accurate --
+confirmed live against both PyPI releases (1.0 and 1.1): `toxinpred2.py` unconditionally crashes on
+any real FASTA input at `CM.to_csv("Sequence_1", header=False, index=None, sep="\n")` (Python's own
+`csv` module has always rejected `"\n"` as a delimiter). What changed: traced that this file is only
+ever *read* by Model 2's BLAST/MERCI hybrid path, never by Model 1's (RF-only, no BLAST DB needed)
+actual prediction logic -- so a single, minimal, documented `sed` patch in the Dockerfile
+(`sep="\n"` -> `sep=","`) fixes Model 1 completely without needing to fork the package or touch its
+prediction logic at all. Confirmed live end-to-end after the patch: real toxin/non-toxin predictions
+with real ML scores. Same rigor as the earlier HADDOCK3/RAscore investigations, just landing on "a
+real one-line fix exists" instead of "genuinely blocked."
+
+**DDGun re-investigated, still NOT built** -- found a second, independent bug beyond the one already
+known (removed `Bio.PDB.Polypeptide.three_to_one`/`is_aa`, itself patchable with a small compatibility
+shim): modern `setuptools` (81+) no longer ships `pkg_resources` at all, which `ddgun.py` imports
+unconditionally (confirmed live; `setuptools<81` restores it, with a deprecation warning). Even past
+both bugs, `ddgun_seq`'s real signature needs a pre-built evolutionary `profile` object (an HHblits/
+PSI-BLAST-style PSSM against a reference sequence database, per the project's own README) -- not just
+a raw sequence, the same class of heavy reference-database dependency this session already declined
+for GTDB-Tk/eggNOG-mapper. Left rejected; the two bugs alone would've been worth patching, but the
+real profile-building requirement makes this a bigger investment than "important, fix it."
 
 ### Synthetic biology -- 1 tool
 bebop/poly.

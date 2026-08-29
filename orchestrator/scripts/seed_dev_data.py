@@ -119,6 +119,16 @@ KNOWN_TOOL_SOURCES = {
     "treemix_population_tree": ("population_genetics", "free_public", "in-process:app.tools.treemix_population_tree", False, False),
     "selscan_nsl": ("population_genetics", "free_public", "in-process:app.tools.selscan_nsl", False, False),
     "ldsc_genetic_correlation": ("population_genetics", "free_public", "in-process:app.tools.ldsc_genetic_correlation", False, False),
+    # docs/17-remaining-tools-wiring-plan.md Phase 2 Population genetics
+    # cluster -- both re-investigated after their earlier deferral/
+    # rejection, per explicit direction to add back the important ones.
+    # pixy: confirmed live it's real, actively-maintained pure Python
+    # under the hood despite being conda-forge-only distributed -- pip
+    # installed from source (its own calc_pi/calc_dxy called in-process
+    # on a caller-built scikit-allel GenotypeArray, no VCF/CLI needed).
+    # poolfstat: real R tool, now buildable via the R/Bioconductor bridge.
+    "pixy_diversity": ("population_genetics", "free_public", "in-process:app.tools.pixy_diversity", False, False),
+    "poolfstat_fst": ("population_genetics", "free_public", "in-process:app.tools.poolfstat_fst", False, False),
     # docs/17-remaining-tools-wiring-plan.md Phase 2, Metagenomics
     # cluster -- the heaviest remaining cluster, several tools needing
     # real multi-GB reference databases baked into the image at build
@@ -363,6 +373,11 @@ KNOWN_TOOL_SOURCES = {
     # always rejected ("bad delimiter value") -- a real, reproducible
     # bug in the package's own source, not an environment issue.
     "xtb_quantum": ("drug_discovery", "free_public", "in-process:app.tools.xtb_quantum", False, False),
+    # docs/17-remaining-tools-wiring-plan.md Phase 2 Cheminformatics
+    # cluster -- re-investigated after the earlier live-confirmed
+    # rejection; the crash is fixable with a single documented source
+    # patch (see Dockerfile), not a fork -- confirmed live end-to-end.
+    "toxinpred2_toxicity": ("drug_discovery", "free_public", "in-process:app.tools.toxinpred2_toxicity", False, False),
     "biotransformer_metabolism": ("drug_discovery", "free_public", "in-process:app.tools.biotransformer_metabolism", False, False),
     # Batch virtual screening -- completes the pipeline that was stuck at
     # one-compound-at-a-time (ChEMBL -> Vina -> PLIP). Reuses

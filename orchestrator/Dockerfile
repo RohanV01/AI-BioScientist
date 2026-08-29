@@ -303,7 +303,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
        libharfbuzz-dev libfribidi-dev libfreetype6-dev libpng-dev libtiff5-dev libjpeg-dev \
     && rm -rf /var/lib/apt/lists/* \
     && Rscript -e 'install.packages("BiocManager", repos="https://cloud.r-project.org")' \
-    && Rscript -e 'BiocManager::install(c("clusterProfiler", "org.Hs.eg.db", "org.Mm.eg.db"), update=FALSE, ask=FALSE)'
+    && Rscript -e 'BiocManager::install(c("clusterProfiler", "org.Hs.eg.db", "org.Mm.eg.db"), update=FALSE, ask=FALSE)' \
+    && Rscript -e 'install.packages("poolfstat", repos="https://cloud.r-project.org")'
 # app/tools/r_scripts/*.R ships with the full app source COPY near the
 # end of this file (not copied separately here) -- Rscript reads it
 # from disk at call time, no build-time compile step needed for it.
@@ -324,6 +325,18 @@ COPY requirements.txt .
 # transitive dependency as it's discovered.
 RUN pip install --no-cache-dir uv \
     && uv pip install --system --no-cache -r requirements.txt
+
+# ToxinPred2 (app/tools/toxinpred2_toxicity.py) -- real, minimal,
+# documented source patch fixing a confirmed-live bug in the package
+# itself: `toxinpred2.py`'s own `CM.to_csv("Sequence_1", ...,
+# sep="\n")` call crashes unconditionally (Python's csv module has
+# always rejected "\n" as a delimiter) on any real input. The file it
+# writes is only ever read by Model 2's BLAST/MERCI hybrid path, never
+# by Model 1's (the RF-only model this tool uses) actual prediction
+# logic -- confirmed live end-to-end after this one-line patch that
+# Model 1 produces real, correct toxin/non-toxin predictions.
+RUN TP2_FILE=$(python3 -c "import toxinpred2.python_scripts.toxinpred2 as m; print(m.__file__)") \
+    && sed -i 's/sep="\\n"/sep=","/' "$TP2_FILE"
 
 # PyIR's germline BLAST databases (app/tools/pyir_annotate.py) --
 # `pyir setup` fetches the current IMGT/GENE-DB germline reference (a
