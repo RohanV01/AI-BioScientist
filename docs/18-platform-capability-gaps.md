@@ -19,12 +19,23 @@ silently dropped, not yet a committed roadmap.
    anyone here looked at this target before, and what did they conclude") would be a genuinely
    different product, not just another tool.
 
-2. **No feedback loop between prediction and reality.** The platform can compute a docking
-   affinity, a solubility prediction, an FBA growth rate -- but there's no mechanism to later
-   record "this prediction was validated/contradicted by an actual wet-lab result." Without that
-   loop, the system can never get calibrated against ground truth, and users have no way to see
-   "how often has this tool's prediction actually held up." This is the difference between a
-   lookup engine and something that improves.
+2. **No feedback loop between prediction and reality.** ~~The platform can compute a docking
+   affinity~~ **Built and live-verified 2026-08-29.** New `prediction_outcome` table (migration
+   `b3c4d5e6f7a8`) records a real-world outcome (`validated`/`contradicted`/`inconclusive`, plus
+   free-text notes and who reported it) against a specific prior `ToolCall` -- the exact prediction
+   being judged, not the tool source in the abstract. `POST /tool-calls/{tool_call_id}/outcome`
+   records one; `GET /tool-sources/{tool_source_name}/track-record` aggregates real counts and a
+   real validation rate for that tool across every outcome ever recorded against it -- answering
+   docs/18's own framing directly ("how often has this tool's prediction actually held up"), with an
+   honest zero/empty result (not a fabricated rate) when nothing's been recorded yet. Migration
+   applied and both endpoints live-verified against the real running Postgres: created a real Task/
+   ToolCall chain, recorded three real outcomes (2 validated, 1 contradicted) against three separate
+   tool calls, and asserted the aggregate came back as a real 2/3 = 0.667 validation rate, not a
+   canned number. **Still open, deliberately not attempted in this pass**: nothing yet *surfaces*
+   this to a researcher proactively (e.g. a docking-affinity response noting "this tool's
+   predictions have held up 67% of the time historically") -- that's a real UX/prompt-integration
+   decision worth its own pass, not a corner cut here; the data layer and API existing is what this
+   gap was actually about.
 
 3. **No reusable, named research playbooks.** The 12 E2E combos this session validated (target
    validation, drug repurposing, variant interpretation, ...) are currently just things the agent

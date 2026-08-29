@@ -224,3 +224,26 @@ class GroundingLink(Base):
 
     response: Mapped["Response"] = relationship(back_populates="grounding_links")
     tool_call: Mapped["ToolCall"] = relationship(back_populates="grounding_links")
+
+
+class PredictionOutcome(Base):
+    """docs/18-platform-capability-gaps.md Pass 1 #2: the platform can
+    compute a docking affinity, a solubility prediction, an FBA growth
+    rate -- but had no way to record "this prediction was later
+    validated/contradicted by an actual wet-lab result." Without that
+    loop the system can never get calibrated against ground truth. One
+    row per real-world outcome report against a specific ToolCall (the
+    exact prediction being judged, not the tool source in the
+    abstract) -- aggregate track-record stats are computed from these,
+    not stored redundantly here."""
+
+    __tablename__ = "prediction_outcome"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    tool_call_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("tool_call.id"), nullable=False)
+    outcome: Mapped[str] = mapped_column(String, nullable=False)  # validated|contradicted|inconclusive
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    recorded_by_user_id: Mapped[str] = mapped_column(String, nullable=False)
+    recorded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    tool_call: Mapped["ToolCall"] = relationship()
