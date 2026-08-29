@@ -38,11 +38,18 @@ silently dropped, not yet a committed roadmap.
    OpenAlex budget" or "this experiment has cost N Claude API calls so far." For anyone running
    this at real scale, that's a real operational blind spot, not a hypothetical.
 
-5. **No reproducibility export.** The whole platform's mission is "every claim traces to a real
-   tool call" -- but there's no button that packages everything behind one conclusion (every tool
-   call, every input, every citation) into a portable bundle a researcher could attach as
-   supplementary material to an actual paper. Right now that trail exists in the DB but isn't
-   exportable.
+5. **No reproducibility export.** ~~The whole platform's mission is "every claim traces to a real
+   tool call"~~ **Built and live-verified 2026-08-29.** `GET /reports/{response_id}/bundle`
+   (`app/routers/reports.py`, generation logic in `app/reproducibility_bundle.py`) returns a real
+   portable JSON bundle for one Response: its own Task's request, every tool call made on that task
+   in call order (real `request_payload`/`response_payload`, not summarized), and every citation
+   this specific response actually relied on, cross-referenced to the exact tool call that produced
+   it -- exactly "every tool call, every input, every citation" behind one conclusion, ready to
+   attach as supplementary material. Scoped to the Response's own Task (one conclusion), not the
+   whole Experiment -- that broader view is what the Methods section (below) is for. Live-verified
+   against a real running Postgres: created a real Experiment -> Task -> ToolCall -> Response ->
+   GroundingLink chain with real request/response payloads, generated the bundle, asserted on its
+   real content field-by-field, confirmed the unknown-response 404 path too.
 
 6. **No offline/air-gapped mode.** README already sells "self-hostable, no vendor lock-in" -- but
    pre-patent drug candidate research is often legally barred from touching *any* external API,
