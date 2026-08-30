@@ -53,11 +53,15 @@ FROM python:3.11-slim
 # cluster) -- apt-installable; confirmed live end-to-end before wiring
 # (apt-downloaded the real deb, generated a real RDKit 3D conformer, ran
 # a real xtb GFN2-xTB optimization on it -- not guessed from docs).
-# openjdk-17-jdk/maven (same cluster) -- build-time deps for compiling
+# openjdk-21-jdk/maven (same cluster) -- build-time deps for compiling
 # BioTransformer from source below (its own pom.xml targets Java 8
-# bytecode, which JDK 17's javac still supports via -source/-target 8;
-# confirmed the JDK/javac compatibility, not the full Maven build itself
-# -- Maven isn't bootstrappable without root in this sandbox).
+# bytecode, which javac still supports via -source/-target 8 through at
+# least JDK 21; confirmed the JDK/javac compatibility, not the full Maven
+# build itself -- Maven isn't bootstrappable without root in this sandbox).
+# Bumped from openjdk-17 to openjdk-21: the base image's Debian release
+# moved to trixie, which dropped openjdk-17 from its repos entirely
+# (confirmed via `apt-cache search openjdk` inside a fresh python:3.11-slim
+# container -- only 21 and 25 are packaged now), breaking this build.
 # kraken2/prokka/barrnap/bedtools/fastani (docs/17-remaining-tools-
 # wiring-plan.md Phase 2, Metagenomics cluster) -- all apt-installable
 # (confirmed live via `apt-cache search`/`apt-get download`, and
@@ -77,7 +81,7 @@ FROM python:3.11-slim
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl ca-certificates gnupg mafft hmmer build-essential zlib1g-dev \
        ncbi-blast+ clustalo emboss prodigal mummer dssp git cmake fasttree paml eigensoft libgsl-dev libboost-dev \
-       xtb openjdk-17-jdk-headless maven kraken2 prokka barrnap bedtools fastani \
+       xtb openjdk-21-jdk-headless maven kraken2 prokka barrnap bedtools fastani \
     && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y --no-install-recommends nodejs \
     && npm install -g @anthropic-ai/claude-code \
@@ -101,16 +105,32 @@ RUN curl -fsSL https://mmseqs.com/foldseek/foldseek-linux-avx2.tar.gz | tar xz -
 RUN curl -fsSL https://mmseqs.com/foldmason/foldmason-linux-avx2.tar.gz | tar xz -C /tmp \
     && mv /tmp/foldmason/bin/foldmason /usr/local/bin/foldmason && rm -rf /tmp/foldmason
 
-# US-align (app/tools/usalign_tmscore.py) -- not apt-installable, single
-# C++ source file, compiled directly (same class of solution as
-# hmmer/mafft, just via compilation instead of a package/binary).
-RUN curl -fsSL https://raw.githubusercontent.com/pylelab/USalign/master/USalign.cpp -o /tmp/USalign.cpp \
-    && g++ -O3 -o /usr/local/bin/USalign /tmp/USalign.cpp -lm && rm /tmp/USalign.cpp
+# US-align (app/tools/usalign_tmscore.py) -- not apt-installable, compiled
+# directly (same class of solution as hmmer/mafft, just via compilation
+# instead of a package/binary). Was a single raw-fetched .cpp file; upstream
+# has since split shared code into sibling headers (MMalign.h, SOIalign.h,
+# etc. -- confirmed against the repo's own Makefile, which lists all of
+# them as USalign.cpp's real header deps), so a lone-file curl no longer
+# compiles. Shallow-clone the whole repo instead so the header set always
+# matches whatever version of USalign.cpp is fetched.
+RUN git clone --depth 1 https://github.com/pylelab/USalign.git /tmp/USalign \
+    && g++ -O3 -o /usr/local/bin/USalign /tmp/USalign/USalign.cpp -lm && rm -rf /tmp/USalign
 
 # Fpocket (app/tools/fpocket_detection.py) -- not apt-installable,
-# compiled from source (real Makefile-based build).
+# compiled from source (real Makefile-based build). fpocket's own makefile
+# already pins `-std=gnu99`, but GCC 14 (this base image's Debian trixie
+# default) now hard-errors on -Wincompatible-pointer-types/-Wimplicit-int
+# regardless of -std -- confirmed live: fpocket's legacy K&R-era C (e.g.
+# src/fparams.c's `strcpy(&residue_string, pt)` passing a char(*)[8000]
+# where char* is expected) built fine under older GCC's warning-only
+# behavior and only breaks under 14's new stricter default. Downgrading
+# fpocket's own decades-old C isn't in scope here, so relax those specific
+# checks back to warnings via a CC override (no CC=... line in fpocket's
+# makefile, so this cleanly overrides its implicit `cc` default).
 RUN git clone --depth 1 https://github.com/Discngine/fpocket.git /tmp/fpocket \
-    && cd /tmp/fpocket && make && make install && cd / && rm -rf /tmp/fpocket
+    && cd /tmp/fpocket \
+    && make CC="gcc -Wno-error=incompatible-pointer-types -Wno-error=implicit-int -Wno-error=int-conversion -Wno-error=implicit-function-declaration" \
+    && make install && cd / && rm -rf /tmp/fpocket
 
 # ASTRAL-Pro (app/tools/astral_pro_tree.py) -- docs/17 named this tool
 # "ASTRAL-Pro2"; that project (github.com/chaoszhang/ASTER) has since
@@ -140,7 +160,7 @@ RUN curl -fsSL https://github.com/davidemms/OrthoFinder/releases/download/2.5.5/
 # project site's prebuilt static Linux binary, same class as
 # DIAMOND/Foldseek above.
 RUN curl -fsSL https://dalexander.github.io/admixture/binaries/admixture_linux-1.4.0.tar.gz | tar xz -C /tmp \
-    && mv /tmp/dist/admixture_linux-1.4.0/admixture /usr/local/bin/admixture && rm -rf /tmp/dist
+    && mv /tmp/admixture_linux-1.4.0/admixture /usr/local/bin/admixture && rm -rf /tmp/admixture_linux-1.4.0
 
 # selscan (app/tools/selscan_nsl.py, same cluster) -- not apt-installable,
 # installed from its own official prebuilt static Linux binary release
@@ -284,6 +304,21 @@ RUN mkdir -p /opt/checkm2_db && curl -fsSL https://zenodo.org/records/14897628/f
 RUN mkdir -p /opt/checkv_db && curl -fsSL https://portal.nersc.gov/CheckV/checkv-db-v1.5.tar.gz -o /tmp/checkv_db.tar.gz \
     && tar xzf /tmp/checkv_db.tar.gz -C /opt/checkv_db --strip-components=1 && rm /tmp/checkv_db.tar.gz
 
+# mkdssp (dssp_secondary_structure.py) -- real, confirmed-live bug found
+# running the suite: this apt `dssp` package (4.4.10, built on libcifpp)
+# needs the wwPDB Chemical Component Dictionary to resolve even standard
+# amino acids (e.g. "THR") and hard-fails with "Configuration error: The
+# attempt to retrieve compound information ... failed" without it.
+# libcifpp-data ships a weekly cron job to fetch it
+# (/etc/cron.weekly/update-libcifpp-data), but that never runs at image
+# build time, so /var/cache/libcifpp/ only ever had the unrelated
+# mmcif_pdbx.dic schema file, never components.cif itself (confirmed
+# live: `ls /var/cache/libcifpp` before this fix). Fetching it directly
+# here, matching every other reference-data-baked-in-at-build-time
+# pattern already in this file.
+RUN curl -fsSL https://files.wwpdb.org/pub/pdb/data/monomers/components.cif.gz \
+    | gunzip -c > /var/cache/libcifpp/components.cif
+
 # IgBLAST (app/tools/pyir_annotate.py, docs/17 Phase 1 Immunoinformatics
 # cluster, reclassified to Phase 2 CLONE-tier plumbing -- PyIR
 # genuinely shells out to a real igblastn binary). Real, confirmed-live
@@ -373,6 +408,61 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir uv \
     && uv pip install --system --no-cache -r requirements.txt
 
+# CheckM2 (app/tools/checkm2_quality.py) -- subprocess-wrapped CLI only
+# (see `_run_checkm2`'s `subprocess.run(["checkm2", ...])`), never imported
+# into this process, so it doesn't need to share this app's main Python
+# environment. Pulled out of requirements.txt and installed into its own
+# venv instead: real, confirmed-live dependency conflict found here --
+# CheckM2's own setup.py hard-pins `h5py==2.10.0` and
+# `scikit-learn==0.23.2`, while scanpy>=1.11 (imported in-process by
+# scanpy_clustering.py) requires h5py>=3.7, and scanpy>=1.12 requires
+# Python>=3.12 (this image is 3.11) -- uv's resolver correctly reported
+# these as unsatisfiable together, which is a real clash between two
+# packages' pins, not a resolver bug. Symlinking its entry point onto
+# PATH keeps every existing `subprocess.run(["checkm2", ...])` call
+# working unchanged -- the venv's own shebang makes the symlink self-
+# contained regardless of where it's linked from.
+# checkm2's exact pins (h5py==2.10.0, scikit-learn==0.23.2, both 2019/2020-
+# era) have no cp311 wheels, so uv falls back to building them from source
+# against Python 3.11's toolchain -- which fails outright: h5py 2.10.0's
+# sdist hard-imports Cython without declaring it as a build dependency
+# (confirmed live: a plain `ModuleNotFoundError: No module named 'Cython'`
+# in uv's isolated build env), and numpy==1.17.3 (scikit-learn 0.23.2's own
+# build-time pin) uses `numpy.distutils.ccompiler` APIs setuptools removed
+# years ago, an unpatchable version mismatch, not something worth working
+# around package-by-package. Real, confirmed-live fix: cp38 manylinux
+# wheels exist for both exact pins (checked directly via `pip download
+# --python-version 38 --only-binary=:all:`), so pinning just this isolated
+# venv to Python 3.8 (uv can fetch a standalone build automatically) lets
+# every checkm2 dependency install from a prebuilt wheel -- no source
+# build, no toolchain mismatch, at all.
+RUN uv venv --python 3.8 /opt/checkm2_venv \
+    && uv pip install --python /opt/checkm2_venv/bin/python --no-cache "checkm2>=1.0,<2.0" \
+    && ln -s /opt/checkm2_venv/bin/checkm2 /usr/local/bin/checkm2
+
+# ProteinMPNN (app/tools/proteinmpnn_design.py) -- same isolation pattern
+# as CheckM2 just above, for the same reason: subprocess-wrapped CLI only
+# (see `_run_proteinmpnn`'s `subprocess.run(["proteinmpnn", ...])`), never
+# imported into this process. Real, confirmed-live conflict found here:
+# `proteinmpnn>=0.1.3` requires `numpy>=1.24.4,<2`, while `libroadrunner`
+# (imported in-process by kinetic_simulation.py) requires `numpy>=2.2` --
+# genuinely incompatible pins, not a resolver bug.
+# Explicit --python 3.11 here, not left to uv's default resolution: found
+# live that once the checkm2 step above downloads a standalone Python 3.8
+# (for its own, unrelated wheel-availability reason), a bare `uv venv`
+# with no --python picks that 3.8 up instead of the base image's system
+# 3.11 -- and proteinmpnn>=0.1.3 requires Python>=3.9,<3.13, so it fails
+# against 3.8 for a reason that has nothing to do with proteinmpnn itself.
+# setuptools explicitly: real, confirmed-live bug found running this
+# E2E -- `uv venv` (unlike the old `virtualenv`/stdlib `venv` some tools
+# assume) does NOT bundle setuptools/pkg_resources into a fresh venv by
+# default, and proteinmpnn's own installed CLI (`protein_mpnn_run.py`)
+# hard-imports `pkg_resources` at its top level -- `ModuleNotFoundError:
+# No module named 'pkg_resources'` on every real invocation without it.
+RUN uv venv --python 3.11 /opt/proteinmpnn_venv \
+    && uv pip install --python /opt/proteinmpnn_venv/bin/python --no-cache setuptools "proteinmpnn>=0.1.3,<1.0" \
+    && ln -s /opt/proteinmpnn_venv/bin/proteinmpnn /usr/local/bin/proteinmpnn
+
 # ToxinPred2 (app/tools/toxinpred2_toxicity.py) -- real, minimal,
 # documented source patch fixing a confirmed-live bug in the package
 # itself: `toxinpred2.py`'s own `CM.to_csv("Sequence_1", ...,
@@ -384,6 +474,22 @@ RUN pip install --no-cache-dir uv \
 # Model 1 produces real, correct toxin/non-toxin predictions.
 RUN TP2_FILE=$(python3 -c "import toxinpred2.python_scripts.toxinpred2 as m; print(m.__file__)") \
     && sed -i 's/sep="\\n"/sep=","/' "$TP2_FILE"
+
+# ldsc (app/tools/ldsc_genetic_correlation.py) -- same class of real,
+# minimal, documented upstream-package source patch as ToxinPred2 above.
+# Confirmed-live bug: /usr/local/bin/ldsc.py's own top-level exception
+# handler calls `traceback.format_exc(ex)`, passing the caught exception
+# object positionally -- but format_exc's real signature is
+# `format_exc(limit=None, chain=True)`, so `ex` silently binds to
+# `limit`, and stdlib traceback code then does `if limit >= 0:`,
+# comparing an exception instance to 0. This masks whatever the real
+# underlying error was behind a confusing secondary `TypeError:
+# '>=' not supported between instances of 'ValueError' and 'int'` --
+# confirmed live: the real underlying error in the case that triggers
+# this (zero SNPs surviving the reference-panel merge) is actually a
+# perfectly clean, correct `ValueError: After merging with reference
+# panel LD, 0 SNPs remain.` that this bug was hiding.
+RUN sed -i 's/traceback\.format_exc(ex)/traceback.format_exc()/' /usr/local/bin/ldsc.py
 
 # PyIR's germline BLAST databases (app/tools/pyir_annotate.py) --
 # `pyir setup` fetches the current IMGT/GENE-DB germline reference (a
@@ -414,6 +520,26 @@ RUN apt-get update && apt-get install -y --no-install-recommends wget gawk \
 RUN useradd --create-home --uid 1000 orchestrator \
     && mkdir -p /home/orchestrator/.claude \
     && chown -R orchestrator:orchestrator /app /home/orchestrator
+# Real, confirmed-live permission bug found running the suite as the
+# non-root `orchestrator` user: `ablang.pretrained()` and toxinpred2's own
+# packaged RF model both write into their OWN site-packages install
+# directory the first time they're used (ablang caches its downloaded
+# checkpoint there; toxinpred2 ships `RF_model.onnx` read-write in its
+# package dir) -- both installed as root above, so a non-root run hits a
+# plain `PermissionError` on first use. Neither is pre-warmed at build
+# time (unlike equilibrator/mhcflurry/auto3d/hunflair below), so this is
+# the first time either path is ever touched. Chowning just these two
+# package dirs (not all of site-packages) is the minimal fix.
+# Same real bug, same fix, found for the two isolated venvs (checkm2,
+# proteinmpnn) further up this file -- `uv venv` creates them root-owned
+# (built before this USER switch), so the non-root runtime user got a
+# plain `PermissionError: [Errno 13] Permission denied: 'checkm2'`
+# trying to exec the venv's own entry-point script.
+RUN chown -R orchestrator:orchestrator \
+    /usr/local/lib/python3.11/site-packages/ablang \
+    /usr/local/lib/python3.11/site-packages/toxinpred2 \
+    /opt/checkm2_venv \
+    /opt/proteinmpnn_venv
 USER orchestrator
 
 # Pre-warm two tools' first-use downloads at build time instead of leaving
@@ -443,7 +569,7 @@ RUN python3 -c "from equilibrator_api import ComponentContribution; ComponentCon
 RUN mhcflurry-downloads fetch models_class1_pan
 # Auto3D's AIMNET model weights (~8.8MB, small relative to the two
 # above, but same principle -- pay the one-time download at build time).
-RUN TORCHDYNAMO_DISABLE=1 python3 -c "from Auto3D.auto3D import Auto3DOptions, smiles2mols; smiles2mols(['C'], Auto3DOptions(k=1, use_gpu=False, optimizing_engine='AIMNET'))" || true
+RUN TORCHDYNAMO_DISABLE=1 python3 -c "from Auto3D.entry.auto3D import Auto3DOptions, smiles2mols; smiles2mols(['C'], Auto3DOptions(k=1, use_gpu=False, optimizing_engine='AIMNET'))" || true
 # hunflair_ner's HunFlair2 model (~1.9GB under ~/.flair/models/) -- same
 # cache-busting rationale as the two RUN steps above, and genuinely slow
 # to download (confirmed live: ~65min at this environment's throughput).

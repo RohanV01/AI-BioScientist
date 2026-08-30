@@ -32,7 +32,9 @@ import httpx
 import straindesign as sd
 from claude_agent_sdk import create_sdk_mcp_server, tool
 
-BIGG_DOWNLOAD_URL = "http://bigg.ucsd.edu/static/models"
+# https -- see cobra_fba.py's BIGG_DOWNLOAD_URL comment: bigg.ucsd.edu now
+# permanently redirects http -> https.
+BIGG_DOWNLOAD_URL = "https://bigg.ucsd.edu/static/models"
 
 
 def _run_optknock(model: cobra.Model, target_reaction_id: str, min_growth_fraction: float, max_interventions: int) -> dict:

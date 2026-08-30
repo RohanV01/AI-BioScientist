@@ -23,8 +23,12 @@ import cobra
 import httpx
 from claude_agent_sdk import create_sdk_mcp_server, tool
 
-BIGG_SEARCH_URL = "http://bigg.ucsd.edu/api/v2/search"
-BIGG_DOWNLOAD_URL = "http://bigg.ucsd.edu/static/models"
+# http:// -- BiGG's own site now permanently redirects to https, confirmed
+# live via a real 301 hit; using https directly avoids the extra redirect
+# hop (and BIGG_SEARCH_URL's own client.get() call below never passed
+# follow_redirects, so it hard-failed on the 301 outright).
+BIGG_SEARCH_URL = "https://bigg.ucsd.edu/api/v2/search"
+BIGG_DOWNLOAD_URL = "https://bigg.ucsd.edu/static/models"
 
 
 @tool(

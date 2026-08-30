@@ -84,7 +84,6 @@ pydna>=5.5,<6.0
 ldsc>=2.0.1,<3.0
 dnachisel>=3.2,<4.0
 bakta>=1.12,<2.0
-checkm2>=1.0,<2.0
 checkv>=1.1,<2.0
 crowelab-pyir>=1.5,<2.0
 # pixy (github.com/ksamuk/pixy) -- real, actively-maintained pure Python
@@ -101,7 +100,9 @@ toxinpred2>=1.1,<2.0
 # older comment on mhcflurry/soltrannet above once assumed; GPU use is
 # automatic via docker-compose.gpu.yml's optional device passthrough,
 # CPU fallback otherwise.
-proteinmpnn>=0.1.3,<1.0
+# proteinmpnn moved out of this file -- see the Dockerfile's dedicated
+# /opt/proteinmpnn_venv install step (real numpy<2 vs. libroadrunner's
+# numpy>=2.2 conflict, same pattern as checkm2's isolation below it).
 transformers>=4.46,<5.0
 
 # dev/test

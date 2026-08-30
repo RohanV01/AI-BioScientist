@@ -1,6 +1,14 @@
 """Real tests for app/tools/mhcflurry_binding.py -- no mocking, MHCflurry's
 actual pretrained pan-allele model runs on every case here."""
+import pytest
+
 from app.tools.mhcflurry_binding import predict_mhc_binding
+
+# CUDA forbids re-initializing a context after os.fork() -- confirmed live,
+# every test here fails under `pytest --forked` with "RuntimeError: Cannot
+# re-initialize CUDA in forked subprocess" but passes cleanly without it.
+# See pyproject.toml's `gpu` marker and CONTRIBUTING.md.
+pytestmark = pytest.mark.gpu
 
 # Real CMV pp65 epitope, verified this session: HLA-A*02:01 predicted IC50
 # ~16.6nM (strong binder), matching published affinity data.

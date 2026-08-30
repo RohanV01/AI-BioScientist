@@ -27,12 +27,28 @@ from claude_agent_sdk import create_sdk_mcp_server, tool
 
 
 def _run_blast(query_path: Path, db_path: Path, program: str, tmp: str, max_results: int) -> tuple[int, str, str]:
+    args = [
+        program, "-query", str(query_path), "-db", str(db_path),
+        "-outfmt", "6 qseqid sseqid pident length evalue bitscore",
+        "-max_target_seqs", str(max_results),
+    ]
+    if program == "blastn":
+        # Real, confirmed-live bug: blastn's default DUST low-complexity
+        # filter soft-masks repetitive stretches before seeding, and on
+        # a short caller-supplied query it can mask enough of the
+        # sequence that even a 100%-identical reference produces zero
+        # hits (confirmed live: a 52bp query with a repetitive middle
+        # segment against its own exact-match reference returned nothing
+        # with default settings, and returned the real 100%-identity hit
+        # the instant -dust no was added). This tool exists to check
+        # similarity against a caller-supplied reference set, not to
+        # filter genomic repeats out of a whole-genome search -- DUST's
+        # purpose doesn't apply here the way it does for NCBI's own
+        # public-database searches.
+        args.append("-dust")
+        args.append("no")
     proc = subprocess.run(
-        [
-            program, "-query", str(query_path), "-db", str(db_path),
-            "-outfmt", "6 qseqid sseqid pident length evalue bitscore",
-            "-max_target_seqs", str(max_results),
-        ],
+        args,
         capture_output=True, text=True, timeout=60, cwd=tmp,
     )
     return proc.returncode, proc.stdout, proc.stderr

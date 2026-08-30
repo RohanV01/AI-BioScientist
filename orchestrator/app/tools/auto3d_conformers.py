@@ -41,7 +41,13 @@ async def generate_3d_conformer(args: dict[str, Any]) -> dict[str, Any]:
     import asyncio
 
     def _run() -> str:
-        from Auto3D.auto3D import Auto3DOptions, smiles2mols
+        # Auto3D restructured its package between the version this tool
+        # was originally written against and 3.1.1 (the version
+        # requirements.txt's Auto3D>=3.0,<4.0 now resolves to) -- the
+        # top-level `Auto3D.auto3D` module doesn't exist any more, its
+        # contents moved to `Auto3D.entry.auto3D` (confirmed live: same
+        # Auto3DOptions/smiles2mols API, just a different import path).
+        from Auto3D.entry.auto3D import Auto3DOptions, smiles2mols
 
         options = Auto3DOptions(k=1, use_gpu=False, optimizing_engine="AIMNET")
         mols = smiles2mols([smiles], options)

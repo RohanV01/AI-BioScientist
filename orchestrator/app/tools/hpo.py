@@ -40,22 +40,41 @@ async def get_phenotype_diseases(args: dict[str, Any]) -> dict[str, Any]:
 
     async with httpx.AsyncClient(timeout=15.0) as client:
         hp_id = phenotype
+        resolved_name = None
+        diseases: list = []
         if not phenotype.upper().startswith("HP:"):
-            search_resp = await client.get(f"{HPO_BASE}/hp/search", params={"q": phenotype, "max": 1})
+            # max=5, not 1: real, confirmed-live HPO API quirk -- its own
+            # free-text search ranking can put a rare, narrow subtype
+            # (e.g. "Focal cognitive seizure with memory impairment")
+            # above the obviously-intended broad term ("Seizure") for a
+            # plain query like "seizure", and that narrow term can have
+            # zero curated disease associations. Trusting only the raw
+            # #1 hit made every such case report "no associations"
+            # rather than actually checking. Try each candidate in
+            # ranked order and use the first that actually has
+            # associations; still surface the top hit's own (possibly
+            # empty) result if none of them do, rather than guessing.
+            search_resp = await client.get(f"{HPO_BASE}/hp/search", params={"q": phenotype, "max": 5})
             search_resp.raise_for_status()
             terms = search_resp.json().get("terms", [])
             if not terms:
                 return {"content": [{"type": "text", "text": f"No HPO term found matching {phenotype!r}."}]}
-            hp_id = terms[0]["id"]
-            resolved_name = terms[0]["name"]
+            for term in terms:
+                candidate_resp = await client.get(f"{HPO_BASE}/network/annotation/{term['id']}")
+                if candidate_resp.status_code == 404:
+                    continue
+                candidate_resp.raise_for_status()
+                candidate_diseases = candidate_resp.json().get("diseases", [])
+                hp_id, resolved_name = term["id"], term["name"]
+                diseases = candidate_diseases
+                if diseases:
+                    break
         else:
-            resolved_name = None
-
-        assoc_resp = await client.get(f"{HPO_BASE}/network/annotation/{hp_id}")
-        if assoc_resp.status_code == 404:
-            return {"content": [{"type": "text", "text": f"No HPO term found for {hp_id!r}."}]}
-        assoc_resp.raise_for_status()
-        diseases = assoc_resp.json().get("diseases", [])
+            assoc_resp = await client.get(f"{HPO_BASE}/network/annotation/{hp_id}")
+            if assoc_resp.status_code == 404:
+                return {"content": [{"type": "text", "text": f"No HPO term found for {hp_id!r}."}]}
+            assoc_resp.raise_for_status()
+            diseases = assoc_resp.json().get("diseases", [])
 
     if not diseases:
         return {"content": [{"type": "text", "text": f"No disease associations found for HPO term {hp_id}."}]}

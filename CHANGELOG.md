@@ -4,6 +4,132 @@ All notable changes to this project are logged here. Format loosely follows [Kee
 
 ## [Unreleased]
 
+### STATUS CHECKPOINT — 2026-08-30, session paused mid-verification (read this first)
+
+**Done and verified, safe to trust:**
+- Docker image rebuilt clean (17GB); 10 real build-breaking bugs found and fixed (see the
+  "Docker image rebuild" entry below for the full list).
+- 15 real tool bugs found and fixed once actually running the real image (BiGG http->https,
+  ablang/toxinpred2 permissions, Auto3D's restructured import path, fpocket's wrong output file,
+  eigensoft_pca's wrong binary, emboss_water/paml_yn00/blast_search/hpo bugs, DSSP's missing CCD,
+  ldsc's own upstream bug) -- full list in the entry below.
+- CUDA + `pytest-forked` conflict (7 `mhcflurry_binding` failures) genuinely fixed via a new `gpu`
+  pytest marker + a documented two-command test invocation -- verified both directions live.
+- Full-suite recheck of everything previously flaky: **39/40 pass clean** in isolation. The one
+  holdout, `gwas_catalog`, was independently re-investigated (see its own entry below): confirmed
+  via a real direct REST call that this is genuine, current NHGRI-EBI server-side slowness for this
+  specific variant (rs7412), not a client-side bug and not fixable by us -- even a bare, unhurried
+  solo run hit the full 180s timeout.
+- E2E combo recheck inside the real built image: `test_combo16_structural_biology_extras.py` now
+  **passes fully** (previously blocked by missing binaries on bare metal -- confirmed fixed now that
+  it's running where those binaries actually exist). `test_combo18_cheminformatics_admet.py` failed
+  once on a transient container-network blip, then passed cleanly on immediate retry -- not a bug.
+
+**In progress, NOT yet verified or rebuilt -- pick this up next:**
+Two more real bugs were found running `test_combo15_metagenomics_pipeline.py` and
+`test_combo20_proteomics_and_protein_design.py` against the real image:
+1. `checkm2` and `proteinmpnn`'s isolated `uv venv`s (`/opt/checkm2_venv`, `/opt/proteinmpnn_venv`)
+   are root-owned -- `uv venv` creates them before the Dockerfile's `USER orchestrator` switch, same
+   class of bug already fixed for ablang/toxinpred2's site-packages dirs, just missed these two.
+   Real symptom: `PermissionError: [Errno 13] Permission denied: 'checkm2'`.
+2. `proteinmpnn`'s installed CLI (`protein_mpnn_run.py`) hard-imports `pkg_resources` at module
+   level, but `uv venv` (unlike old-style `virtualenv`) doesn't bundle setuptools into a fresh venv
+   by default. Real symptom: `ModuleNotFoundError: No module named 'pkg_resources'`.
+
+**The Dockerfile fix for both is already written** (chown `/opt/checkm2_venv` + `/opt/proteinmpnn_venv`
+alongside the existing ablang/toxinpred2 chown step; added `setuptools` to proteinmpnn's `uv pip
+install` line) -- but **not yet verified live, and the image has not been rebuilt with it.** Next
+steps in order: (a) verify both fixes live in a running container before trusting them, (b)
+`docker compose build orchestrator`, (c) re-run `test_combo15_metagenomics_pipeline.py` and
+`test_combo20_proteomics_and_protein_design.py` to confirm both now pass, (d) fold this into the
+existing "Docker image rebuild" and "real fix for the CUDA" entries below rather than leaving it as
+a separate checkpoint note once done.
+
+Nothing in this checkpoint has been committed to git -- everything is still working-tree changes.
+
+### Fixed — 2026-08-30 (real fix for the CUDA + --forked test-harness conflict)
+- The full-suite bug pass below found that `mhcflurry_binding`'s 7 tests fail under `pytest
+  --forked` with `RuntimeError: Cannot re-initialize CUDA in forked subprocess` -- a real OS/CUDA
+  driver rule (CUDA forbids re-initializing a context after `os.fork()`), not a code bug, and not
+  something patchable in the tool itself. Added a `gpu` pytest marker
+  (`pyproject.toml`) and tagged `test_mhcflurry_binding.py` with it
+  (`pytestmark = pytest.mark.gpu`); `proteinmpnn_design`/`protgpt2_generate`'s own test files only
+  exercise validation paths, not real in-process torch/CUDA inference, so they didn't need it.
+  `CONTRIBUTING.md`'s documented full-suite command is now two invocations
+  (`pytest --forked --reruns 2 --reruns-delay 5 -m "not gpu"` then `pytest -m gpu`, no `--forked` on
+  the second) -- verified both directions live: the main forked run now correctly deselects all 12
+  mhcflurry tests (`--forked -m "not gpu"` -> `12 deselected`), and the separate unforked run passes
+  clean (`-m gpu` -> `12 passed`). Any future test that runs real torch/CUDA inference in-process
+  should get the same `pytestmark = pytest.mark.gpu`.
+
+### Fixed — 2026-08-30 (Docker image rebuild + full-suite real-environment bug pass)
+- Per explicit direction to actually run every test for real rather than report environment gaps,
+  rebuilt `aiscientist-orchestrator` from scratch (last built 2026-08-27, stale relative to
+  everything added since) and found/fixed 10 real build-breaking bugs along the way, each
+  independently confirmed live before moving on: the base image's Debian release moved to `trixie`,
+  which dropped `openjdk-17-jdk-headless` from its repos entirely (bumped to `openjdk-21`, confirmed
+  javac still supports `-source/-target 8` for BioTransformer's Maven build); USalign's upstream repo
+  split its single-file source into several sibling headers (switched the Dockerfile from a raw
+  `curl` of `USalign.cpp` to a shallow `git clone` of the whole repo); fpocket's decades-old K&R-era C
+  no longer compiles under GCC 14's stricter defaults (`-Wincompatible-pointer-types`/`-Wimplicit-int`
+  are now errors even under `-std=gnu99`) -- relaxed via a `CC=` override rather than touching
+  fpocket's own code; the ADMIXTURE release tarball's real directory layout didn't match the
+  Dockerfile's assumed `dist/` prefix; `checkm2` and `proteinmpnn` each turned out to have a real,
+  unresolvable `numpy` pin conflict with `scanpy`/`libroadrunner` respectively -- both are
+  subprocess-only CLI tools never imported in-process, so both were pulled out of `requirements.txt`
+  and isolated into their own `uv venv`s (checkm2's further needed pinning to Python 3.8 specifically,
+  since its own `h5py==2.10.0`/`scikit-learn==0.23.2` pins have no cp311 wheels and fail to build from
+  source on 3.11's newer toolchain -- confirmed live that cp38 manylinux wheels exist for both).
+- With a real container actually running (not just built), found and fixed 15 more real bugs the
+  bare-metal environment could never have surfaced, each verified live against the real tool/API, not
+  guessed: `cobra_fba`/`straindesign_intervention` hit BiGG's http->https redirect with no
+  `follow_redirects` on the search call (bigg.ucsd.edu now permanently redirects); `ablang_restore`/
+  `toxinpred2_toxicity` write into their own site-packages install dir on first use, which is
+  root-owned while the container runs as non-root `orchestrator` (chowned just those two package
+  dirs); `Auto3D` restructured its package between versions -- `Auto3D.auto3D` moved to
+  `Auto3D.entry.auto3D`; `fpocket_detection` parsed the wrong output file entirely (this fpocket
+  version no longer embeds `REMARK Pocket` lines in the output PDB -- pocket data moved to a
+  separate tab-formatted `_info.txt`, a real parser rewrite, not a regex tweak); `eigensoft_pca`
+  called the Debian `eigensoft` package's Perl *wrapper* (`/usr/bin/smartpca`, a completely different
+  individual-flags CLI) instead of the real parfile-based binary it actually needs, which lives at
+  the separate, unwrapped `/usr/lib/eigensoft/smartpca`; `emboss_water`'s summary regex didn't
+  tolerate EMBOSS's own space-padding inside percentage parens (`( 0.0%)`, not `(0.0%)`) for
+  low-single-digit values; `paml_yn00` wrote its PHYLIP input with sequence names and sequences on
+  separate lines, but yn00's own sequential-format reader requires them on the same line (its own
+  error message says so); once that was fixed, yn00's real output row also wasn't the naive
+  9-plain-numbers shape the regex assumed -- dN and dS are each a real `value +- SE` pair, matching
+  the table's own header; `blast_search` found zero hits even for a 100%-identical reference because
+  blastn's default DUST low-complexity filter masked most of a short, repetitive test query --
+  disabled DUST for blastn (this tool checks similarity against a caller-supplied reference, not
+  NCBI's own public-database use case DUST is meant for); `hpo`'s free-text resolver trusted only the
+  raw #1 search hit, but HPO's own API can rank a rare, narrow subtype above the obviously-intended
+  broad term for a plain query like "seizure" -- now tries the top 5 ranked candidates and uses the
+  first that actually has disease associations; `dssp_secondary_structure` failed on every real PDB
+  because `libcifpp-data`'s weekly cron job to fetch the wwPDB Chemical Component Dictionary never
+  ran at image build time, leaving `/var/cache/libcifpp/` without `components.cif` at all (baked it
+  in directly, same pattern as every other reference-data-at-build-time step in this Dockerfile);
+  `ldsc_genetic_correlation` hit a genuine upstream bug in `ldsc.py` itself -- its own top-level
+  exception handler calls `traceback.format_exc(ex)`, passing the caught exception positionally into
+  an argument that's actually `limit`, which masked what should have been a clean `ValueError: After
+  merging with reference panel LD, 0 SNPs remain.` behind a confusing secondary `TypeError` (patched
+  with the same one-line-sed technique already used for ToxinPred2's own upstream bug); the tool's own
+  "no overlap" detection string also only matched the literal word "No", not ldsc's real "**0** SNPs
+  remain" wording, so it would have missed the message even once the traceback bug was fixed.
+- Confirmed via live isolation testing, not fixed in code because there's nothing to fix: `mhcflurry`
+  (7 of the pytest run's 33 failures) hits a real, general CUDA + `pytest-forked` incompatibility --
+  `RuntimeError: Cannot re-initialize CUDA in forked subprocess`, unrelated to this tool's own code
+  (passes 12/12 cleanly without `--forked`). Several other failures from the same full run
+  (`hunflair_ner`, `soltrannet_solubility`, `clinpgx_annotations`, `ontologies`) turned out to be
+  transient resource contention from the machine being under heavy load during that specific run
+  (the Docker image build/unpack itself), not real bugs -- each passed cleanly in isolated re-runs.
+- 10 new cross-tool E2E combo test files added (`tests/e2e/test_combo13..22_*.py`), covering 60 of
+  the 79 tools that had zero E2E hand-off coverage before this session (population genetics,
+  metagenomics, structural biology extras, comparative genomics, cheminformatics/ADMET, synthetic
+  biology, protein design, antibody/immune repertoire, clinical/regulatory safety, metabolic
+  kinetics) -- E2E tool coverage went from 35/114 (31%) to ~95/114 (83%). The remaining ~19 tools
+  (R-bridge/DATA-gated: dada2, Seurat, Monocle3, WGCNA, etc.) genuinely can't form a live E2E chain
+  without a Docker-hosted R interpreter and file-upload plumbing this pass didn't attempt to add.
+
 ### Added — 2026-08-30 (reference-data freshness checking)
 - Real per-source live staleness checking for the 8 reference databases baked into the Docker image
   at build time (Kraken2, Kaiju, Bakta, CheckM2, CheckV, LDSC, AMRFinderPlus, PyIR) -- built per

@@ -243,6 +243,7 @@ pythonpath = ["."]
 testpaths = ["tests"]
 markers = [
     "e2e: slow, multi-tool end-to-end chains (see orchestrator/tests/e2e/)",
+    "gpu: real torch/CUDA-touching tests -- CUDA forbids re-initializing a context after os.fork(), so these must run WITHOUT --forked (confirmed live: RuntimeError: Cannot re-initialize CUDA in forked subprocess). Run separately, see CONTRIBUTING.md.",
 ]
 
 [build-system]

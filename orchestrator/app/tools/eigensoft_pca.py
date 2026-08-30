@@ -19,7 +19,20 @@ MAX_PC_RETURNED = 5
 
 
 def _run_smartpca(param_path: Path) -> tuple[int, str, str]:
-    proc = subprocess.run(["smartpca", "-p", str(param_path)], capture_output=True, text=True, timeout=120)
+    # Real, confirmed-live packaging quirk: Debian's `eigensoft` package
+    # puts a Perl WRAPPER at /usr/bin/smartpca (the name normally on
+    # PATH) with an entirely different, mandatory-individual-flags CLI
+    # (-i/-a/-b/-o/-p/-e/-l, where -p means "poplist", not "param file")
+    # -- it then internally writes its own param file and calls the real
+    # binary. That real binary, matching the standard EIGENSOFT `-p
+    # paramfile` convention this tool already builds, lives at a
+    # separate, unwrapped path: /usr/lib/eigensoft/smartpca (confirmed
+    # live via `cat /usr/bin/smartpca`, which invokes exactly this path
+    # itself). Calling it directly also skips the wrapper's own
+    # `ploteig`/`evec2pca.perl` plotting steps this tool never needed.
+    proc = subprocess.run(
+        ["/usr/lib/eigensoft/smartpca", "-p", str(param_path)], capture_output=True, text=True, timeout=120
+    )
     return proc.returncode, proc.stdout, proc.stderr
 
 

@@ -76,16 +76,25 @@ supplied expression matrix) don't have this problem.
   ```
   For the **full suite**, use `--forked` (each test runs in its own subprocess) and `--reruns 2`
   (auto-retries a failing test before reporting it, since most failures here are a live API being
-  momentarily rate-limited or slow, not a real regression — see the flakiness note below):
+  momentarily rate-limited or slow, not a real regression — see the flakiness note below), and run
+  `gpu`-marked tests separately (real, confirmed-live constraint below, not optional):
   ```
-  .venv/bin/python -m pytest --forked --reruns 2 --reruns-delay 5
+  .venv/bin/python -m pytest --forked --reruns 2 --reruns-delay 5 -m "not gpu"
+  .venv/bin/python -m pytest -m gpu
   ```
   `--forked` matters here specifically because several tools load real native/ML libraries
   (RDKit, torch, OpenBabel, IQ-TREE — see `vina_docking`, `mhcflurry_binding`, `phylogenetics`,
   `plip_interactions`, `soltrannet_solubility`) that can accumulate enough memory footprint across
   a single long-running process to abort the whole run partway through on a memory-constrained
   machine; forking isolates each test's footprint and contains a crash to that one test instead of
-  taking down everything after it.
+  taking down everything after it. **`gpu`-marked tests are the one real exception** — CUDA forbids
+  re-initializing a context after `os.fork()`, so anything that actually runs torch/CUDA inference
+  in-process (currently just `mhcflurry_binding`; `proteinmpnn_design`/`protgpt2_generate`'s own
+  test files only exercise validation paths, not real inference) hard-fails under `--forked` with
+  `RuntimeError: Cannot re-initialize CUDA in forked subprocess` — confirmed live, and confirmed it
+  passes 12/12 without `--forked`. Mark any future test that runs real torch/CUDA inference
+  in-process with `pytestmark = pytest.mark.gpu` (module-level) so it's excluded from the forked run
+  automatically.
 - **Cross-tool E2E tests** (`tests/e2e/test_combo*.py`, `@pytest.mark.e2e`) — chain several tools
   together the way the master agent actually would (e.g. target ID → structure → docking →
   interaction analysis), checking that one tool's output is actually usable as the next one's

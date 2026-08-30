@@ -19,10 +19,15 @@ from typing import Any
 
 from claude_agent_sdk import create_sdk_mcp_server, tool
 
+# \s* right after each '(' -- confirmed live via `cat -A` on real water
+# output: EMBOSS right-pads percentages under 10% with a literal space
+# inside the parens (e.g. "( 0.0%)", not "(0.0%)"), which the digit
+# group alone doesn't tolerate, so any low-gap/low-mismatch real
+# alignment failed to parse.
 SUMMARY_PATTERN = re.compile(
-    r"# Identity:\s+(\S+)\s+\(([\d.]+)%\)\s*\n"
-    r"# Similarity:\s+(\S+)\s+\(([\d.]+)%\)\s*\n"
-    r"# Gaps:\s+(\S+)\s+\(([\d.]+)%\)\s*\n"
+    r"# Identity:\s+(\S+)\s+\(\s*([\d.]+)%\)\s*\n"
+    r"# Similarity:\s+(\S+)\s+\(\s*([\d.]+)%\)\s*\n"
+    r"# Gaps:\s+(\S+)\s+\(\s*([\d.]+)%\)\s*\n"
     r"# Score:\s+([\d.-]+)",
 )
 

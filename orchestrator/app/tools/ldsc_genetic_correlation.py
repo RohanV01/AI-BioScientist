@@ -96,7 +96,15 @@ async def estimate_genetic_correlation(args: dict[str, Any]) -> dict[str, Any]:
         log_path = Path(f"{out_stem}.log")
         log_text = log_path.read_text() if log_path.exists() else ""
 
-    if "No SNPs remain" in log_text or "no SNPs" in log_text.lower():
+    # Real, confirmed-live wording bug: ldsc's actual log message for this
+    # case is "After merging with reference panel LD, 0 SNPs remain."
+    # (digit "0", not the word "No") -- neither substring check below
+    # matched it, so this branch never fired for the exact real message
+    # it exists to catch. Only reachable at all once ldsc.py's own
+    # exception-logging bug is also patched (see Dockerfile's ldsc.py
+    # sed fix) -- unpatched, that bug raised a secondary TypeError that
+    # masked this message before it ever reached the log file.
+    if "No SNPs remain" in log_text or "0 SNPs remain" in log_text or "no SNPs" in log_text.lower():
         return {"content": [{"type": "text", "text": "LDSC found no overlap between the given SNPs and the EUR 1000G-Phase3/HapMap3 reference panel -- use real dbSNP rsIDs present in HapMap3 to get a result."}]}
 
     match = None

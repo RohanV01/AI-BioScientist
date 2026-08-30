@@ -34,10 +34,14 @@ YN00_CTL_TEMPLATE = """\
 
 # Matches rows of the "Pairwise estimation by the method of Yang &
 # Nielsen (2000) (equal weighting of pathways)" table in yn00's output
-# file -- confirmed against PAML's own real sample output
-# (examples/YN00abglobin.result.txt): "seq. seq.  S  N  t  kappa  omega  dN  dS"
+# file. Real, confirmed-live format (via cat -A on a real run's out.txt),
+# NOT the naive 9-plain-numbers shape this used to assume: dN and dS are
+# each a "value +- SE" pair (matching the header's own "dN +- SE    dS
+# +- SE" columns), e.g.
+#   2    1    34.7    82.3   2.3650  4.6000  0.0000 -0.0000 +- 0.0000  2.6596 +- 2.6194
 YN00_ROW = re.compile(
-    r"^\s*(\d+)\s+(\d+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s*$"
+    r"^\s*(\d+)\s+(\d+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.-]+)"
+    r"\s+([\d.-]+)\s*\+-\s*([\d.]+)\s+([\d.-]+)\s*\+-\s*([\d.]+)\s*$"
 )
 
 
@@ -88,11 +92,19 @@ async def estimate_dnds(args: dict[str, Any]) -> dict[str, Any]:
         out_path = tmp_path / "yn.out"
         ctl_path = tmp_path / "yn00.ctl"
 
+        # Real, confirmed-live format bug: yn00's sequential PHYLIP reader
+        # expects the name and its sequence on the SAME line, separated
+        # by 2+ spaces ("Make sure to separate the sequence from its
+        # name by 2 or more spaces" is yn00's own literal error message
+        # for exactly the name-then-sequence-on-separate-lines layout
+        # this used to write) -- not name on one line, sequence on the
+        # next. Verified live: this same input, reformatted this way,
+        # produces yn00's real "equal weighting of pathways" table with
+        # real dN/dS/omega values.
         length = len(next(iter(sequences.values())))
-        lines = [f" {len(sequences)} {length}", ""]
+        lines = [f" {len(sequences)} {length}"]
         for name in names:
-            lines.append(name)
-            lines.append(sequences[name].upper())
+            lines.append(f"{name}  {sequences[name].upper()}")
         seq_path.write_text("\n".join(lines) + "\n")
         ctl_path.write_text(YN00_CTL_TEMPLATE.format(seqfile=seq_path.name, outfile=out_path.name))
 
@@ -115,7 +127,7 @@ async def estimate_dnds(args: dict[str, Any]) -> dict[str, Any]:
     for line in table_text.splitlines():
         m = YN00_ROW.match(line)
         if m:
-            i2, i1, s, n, t, kappa, omega, dn, ds = m.groups()
+            i2, i1, s, n, t, kappa, omega, dn, dn_se, ds, ds_se = m.groups()
             rows.append((int(i2) - 1, int(i1) - 1, float(omega), float(dn), float(ds)))
 
     if not rows:

@@ -23,8 +23,15 @@ from claude_agent_sdk import create_sdk_mcp_server, tool
 
 RCSB_DOWNLOAD_URL = "https://files.rcsb.org/download"
 MAX_POCKETS_RETURNED = 15
-POCKET_HEADER_PATTERN = re.compile(r"REMARK Pocket\s+(\d+)\s*:")
-FIELD_PATTERN = re.compile(r"REMARK\s+(.+?)\s*:\s*([\d.-]+)")
+# This fpocket version (confirmed live via `cat -A` on a real
+# {pdb_id}_out/{pdb_id}_info.txt) no longer embeds "REMARK Pocket ..."
+# annotations in the output PDB at all -- pocket data moved to a separate
+# tab-formatted _info.txt: a bare "Pocket N :" header line, then
+# tab-indented "\t<Field Name> : \t<value>" lines, no REMARK prefix
+# anywhere. Parsing _out.pdb (the old format) silently found zero
+# pockets on every real structure, not just 1HVR.
+POCKET_HEADER_PATTERN = re.compile(r"^Pocket\s+(\d+)\s*:")
+FIELD_PATTERN = re.compile(r"^\t(.+?)\s*:\s*\t?([\d.-]+)")
 
 
 def _run_fpocket(pdb_path: Path) -> tuple[int, str, str]:
@@ -83,8 +90,8 @@ async def detect_binding_pockets(args: dict[str, Any]) -> dict[str, Any]:
         pdb_path.write_text(pdb_text)
         code, out, err = await asyncio.to_thread(_run_fpocket, pdb_path)
         out_dir = tmp_path / f"{pdb_id}_out"
-        result_pdb = out_dir / f"{pdb_id}_out.pdb"
-        result_text = result_pdb.read_text() if result_pdb.exists() else ""
+        result_info = out_dir / f"{pdb_id}_info.txt"
+        result_text = result_info.read_text() if result_info.exists() else ""
 
     if code != 0 or not result_text.strip():
         return {"content": [{"type": "text", "text": f"Fpocket failed on PDB {pdb_id}: {err.strip() or 'no output produced'}"}]}
