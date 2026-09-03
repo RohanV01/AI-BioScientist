@@ -20,7 +20,11 @@ import tarfile
 import zipfile
 from pathlib import Path
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.mattermost_client import MattermostClient
+from app.models import Attachment
+from app.text_extraction import extract_text_content
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +35,32 @@ FASTQ_EXTENSIONS = {".fastq", ".fq", ".fastq.gz", ".fq.gz"}
 H5_MATRIX_EXTENSIONS = {".h5", ".h5ad", ".loom"}
 ARCHIVE_EXTENSIONS = {".tar.gz", ".tgz", ".zip"}
 TABLE_EXTENSIONS = {".csv", ".tsv", ".txt"}
+# General-document formats, added for the multi-stage research pipeline
+# plan's ingestion stage -- distinct from TABLE_EXTENSIONS' tabular .txt
+# handling (a delimited data file), so a plain prose .txt/.md doesn't get
+# misclassified as "table".
+PDF_EXTENSIONS = {".pdf"}
+DOCX_EXTENSIONS = {".docx"}
+PROSE_TEXT_EXTENSIONS = {".txt", ".md"}
+
+
+def _looks_tabular(path: Path) -> bool:
+    """A .txt is "table" only if it actually looks delimited -- a
+    consistent comma/tab field-count across its first several non-blank
+    lines. Anything else (prose, notes, a README) is "text_document" so
+    extract_text_content actually reads it instead of an R-bridge tool
+    silently trying to parse prose as a data table."""
+    try:
+        lines = [ln for ln in path.read_text(encoding="utf-8", errors="ignore").splitlines() if ln.strip()][:10]
+    except OSError:
+        return False
+    if len(lines) < 2:
+        return False
+    for delimiter in (",", "\t"):
+        counts = {ln.count(delimiter) for ln in lines}
+        if len(counts) == 1 and counts != {0}:
+            return True
+    return False
 
 
 def _matches_suffix(name: str, suffixes: set[str]) -> bool:
@@ -73,6 +103,12 @@ def classify_upload(path: Path) -> str:
                 return _classify_archive_contents(zf.namelist())
         except zipfile.BadZipFile:
             return "unrecognized_archive"
+    if _matches_suffix(name, PDF_EXTENSIONS):
+        return "pdf_document"
+    if _matches_suffix(name, DOCX_EXTENSIONS):
+        return "docx_document"
+    if _matches_suffix(name, PROSE_TEXT_EXTENSIONS) and not _looks_tabular(path):
+        return "text_document"
     if _matches_suffix(name, TABLE_EXTENSIONS):
         return "table"
     return "unknown"
@@ -115,13 +151,32 @@ def _real_content_root(extract_dir: Path) -> Path:
     return extract_dir
 
 
-async def handle_uploaded_files(mm: MattermostClient, file_ids: list[str], experiment_dir: Path) -> list[dict]:
+_GENERAL_DOCUMENT_FORMATS = {"pdf_document", "docx_document", "text_document"}
+
+
+async def handle_uploaded_files(
+    mm: MattermostClient,
+    file_ids: list[str],
+    experiment_dir: Path,
+    db: AsyncSession | None = None,
+    experiment_id=None,
+    task_id=None,
+) -> list[dict]:
     """Download every real file attached to the triggering Mattermost
     post into <experiment_dir>/uploads/, and classify each. Returns a
     list of {filename, size, format, path} -- the same shape
     list_uploaded_files reads back later, so a caller can also post an
     immediate summary. Never fabricates a format for a file it
-    couldn't actually download or open."""
+    couldn't actually download or open.
+
+    Multi-stage research pipeline plan, ingestion stage: when `db` +
+    `experiment_id` are supplied, also runs text extraction for general
+    document formats (writing a `<filename>.extracted.txt` sidecar the new
+    read_ingested_content tool serves back) and persists one Attachment row
+    per file -- the audit trail app/models.py's Attachment closes. Callers
+    with no live experiment (none exist today, but kept optional rather
+    than required so a future standalone/test call isn't forced into a real
+    DB session just to download files) get the old behavior unchanged."""
     uploads_dir = experiment_dir / "uploads"
     uploads_dir.mkdir(parents=True, exist_ok=True)
 
@@ -137,11 +192,32 @@ async def handle_uploaded_files(mm: MattermostClient, file_ids: list[str], exper
         except Exception as exc:  # noqa: BLE001 -- a failed download for one file must not lose the others
             logger.warning("Failed to download Mattermost file %s: %s", file_id, exc)
             results.append({"filename": file_id, "size": None, "format": "download_failed", "path": None})
+            if db is not None and experiment_id is not None:
+                db.add(Attachment(
+                    experiment_id=experiment_id, task_id=task_id, source_type="mattermost_file",
+                    original_ref=file_id, filename_or_title=None, detected_format="download_failed",
+                    storage_path="", extraction_status="failed",
+                ))
             continue
 
         dest_path = uploads_dir / filename
         dest_path.write_bytes(content)
         file_format = classify_upload(dest_path)
         results.append({"filename": filename, "size": len(content), "format": file_format, "path": str(dest_path)})
+
+        if db is not None and experiment_id is not None:
+            extraction_status = "unsupported_format"
+            if file_format in _GENERAL_DOCUMENT_FORMATS:
+                text = extract_text_content(dest_path, file_format)
+                if text is not None:
+                    dest_path.with_suffix(dest_path.suffix + ".extracted.txt").write_text(text)
+                    extraction_status = "ok"
+                else:
+                    extraction_status = "unreadable"
+            db.add(Attachment(
+                experiment_id=experiment_id, task_id=task_id, source_type="mattermost_file",
+                original_ref=file_id, filename_or_title=filename, detected_format=file_format,
+                storage_path=str(dest_path), extraction_status=extraction_status,
+            ))
 
     return results

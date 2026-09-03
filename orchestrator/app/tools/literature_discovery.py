@@ -41,7 +41,6 @@ from pathlib import Path
 from typing import Any
 
 import httpx
-import pymupdf
 
 from claude_agent_sdk import create_sdk_mcp_server, tool
 
@@ -49,6 +48,7 @@ from app.config import settings
 from app.experiment_context import findings_dir, load_manifest, papers_dir, update_manifest_entry
 from app.llm_backend import LLMBackendError
 from app.llm_backend import complete as llm_complete
+from app.text_extraction import extract_pdf_text
 
 OPENALEX_URL = "https://api.openalex.org/works"
 
@@ -422,7 +422,7 @@ async def _verify_pdf_content(pdf_path: Path, doi: str) -> tuple[bool, str]:
     false-positive mismatch -- this is a fraud/mistake detector, not a
     requirement every legitimate DOI can satisfy.
     """
-    text = await asyncio.to_thread(_extract_pdf_text, pdf_path)
+    text = await asyncio.to_thread(extract_pdf_text, pdf_path)
     head = text[:_CONTENT_CHECK_HEAD_CHARS].lower()
 
     if doi.lower() in head:
@@ -618,14 +618,6 @@ def _doi_to_finding_filename(doi: str) -> str:
     return doi.replace("/", "_") + ".json"
 
 
-def _extract_pdf_text(pdf_path: Path) -> str:
-    doc = pymupdf.open(pdf_path)
-    try:
-        return "\n".join(page.get_text() for page in doc)
-    finally:
-        doc.close()
-
-
 def _parse_extraction_response(raw: str) -> dict:
     # The prompt asks for bare JSON, but strip markdown fences defensively
     # in case the model wraps it anyway.
@@ -708,7 +700,7 @@ async def read_paper(args: dict[str, Any]) -> dict[str, Any]:
         cached = json.loads(finding_path.read_text())
         return {"content": [{"type": "text", "text": _format_findings_for_agent(doi, cached) + "\n(cached)"}]}
 
-    pdf_text = await asyncio.to_thread(_extract_pdf_text, pdf_path)
+    pdf_text = await asyncio.to_thread(extract_pdf_text, pdf_path)
     if not pdf_text.strip():
         return {"content": [{"type": "text", "text": f"PDF for DOI {doi} contained no extractable text (scanned image, not real text)."}]}
 

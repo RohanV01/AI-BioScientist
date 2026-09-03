@@ -26,9 +26,33 @@ def test_classifies_table(tmp_path):
 
 
 def test_unknown_extension(tmp_path):
-    p = tmp_path / "notes.docx"
+    p = tmp_path / "notes.xyz123"
     p.write_bytes(b"not real")
     assert classify_upload(p) == "unknown"
+
+
+def test_classifies_pdf(tmp_path):
+    p = tmp_path / "paper.pdf"
+    p.write_bytes(b"%PDF-1.4 not a real pdf")
+    assert classify_upload(p) == "pdf_document"
+
+
+def test_classifies_docx(tmp_path):
+    p = tmp_path / "notes.docx"
+    p.write_bytes(b"not real")
+    assert classify_upload(p) == "docx_document"
+
+
+def test_classifies_prose_text_as_text_document(tmp_path):
+    p = tmp_path / "notes.txt"
+    p.write_text("These are some free-form research notes about EGFR.\nNo delimiters here.\n")
+    assert classify_upload(p) == "text_document"
+
+
+def test_classifies_delimited_txt_as_table_not_text_document(tmp_path):
+    p = tmp_path / "counts.txt"
+    p.write_text("gene,sample1,sample2\nEGFR,10,20\nKRAS,5,15\n")
+    assert classify_upload(p) == "table"
 
 
 def test_classifies_10x_mtx_bundle_zip(tmp_path):

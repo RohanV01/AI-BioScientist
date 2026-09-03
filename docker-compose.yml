@@ -6,7 +6,14 @@
 
 services:
   postgres:
-    image: postgres:16-alpine
+    # Swapped from postgres:16-alpine for the cross-experiment Memory
+    # layer's embedding column (multi-stage research pipeline plan section
+    # 3, migration a4b5c6d7e8f9) -- same Postgres 16 major version and data
+    # layout, just with the pgvector extension compiled in. No pg16-alpine
+    # variant is published for this image (confirmed live -- only
+    # Debian-based tags exist), so this is Debian-based, not Alpine;
+    # existing data in the pg_data volume is unaffected either way.
+    image: pgvector/pgvector:pg16
     container_name: openbiolab-postgres
     restart: unless-stopped
     environment:

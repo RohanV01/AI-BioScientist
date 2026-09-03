@@ -443,6 +443,12 @@ KNOWN_TOOL_SOURCES = {
     "giotto_spatial": ("transcriptomics", "free_public", "in-process:app.tools.giotto_spatial", False, False),
     "tximport_summarize": ("transcriptomics", "free_public", "in-process:app.tools.tximport_summarize", False, False),
     "sleuth_diffexp": ("transcriptomics", "free_public", "in-process:app.tools.sleuth_diffexp", False, False),
+    # Multi-stage research pipeline plan section 3.5 -- the cross-experiment
+    # Memory layer's read path (app/tools/memory_recall.py). Structurally
+    # always included in the Landscape Scan's own roster regardless of
+    # ToolBinding (app/tool_roster.py's build_landscape_scan_roster); a row
+    # here still needs to exist so a real ToolCall can reference it.
+    "memory_recall": ("memory", "free_public", "in-process:app.tools.memory_recall", False, False),
 }
 
 # Every tool source with a real builder, i.e. everything except the

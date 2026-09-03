@@ -5,8 +5,9 @@ exists; this file is the *how*. Keep them in sync when either changes.
 import uuid
 from datetime import datetime
 
-from sqlalchemy import ForeignKey, JSON, String, Text, Boolean, DateTime, func
-from sqlalchemy.dialects.postgresql import UUID
+from pgvector.sqlalchemy import Vector
+from sqlalchemy import Computed, ForeignKey, JSON, String, Text, Boolean, DateTime, func
+from sqlalchemy.dialects.postgresql import TSVECTOR, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
@@ -160,6 +161,14 @@ class Task(Base):
     mattermost_thread_id: Mapped[str] = mapped_column(String, nullable=False)
     requested_by_user_id: Mapped[str] = mapped_column(String, nullable=False)
     status: Mapped[str] = mapped_column(String, default="pending")  # pending|running|completed|failed
+    # Multi-stage research pipeline plan: distinguishes a Landscape Scan's own
+    # child Task from the main Plan/Execute/Synthesize Task it feeds, without
+    # string-matching raw_request's "[landscape-scan] " prefix (the stringly-
+    # typed pattern this file avoids everywhere else -- provenance_type,
+    # status, PredictionOutcome.outcome are all explicit enums). Nullable for
+    # backfill safety, same precedent as experiment_id; existing/ordinary
+    # tasks stay None, read as "main" by any code that cares.
+    stage: Mapped[str | None] = mapped_column(String, nullable=True)  # landscape_scan|main|None
     raw_request: Mapped[str] = mapped_column(Text, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -273,3 +282,98 @@ class ReferenceDataSource(Base):
     last_checked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     needs_update: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     last_check_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+class Attachment(Base):
+    """Multi-stage research pipeline plan, ingestion stage: one row per real
+    file a researcher attached to a Mattermost post or per URL pasted in
+    their message text -- an audit trail that didn't exist before (unlike
+    ToolCall, nothing previously recorded what raw material a researcher
+    actually supplied). `storage_path` points at the downloaded/fetched raw
+    content; the `.extracted.txt` sidecar next to it (see
+    app/text_extraction.py, app/link_ingestion.py) is what
+    read_ingested_content actually serves to the agent."""
+
+    __tablename__ = "attachment"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    experiment_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("experiment.id"), nullable=False)
+    task_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("task.id"), nullable=True)
+    source_type: Mapped[str] = mapped_column(String, nullable=False)  # mattermost_file|url
+    original_ref: Mapped[str] = mapped_column(String, nullable=False)  # Mattermost file_id or the raw URL
+    filename_or_title: Mapped[str | None] = mapped_column(String, nullable=True)
+    detected_format: Mapped[str] = mapped_column(String, nullable=False)
+    storage_path: Mapped[str] = mapped_column(String, nullable=False)
+    extraction_status: Mapped[str] = mapped_column(String, nullable=False)  # ok|unreadable|failed|unsupported_format
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    experiment: Mapped["Experiment"] = relationship()
+    task: Mapped["Task | None"] = relationship()
+
+
+class LandscapeBenchmark(Base):
+    """Multi-stage research pipeline plan, benchmark-against-landscape
+    stage: one row per claim in a Response, classified against what the
+    Landscape Scan already knew before Execute ran. Deliberately not a
+    reuse of PredictionOutcome -- that table is a human reporting real-world
+    (wet-lab) validation of one specific ToolCall's prediction, a stronger
+    tier of evidence than an LLM comparing two summaries; conflating them
+    would blur "confirmed in reality" with "confirmed against a literature/
+    database survey." One row per claim, not one JSON blob, so aggregation
+    ("how often is this agent's output genuinely novel") is a plain query."""
+
+    __tablename__ = "landscape_benchmark"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    landscape_task_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("task.id"), nullable=False)
+    response_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("response.id"), nullable=False)
+    claim: Mapped[str] = mapped_column(Text, nullable=False)
+    classification: Mapped[str] = mapped_column(String, nullable=False)  # confirmatory|novel|contradictory
+    rationale: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    landscape_task: Mapped["Task"] = relationship()
+    response: Mapped["Response"] = relationship()
+
+
+class MemoryFact(Base):
+    """Cross-experiment Memory layer (docs/18-platform-capability-gaps.md
+    Pass 1 #1, "no memory across experiments"), inspired by (not built on)
+    github.com/rohitg00/agentmemory's tiered-consolidation design -- see the
+    multi-stage research pipeline plan section 3 for the full mapping and
+    what was deliberately NOT adopted (its separate runtime, and its
+    decay/TTL forgetting-curve model: a validated scientific finding is
+    never auto-evicted here for being unaccessed). One row per extracted,
+    entity-scoped finding, traced back to the real Task/Response that
+    produced it -- a recalled fact stays compatible with grounding.py's
+    citation model instead of being an ungrounded shortcut. Retired only via
+    `superseded_by_id` (an explicit newer fact replacing it), never by
+    staleness."""
+
+    __tablename__ = "memory_fact"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    entity_ref: Mapped[str] = mapped_column(String, nullable=False, index=True)  # e.g. "gene:EGFR", "compound:CHEMBL553"
+    statement: Mapped[str] = mapped_column(Text, nullable=False)
+    # Postgres's native BM25-equivalent -- generated from `statement` at
+    # write time, so app/memory/retrieve.py's keyword stream never needs a
+    # separate search engine or a manually-maintained index column.
+    search_vector: Mapped[str] = mapped_column(
+        TSVECTOR, Computed("to_tsvector('english', statement)", persisted=True), nullable=False,
+    )
+    source_task_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("task.id"), nullable=False)
+    source_response_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("response.id"), nullable=False)
+    experiment_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("experiment.id"), nullable=False)
+    # Nullable -- populated only when an embedding provider is configured
+    # (app/memory/retrieve.py degrades to full-text-only retrieval when this
+    # is null, never a hard failure). Dimension matches OpenAI/Voyage-class
+    # 1536-dim embeddings; revisit if a different provider is wired later.
+    embedding: Mapped[list[float] | None] = mapped_column(Vector(1536), nullable=True)
+    superseded_by_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("memory_fact.id"), nullable=True)
+    content_hash: Mapped[str] = mapped_column(String, nullable=False, index=True)  # sha256(entity_ref + statement), for dedup
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    source_task: Mapped["Task"] = relationship(foreign_keys=[source_task_id])
+    source_response: Mapped["Response"] = relationship()
+    experiment: Mapped["Experiment"] = relationship()
+    superseded_by: Mapped["MemoryFact | None"] = relationship(remote_side="MemoryFact.id")

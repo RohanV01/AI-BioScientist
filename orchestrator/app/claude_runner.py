@@ -62,6 +62,15 @@ the researcher), you can skip straight to a short response -- the three
 stages are for tasks that need real lookups, not a rigid format for
 everything.
 
+LANDSCAPE CONTEXT. When a landscape scan of prior knowledge on this topic is
+included below (see "Landscape scan of prior knowledge on this topic"), your
+PLAN must be built aware of it: explicitly note which parts of the request
+are already answered by what's already known (don't re-derive them with a
+fresh tool call) versus which parts are genuinely novel investigation this
+task still needs to do. Don't skip PLAN/EXECUTE entirely just because a
+landscape scan exists -- it tells you what's already known, not what this
+specific request needs synthesized right now.
+
 RETRACTION CHECK. Before letting any PubMed-sourced PMID back a claim in
 your final answer (via search_articles, literature_discovery, or any tool
 result that surfaces a PMID), call check_retraction_status on it. If it
@@ -384,6 +393,11 @@ RECORD_REF_PATTERNS: list[tuple[str, re.Pattern]] = [
     # file-upload-gated tools -- same methodological-citation
     # convention, unblocked by app/file_uploads.py.
     ("Uploaded experiment file {}", re.compile(r"\[experiment_uploads:(\w+)\]")),
+    # Cross-experiment Memory layer recall (app/tools/memory_recall.py) --
+    # not an external database record, so the citable unit is the original
+    # Task that produced the recalled fact, same methodological-citation
+    # convention as the local-computation tags above.
+    ("Recalled prior finding (task {})", re.compile(r"\[memory_fact:([0-9a-fA-F-]{36})\]")),
     ("dada2 {}", re.compile(r"\[dada2:(\w+)\]")),
     ("Seurat {}", re.compile(r"\[seurat:(\w+)\]")),
     ("SoupX {}", re.compile(r"\[soupx:(\w+)\]")),
@@ -428,30 +442,14 @@ def _mcp_server_name_from_tool_name(tool_name: str) -> str:
     return parts[1] if len(parts) >= 3 and parts[0] == "mcp" else ""
 
 
-async def run_agent(
-    user_message: str,
-    roster: ToolRoster,
-    on_plan: Callable[[str], Awaitable[None]] | None = None,
-    conversation_history: list[str] | None = None,
-    cwd: str | None = None,
-) -> RunnerResult:
-    # conversation_history: prior turns' plan+body text within the same
-    # Experiment (oldest first), plain-text, no summarization/compaction yet
-    # -- see the Experiments plan. Without this, every message was answered
-    # with zero memory of earlier turns in the same investigation, even
-    # ones seconds apart. Prepended into the prompt itself rather than a
-    # separate multi-turn API, since claude_agent_sdk's query() here is a
-    # fresh one-shot call each time (see docs/07-system-architecture.md).
-    prompt = user_message
-    if conversation_history:
-        transcript = "\n\n".join(conversation_history)
-        prompt = (
-            "Earlier turns in this experiment (for context -- the researcher's "
-            f"new message follows):\n\n{transcript}\n\n---\n\nNew message: {user_message}"
-        )
-
-    options = ClaudeAgentOptions(
-        system_prompt=MASTER_AGENT_SYSTEM_PROMPT,
+def _base_agent_options(system_prompt: str, roster: ToolRoster, cwd: str | None) -> "ClaudeAgentOptions":
+    """The hardened, isolation-critical ClaudeAgentOptions construction --
+    extracted here (multi-stage research pipeline plan section 2) so this
+    exact isolation guarantee lives in one place instead of being
+    copy-pasted between run_agent's own call and app/landscape_scan.py's,
+    risking drift between them."""
+    return ClaudeAgentOptions(
+        system_prompt=system_prompt,
         mcp_servers=roster.mcp_servers,
         allowed_tools=roster.allowed_tools,
         tools=[],  # no filesystem/bash/etc -- only the wired roster
@@ -468,10 +466,54 @@ async def run_agent(
         permission_mode="bypassPermissions",  # headless service, no human to prompt
         max_turns=10,
         # The current Experiment's own folder when one's in scope (real,
-        # persisted -- see the Experiments plan), else the old throwaway
-        # tempdir for standalone/test calls with no experiment.
+        # persisted -- see the Experiments plan), else a throwaway tempdir
+        # for standalone/test calls with no experiment.
         cwd=cwd or tempfile.mkdtemp(prefix="openbiolab-agent-"),
     )
+
+
+async def run_agent(
+    user_message: str,
+    roster: ToolRoster,
+    on_plan: Callable[[str], Awaitable[None]] | None = None,
+    conversation_history: list[str] | None = None,
+    cwd: str | None = None,
+    prior_stage_context: str | None = None,
+    system_prompt: str | None = None,
+) -> RunnerResult:
+    # system_prompt: defaults to MASTER_AGENT_SYSTEM_PROMPT (the main
+    # per-message agent). app/landscape_scan.py passes its own narrower
+    # LANDSCAPE_SCAN_SYSTEM_PROMPT here instead -- reusing this function's
+    # streaming/citation-extraction/tool-call-persistence machinery without
+    # inheriting the main agent's Plan/Execute/Synthesize framing, which
+    # would conflict with the Landscape Scan's survey-only instructions.
+    # conversation_history: prior turns' plan+body text within the same
+    # Experiment (oldest first), plain-text, no summarization/compaction yet
+    # -- see the Experiments plan. Without this, every message was answered
+    # with zero memory of earlier turns in the same investigation, even
+    # ones seconds apart. Prepended into the prompt itself rather than a
+    # separate multi-turn API, since claude_agent_sdk's query() here is a
+    # fresh one-shot call each time (see docs/07-system-architecture.md).
+    #
+    # prior_stage_context: the Landscape Scan's own synthesized summary
+    # (multi-stage research pipeline plan section 4), prepended innermost
+    # (closest to user_message) -- conversation_history is the outer turn
+    # history across the whole experiment, this is topic-specific prior
+    # knowledge for this one request.
+    prompt = user_message
+    if prior_stage_context:
+        prompt = (
+            "Landscape scan of prior knowledge on this topic (for context -- "
+            f"do not re-discover these facts):\n\n{prior_stage_context}\n\n---\n\n{prompt}"
+        )
+    if conversation_history:
+        transcript = "\n\n".join(conversation_history)
+        prompt = (
+            "Earlier turns in this experiment (for context -- the researcher's "
+            f"new message follows):\n\n{transcript}\n\n---\n\nNew message: {prompt}"
+        )
+
+    options = _base_agent_options(system_prompt or MASTER_AGENT_SYSTEM_PROMPT, roster, cwd)
 
     pending_calls: dict[str, dict] = {}
     tool_calls: list[RunnerToolCall] = []

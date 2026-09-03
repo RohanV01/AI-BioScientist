@@ -83,6 +83,7 @@ from app.tools.kraken2_classify import build_kraken2_classify_mcp_server
 from app.tools.lightdock_docking import build_lightdock_docking_mcp_server
 from app.tools.literature_discovery import build_literature_discovery_mcp_server
 from app.tools.mhcflurry_binding import build_mhcflurry_binding_mcp_server
+from app.tools.memory_recall import build_memory_recall_mcp_server
 from app.tools.minimap2_align import build_minimap2_mcp_server
 from app.tools.mokapot_rescoring import build_mokapot_rescoring_mcp_server
 from app.tools.msa import build_msa_mcp_server
@@ -477,7 +478,12 @@ TOOL_BUILDERS = {
     ),
     "experiment_uploads": (
         "experiment_uploads", build_experiment_uploads_mcp_server,
-        ["mcp__experiment_uploads__list_uploaded_files"],
+        [
+            "mcp__experiment_uploads__list_uploaded_files",
+            # Multi-stage research pipeline plan, ingestion stage: makes
+            # ingested file/link content genuinely readable, not just listed.
+            "mcp__experiment_uploads__read_ingested_content",
+        ],
     ),
     "dada2_denoise": (
         "dada2_denoise", build_dada2_denoise_mcp_server,
@@ -510,6 +516,15 @@ TOOL_BUILDERS = {
     "sleuth_diffexp": (
         "sleuth_diffexp", build_sleuth_diffexp_mcp_server,
         ["mcp__sleuth_diffexp__sleuth_differential_expression"],
+    ),
+    # Multi-stage research pipeline plan section 3.5 -- the cross-experiment
+    # Memory layer's read path. build_landscape_scan_roster (below) always
+    # includes it regardless of ToolBinding, structurally; it can also be
+    # bound to the main agent like any other tool source if seeded, which is
+    # harmless -- recalling a prior finding is itself a grounded tool call.
+    "memory_recall": (
+        "memory_recall", build_memory_recall_mcp_server,
+        ["mcp__memory_recall__recall_prior_findings"],
     ),
 }
 
@@ -559,4 +574,83 @@ async def build_tool_roster(db: AsyncSession, agent: Agent) -> ToolRoster:
         mcp_servers=mcp_servers,
         allowed_tools=allowed_tools,
         tool_source_by_mcp_name=tool_source_by_mcp_name,
+    )
+
+
+# Multi-stage research pipeline plan section 2 -- explicit allowlist for the
+# Landscape Scan stage (app/landscape_scan.py): every structured lookup/
+# association tool source appropriate for *surveying* current knowledge,
+# never a simulation/prediction/compute-on-user-data tool (docking, FBA,
+# phylogenetics, MSA, ...) -- those belong to Execute, not to surveying
+# what's already known. "string" (not "string_db" -- confirmed against this
+# file's own TOOL_BUILDERS key) is STRING-DB's protein-interaction tool.
+# literature_discovery is deliberately absent here -- handled separately in
+# build_landscape_scan_roster, scoped to discover_papers only, never
+# download_paper/check_scihub_availability/read_paper (docs/19-research-
+# publication-readiness.md: anything feeding a benchmark/publication path
+# stays OA-only).
+LANDSCAPE_SCAN_TOOL_NAMES: set[str] = {
+    "pubmed", "open_targets", "chembl", "uniprot", "ensembl", "clinvar", "gnomad",
+    "ontologies", "hpo", "kegg", "reactome", "string", "omnipath_interactions",
+    "clinicaltrials", "dailymed", "pdb", "alphafold", "gwas_catalog", "cbioportal_mutations",
+}
+
+
+async def build_landscape_scan_roster(db: AsyncSession, agent: Agent) -> ToolRoster:
+    """Built directly from LANDSCAPE_SCAN_TOOL_NAMES rather than the calling
+    agent's own ToolBinding rows -- the restriction (and inclusion) is
+    structural, not a database binding someone could accidentally widen or
+    narrow. A ToolSource row must still exist for each name (created by
+    scripts/seed_dev_data.py) so a real ToolCall row can reference it; a
+    name with no matching row or TOOL_BUILDERS entry is silently skipped,
+    same "inert, not broken" precedent as build_tool_roster."""
+    mcp_servers: dict = {}
+    allowed_tools: list[str] = []
+    tool_source_by_mcp_name: dict[str, ToolSource] = {}
+
+    result = await db.execute(select(ToolSource).where(ToolSource.name.in_(LANDSCAPE_SCAN_TOOL_NAMES)))
+    tool_sources_by_name = {ts.name: ts for ts in result.scalars().all()}
+
+    for name in LANDSCAPE_SCAN_TOOL_NAMES:
+        entry = TOOL_BUILDERS.get(name)
+        ts = tool_sources_by_name.get(name)
+        if entry is None or ts is None:
+            continue
+        mcp_name, builder, tools = entry
+        if name in CREDENTIALED_BUILDERS:
+            cred_result = await db.execute(
+                select(Credential).where(Credential.org_id == agent.org_id, Credential.tool_source_id == ts.id)
+            )
+            credential = cred_result.scalar_one_or_none()
+            if credential is None:
+                continue
+            mcp_servers[mcp_name] = builder(decrypt(credential.encrypted_value))
+        else:
+            mcp_servers[mcp_name] = builder()
+        allowed_tools.extend(tools)
+        tool_source_by_mcp_name[mcp_name] = ts
+
+    # literature_discovery, scoped to discover_papers only -- never
+    # download_paper/check_scihub_availability/read_paper.
+    lit_entry = TOOL_BUILDERS.get("literature_discovery")
+    lit_ts = (
+        await db.execute(select(ToolSource).where(ToolSource.name == "literature_discovery"))
+    ).scalar_one_or_none()
+    if lit_entry is not None and lit_ts is not None:
+        mcp_name, builder, _all_tools = lit_entry
+        mcp_servers[mcp_name] = builder()
+        allowed_tools.append("mcp__literature_discovery__discover_papers")
+        tool_source_by_mcp_name[mcp_name] = lit_ts
+
+    # recall_prior_findings -- the cross-experiment Memory layer's read path.
+    memory_entry = TOOL_BUILDERS.get("memory_recall")
+    memory_ts = (await db.execute(select(ToolSource).where(ToolSource.name == "memory_recall"))).scalar_one_or_none()
+    if memory_entry is not None and memory_ts is not None:
+        mcp_name, builder, tools = memory_entry
+        mcp_servers[mcp_name] = builder()
+        allowed_tools.extend(tools)
+        tool_source_by_mcp_name[mcp_name] = memory_ts
+
+    return ToolRoster(
+        mcp_servers=mcp_servers, allowed_tools=allowed_tools, tool_source_by_mcp_name=tool_source_by_mcp_name,
     )

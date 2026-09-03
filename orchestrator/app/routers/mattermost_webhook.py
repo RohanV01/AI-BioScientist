@@ -19,16 +19,20 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.agent_persistence import persist_agent_run
 from app.claude_runner import run_agent
 from app.config import settings
 from app.db import async_session, get_db
 from app.experiment_context import current_experiment_dir
 from app.experiment_synthesis import format_conclusion_markdown, load_all_findings, synthesize_conclusion
 from app.file_uploads import handle_uploaded_files
-from app.grounding import Citation, create_response
+from app.grounding import create_response
+from app.landscape_benchmark import run_and_persist_benchmark
+from app.landscape_scan import run_landscape_scan
+from app.link_ingestion import extract_urls, ingest_links
 from app.llm_backend import LLMBackendError
 from app.mattermost_client import MattermostClient
-from app.models import Agent, Experiment, Org, Response, Task, ToolCall
+from app.models import Agent, Experiment, Org, Response, Task
 from app.output_rendering import build_response_attachment
 from app.tool_roster import build_tool_roster
 from app.vault import decrypt
@@ -170,7 +174,9 @@ async def _run_agent_and_respond(
             # tool call, same grounding discipline as everything else.
             ids = [f for f in file_ids.split(",") if f.strip()]
             if ids and exp_dir is not None:
-                uploaded = await handle_uploaded_files(mm, ids, exp_dir)
+                uploaded = await handle_uploaded_files(
+                    mm, ids, exp_dir, db=db, experiment_id=experiment_id, task_id=task_id,
+                )
                 summary_lines = []
                 for u in uploaded:
                     if u["format"] == "download_failed":
@@ -181,11 +187,64 @@ async def _run_agent_and_respond(
                     channel_id, "📎 Received file(s):\n" + "\n".join(summary_lines), root_id=post_id,
                 )
 
+            # Ingestion stage, links: any URL pasted directly in the message
+            # text -- same audit-trail/read_ingested_content treatment as an
+            # uploaded file, generic-HTML-only (app/link_ingestion.py's
+            # module docstring: never Sci-Hub-reachable from this path).
+            urls = extract_urls(user_message)
+            if urls and exp_dir is not None:
+                fetched = await ingest_links(urls, exp_dir, db, experiment_id, task_id=task_id)
+                link_summary_lines = [
+                    f"- {f['url']}: {'fetched' if f['status'] == 'ok' else 'could not extract readable content'}"
+                    for f in fetched
+                ]
+                await mm.post_message(
+                    channel_id, "🔗 Fetched link(s):\n" + "\n".join(link_summary_lines), root_id=post_id,
+                )
+
+            # Landscape Scan stage: survey what's already known -- this
+            # platform's own memory (app/tools/memory_recall.py) plus live
+            # structured/literature sources -- before planning, so the
+            # Planner doesn't propose re-discovering it. Failure here must
+            # not block the main answer -- a landscape scan is context, not
+            # a hard dependency the whole request should die on.
+            prior_stage_context = None
+            landscape_task = None
+            try:
+                landscape_task, landscape_persisted = await run_landscape_scan(
+                    db, agent=agent, main_task=task, user_message=user_message,
+                    experiment_id=experiment_id, cwd=experiment.folder_path if experiment is not None else None,
+                )
+                prior_stage_context = landscape_persisted.response.body
+            except Exception:
+                logger.exception("Landscape scan failed for task %s; continuing without prior-stage context.", task_id)
+                # A failure partway through (e.g. the LLM extraction call in
+                # consolidate_facts) can leave this shared session needing a
+                # rollback before it's safe to reuse for the main run below --
+                # nothing was mutated on the already-committed task/experiment/
+                # agent rows fetched earlier, so this only discards the
+                # landscape scan's own half-done work, not real request state.
+                # rollback() expires every ORM object in the session,
+                # including the ToolSource rows inside `roster` -- agent/
+                # task/experiment/roster must all be re-fetched/rebuilt with
+                # a real awaited query before anything below touches their
+                # attributes again. A bare attribute access on an expired
+                # object outside an awaited context raises
+                # sqlalchemy.exc.MissingGreenlet in async mode (confirmed
+                # live: exactly this, on `experiment.folder_path` below,
+                # before this re-fetch was added).
+                await db.rollback()
+                agent = await db.get(Agent, agent_id)
+                task = await db.get(Task, task_id)
+                experiment = await db.get(Experiment, experiment_id)
+                roster = await build_tool_roster(db, agent)
+
             try:
                 result = await run_agent(
                     user_message, roster, on_plan=on_plan,
                     conversation_history=conversation_history,
                     cwd=experiment.folder_path if experiment is not None else None,
+                    prior_stage_context=prior_stage_context,
                 )
             except Exception:
                 logger.exception("Agent run failed for task %s", task_id)
@@ -205,77 +264,16 @@ async def _run_agent_and_respond(
                 await db.commit()
                 return
 
-            # Persist every real tool call the runner made as a ToolCall row
-            # (docs/06-data-model.md), mapped back to the right ToolSource via
-            # the roster -- generalized past the Phase 1 PubMed-only version,
-            # since the roster can now span multiple tool sources.
-            tool_call_rows: list[ToolCall] = []
-            for tc in result.tool_calls:
-                tool_source = roster.tool_source_by_mcp_name.get(tc.mcp_server_name)
-                if tool_source is None:
-                    logger.warning("Tool call from unknown mcp server %r; skipping ToolCall row.", tc.mcp_server_name)
-                    continue
-                row = ToolCall(
-                    task_id=task_id,
-                    tool_source_id=tool_source.id,
-                    request_payload=tc.request,
-                    response_payload={"text": tc.result_text},
-                    status="ok",
-                )
-                db.add(row)
-                tool_call_rows.append(row)
-            if tool_call_rows:
-                await db.flush()  # assigns .id to each row before citations reference them
+            # Persist every real tool call the runner made, map citations,
+            # and create the Response through grounding.py's gate --
+            # app/agent_persistence.py (multi-stage research pipeline plan),
+            # shared with app/landscape_scan.py's own persistence.
+            persisted = await persist_agent_run(db, task_id=task_id, roster=roster, result=result)
+            response = persisted.response
+            final_provenance = persisted.final_provenance
+            requires_review = persisted.requires_review
+            citations = persisted.citations
 
-            # Map each citation's tool_call_index (an index into result.tool_calls)
-            # to the corresponding persisted row -- skipped tool calls (unknown
-            # mcp server) would desync a simple positional list, so build an
-            # explicit index map instead of assuming 1:1 ordering.
-            persisted_by_original_index = {}
-            row_i = 0
-            for orig_i, tc in enumerate(result.tool_calls):
-                if roster.tool_source_by_mcp_name.get(tc.mcp_server_name) is not None:
-                    persisted_by_original_index[orig_i] = tool_call_rows[row_i]
-                    row_i += 1
-
-            citations = [
-                Citation(
-                    tool_call_id=persisted_by_original_index[c.tool_call_index].id,
-                    citation_label=c.label,
-                    record_ref=c.record_ref,
-                )
-                for c in result.citations
-                if c.tool_call_index in persisted_by_original_index
-            ]
-
-            # grounding.py's create_response() raises if provenance_type is
-            # "grounded" without >=1 citation -- the roster-mapping filter
-            # above can (rarely) drop every citation the runner found (an
-            # unrecognized mcp server), so recompute provenance from what
-            # actually survived filtering rather than trusting the runner's
-            # own (pre-filter) judgment.
-            final_provenance = "grounded" if citations else "synthesis" if result.body else "ungroundable"
-
-            # Flagged by *which tool sources contributed to the grounding*
-            # (docs/05-ux-behavior.md Section 4), not by which tool was
-            # merely called -- a source consulted but not actually cited
-            # doesn't trigger this.
-            requires_review = any(
-                roster.tool_source_by_mcp_name.get(
-                    result.tool_calls[c.tool_call_index].mcp_server_name
-                ).requires_expert_review
-                for c in result.citations
-                if c.tool_call_index in persisted_by_original_index
-            )
-
-            response = await create_response(
-                db,
-                task_id=task_id,
-                body=result.body,
-                provenance_type=final_provenance,
-                citations=citations or None,
-                requires_expert_review=requires_review,
-            )
             # docs/05-ux-behavior.md Section 3: short output renders in
             # full inline; a large table gets a summary + a link to the
             # full report (app/routers/reports.py) instead of a long raw
@@ -289,22 +287,41 @@ async def _run_agent_and_respond(
             posted = await mm.post_message(channel_id, "", attachments=[attachment], root_id=post_id)
             response.mattermost_message_id = posted.get("id")
 
+            # Benchmark-against-landscape stage: classify this response's
+            # claims against what the Landscape Scan already knew. Only
+            # runs when the landscape scan actually produced something and
+            # this response has real content -- a failure here must not
+            # block the main answer, same reasoning as the landscape scan
+            # itself above.
+            if landscape_task is not None and prior_stage_context and final_provenance != "ungroundable":
+                try:
+                    benchmark_rows = await run_and_persist_benchmark(
+                        db, landscape_task=landscape_task, main_task=task, response=response,
+                        landscape_summary=prior_stage_context, experiment_id=experiment_id,
+                    )
+                    if benchmark_rows:
+                        counts = {"confirmatory": 0, "novel": 0, "contradictory": 0}
+                        for row in benchmark_rows:
+                            counts[row.classification] = counts.get(row.classification, 0) + 1
+                        await mm.post_message(
+                            channel_id,
+                            "🔍 Compared against prior knowledge: "
+                            f"{counts['confirmatory']} confirmatory, {counts['novel']} novel, "
+                            f"{counts['contradictory']} contradictory. Full breakdown: {report_url}",
+                            root_id=post_id,
+                        )
+                except Exception:
+                    logger.exception("Landscape benchmark failed for task %s", task_id)
+
             # FR-10, docs/10-build-plan.md Phase 4: the human-facing surface
             # of the TOOL_CALL table -- every response also gets a compact
             # audit summary in #grounding-log, if the org has one configured.
             org = await db.get(Org, agent.org_id)
             if org is not None and org.grounding_log_channel_id:
-                tool_names_used = sorted(
-                    {
-                        roster.tool_source_by_mcp_name[tc.mcp_server_name].name
-                        for tc in result.tool_calls
-                        if roster.tool_source_by_mcp_name.get(tc.mcp_server_name) is not None
-                    }
-                )
                 audit_lines = [
                     f"**Task** `{task_id}` -- provenance: `{final_provenance}`"
                     + (" -- ⚠️ requires expert review" if requires_review else ""),
-                    f"Tool sources used: {', '.join(tool_names_used) or 'none'}",
+                    f"Tool sources used: {', '.join(persisted.tool_names_used) or 'none'}",
                     f"Citations ({len(citations)}): {', '.join(c.record_ref for c in citations) or 'none'}",
                 ]
                 await mm.post_message(org.grounding_log_channel_id, "\n".join(audit_lines))
