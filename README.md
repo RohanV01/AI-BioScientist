@@ -10,14 +10,14 @@
 
 OpenBioLab is an open-source research assistant for biology and drug discovery. You ask it a question in a chat window, and it runs real scientific tools and databases to answer it, instead of just generating text from memory.
 
-It is free, self-hosted, and open source (MIT license). You run it on your own computer or server, with your own data staying private.
+It is free, self-hosted, and open source (MIT license). Frontier-grade AI research tooling has mostly shown up behind a paywall or a closed platform — OpenBioLab exists so a grad student, an independent lab, or a researcher anywhere can run the same class of tooling themselves, extend it, and build on it, without waiting on a vendor's roadmap.
 
 ## What it does
 
 - Answers research questions by actually querying real scientific databases and running real calculations, not guessing.
 - Every answer says exactly where it came from: which tool or database produced it, or if it's the model's own reasoning rather than a database result.
 - Can run multi-step research tasks on its own: look something up, use the result to run a second tool, and summarize the findings.
-- Covers over 100 tools today, including literature search, drug and compound data, protein structure lookup, genetic variant lookup, docking simulations, and more.
+- Covers 115 tools today, including literature search, drug and compound data, protein structure lookup, genetic variant lookup, docking simulations, and more.
 
 ## Example uses
 
@@ -38,10 +38,10 @@ It is free, self-hosted, and open source (MIT license). You run it on your own c
 
 ## Why it's built this way
 
-- **Runs on your machine.** Your questions and data don't have to leave your own computer or server.
-- **Every claim is checkable.** The system won't label something as fact-backed unless it's tied to a real tool result.
+- **Open infrastructure accelerates research.** Self-hosted and MIT-licensed means any lab can run it, fork it, and extend it — the point is to widen access to real research tooling, not gate it behind a subscription tier.
+- **Every claim is checkable.** The system won't label something as fact-backed unless it's tied to a real tool result, so results are trustworthy enough to actually build on.
 - **Not locked to one AI provider.** Works with a Claude subscription or an API key — no separate paywall just to use it.
-- **Open to new tools.** Adding a new database or tool follows one documented pattern (see `CONTRIBUTING.md`), so the tool list keeps growing.
+- **Open to new tools.** Adding a new database or tool follows one documented pattern (see `CONTRIBUTING.md`), so the tool list keeps growing as the community adds to it.
 
 ## Getting started
 
@@ -130,11 +130,33 @@ New tools, new workflows, and bug reports are all welcome. `CONTRIBUTING.md` wal
 
 ## Built on
 
-OpenBioLab connects existing tools and databases together — it doesn't reimplement them.
+OpenBioLab connects existing open tools and databases together — it doesn't reimplement them. Every one of the 115 tool sources wired in today is credited below, organized by category to match how the codebase itself is organized (`orchestrator/app/tools/`).
 
-- **Platform:** [Claude Agent SDK](https://github.com/anthropics/claude-agent-sdk-python), [Mattermost](https://mattermost.com), [Camofox](https://github.com/jo-inc/camofox-browser), [LM Studio](https://lmstudio.ai) (optional)
-- **Databases:** [PubMed](https://pubmed.ncbi.nlm.nih.gov)/[OpenAlex](https://openalex.org), [ChEMBL](https://www.ebi.ac.uk/chembl/), [Open Targets](https://platform.opentargets.org), [UniProt](https://www.uniprot.org), [PDB](https://www.rcsb.org), [AlphaFold DB](https://alphafold.ebi.ac.uk), [Ensembl](https://www.ensembl.org), [ClinVar](https://www.ncbi.nlm.nih.gov/clinvar/), [gnomAD](https://gnomad.broadinstitute.org), [KEGG](https://www.genome.jp/kegg/), [Reactome](https://reactome.org), [STRING](https://string-db.org), [ClinicalTrials.gov](https://clinicaltrials.gov), [DailyMed](https://dailymed.nlm.nih.gov)
-- **Calculations:** [AutoDock Vina](https://github.com/ccsb-scripps/AutoDock-Vina) (docking), [COBRApy](https://opencobra.github.io/cobrapy/) (metabolic modeling), [scikit-bio](http://scikit-bio.org), [BioPandas](http://rasbt.github.io/biopandas/), [MAFFT](https://mafft.cbrc.jp/alignment/software/) (sequence alignment)
+- **Platform:** [Claude Agent SDK](https://github.com/anthropics/claude-agent-sdk-python), [Mattermost](https://mattermost.com), [Camofox](https://github.com/jo-inc/camofox-browser), [LM Studio](https://lmstudio.ai) (optional), [Hugging Face](https://huggingface.co) (BYO-credential model hosting)
+
+- **Literature & clinical/regulatory:** [PubMed](https://pubmed.ncbi.nlm.nih.gov)/[OpenAlex](https://openalex.org), [Europe PMC](https://europepmc.org), [Retraction Watch](https://retractionwatch.com), [ClinicalTrials.gov](https://clinicaltrials.gov), [DailyMed](https://dailymed.nlm.nih.gov), [openFDA](https://open.fda.gov), [ClinPGx](https://www.clinpgx.org) (formerly PharmGKB)
+
+- **Genomics, variants & population genetics:** [Ensembl](https://www.ensembl.org) + Ensembl VEP, [UniProt](https://www.uniprot.org), [ClinVar](https://www.ncbi.nlm.nih.gov/clinvar/), [gnomAD](https://gnomad.broadinstitute.org), [GWAS Catalog](https://www.ebi.ac.uk/gwas/), [Human Phenotype Ontology](https://hpo.jax.org), [EBI Ontology Lookup Service](https://www.ebi.ac.uk/ols4) (Gene Ontology, MONDO, NCBI Taxonomy, and more), [ADMIXTURE](https://dalexander.github.io/admixture/), [EIGENSOFT](https://github.com/DReichLab/EIG), [EggLib](https://egglib.org), [LDSC](https://github.com/bulik/ldsc) (LD Score Regression), [msprime](https://tskit.dev/msprime/), [pixy](https://pixy.readthedocs.io), [poolfstat](https://cran.r-project.org/package=poolfstat), [selscan](https://github.com/szpiech/selscan), [TreeMix](https://bitbucket.org/nygcresearch/treemix), [cBioPortal](https://www.cbioportal.org), [TCGA](https://www.cancer.gov/tcga) clinical data, [OmniPath](https://omnipathdb.org)
+
+- **Pathways & interactions:** [KEGG](https://www.genome.jp/kegg/), [Reactome](https://reactome.org), [STRING](https://string-db.org)
+
+- **Structural biology:** [AlphaFold DB](https://alphafold.ebi.ac.uk), [RCSB PDB](https://www.rcsb.org), [DSSP](https://swift.cmbi.umcn.nl/gv/dssp/), [Foldseek](https://github.com/steineggerlab/foldseek), [FoldMason](https://github.com/steineggerlab/foldmason), [US-align](https://zhanggroup.org/US-align/), [Fpocket](https://github.com/Discngine/fpocket), [PLIP](https://github.com/pharmai/plip) (protein-ligand interaction profiler), [spyrmsd](https://github.com/RMeli/spyrmsd), [ProteinMPNN](https://github.com/dauparas/ProteinMPNN), [ProtGPT2](https://huggingface.co/nferruz/ProtGPT2), [AbLang](https://github.com/oxpig/AbLang), [ANARCI](https://github.com/oxpig/ANARCI) (antibody numbering), [correlationplus](https://github.com/tekpinar/correlationplus)
+
+- **Phylogenetics:** [IQ-TREE](http://www.iqtree.org)/piqtree, [PhyKIT](https://github.com/JLSteenwyk/PhyKIT), [ASTRAL-Pro](https://github.com/chaoszhang/ASTER), [FastTree](http://www.microbesonline.org/fasttree/), [OrthoFinder](https://github.com/davidemms/OrthoFinder), [PAML](http://abacus.gene.ucl.ac.uk/software/paml.html) (yn00)
+
+- **Sequence alignment & search:** [BLAST](https://blast.ncbi.nlm.nih.gov), [DIAMOND](https://github.com/bbuchfink/diamond), [minimap2](https://github.com/lh3/minimap2), [MUMmer4](https://github.com/mummer4/mummer), [Clustal Omega](http://www.clustal.org/omega/), [EMBOSS](https://emboss.sourceforge.net) (Water), [MAFFT](https://mafft.cbrc.jp/alignment/software/), [PyHMMER](https://github.com/althonos/pyhmmer), [sourmash](https://sourmash.readthedocs.io), [Primer3](https://primer3.org)
+
+- **Metagenomics & microbial genomics:** [Kraken2](https://ccb.jhu.edu/software/kraken2/), [Kaiju](https://kaiju.binf.ku.dk), [Prokka](https://github.com/tseemann/prokka), [Bakta](https://github.com/oschwengers/bakta), [AMRFinderPlus](https://github.com/ncbi/amr), [CheckM2](https://github.com/chklovski/CheckM2), [CheckV](https://bitbucket.org/berkeleylab/checkv), [FastANI](https://github.com/ParBLiSS/FastANI), [Barrnap](https://github.com/tseemann/barrnap), [Prodigal](https://github.com/hyattpd/Prodigal), [DADA2](https://benjjneb.github.io/dada2/)
+
+- **Cheminformatics & drug discovery:** [ChEMBL](https://www.ebi.ac.uk/chembl/), [PubChem](https://pubchem.ncbi.nlm.nih.gov), [Open Targets](https://platform.opentargets.org), [AutoDock Vina](https://github.com/ccsb-scripps/AutoDock-Vina) (docking + virtual screening), [LightDock](https://github.com/lightdock/lightdock), [xtb](https://github.com/grimme-lab/xtb) (semiempirical quantum chemistry), [Auto3D](https://github.com/isayevlab/Auto3D_seqm), [NRPCalc](https://github.com/vishalsimran/nrpcalc) (non-ribosomal peptide design), [DNA Chisel](https://github.com/Edinburgh-Genome-Foundry/DnaChisel), [pydna](https://github.com/BjornFJohansson/pydna) (Gibson assembly simulation), [SolTranNet](https://github.com/gnina/SolTranNet) (solubility prediction), [ToxinPred2](https://webs.iiitd.edu.in/raghava/toxinpred2/), [BioTransformer](https://biotransformer.ca) (metabolism prediction), [eQuilibrator](https://equilibrator.weizmann.ac.il) (thermodynamics), [libRoadRunner](https://libroadrunner.org) (kinetic simulation), [Mokapot](https://mokapot.readthedocs.io) (proteomics rescoring), [Pyteomics](https://pyteomics.readthedocs.io)
+
+- **Transcriptomics & single-cell:** [Scanpy](https://scanpy.readthedocs.io), [Seurat](https://satijalab.org/seurat/), [SoupX](https://github.com/constantAmateur/SoupX), [Monocle3](https://cole-trapnell-lab.github.io/monocle3/), [inferCNV](https://github.com/broadinstitute/infercnv), [Giotto](https://giottosuite.readthedocs.io) (spatial transcriptomics), [pyComBat](https://epigenelabs.github.io/pyComBat/), [clusterProfiler](https://guangchuangyu.github.io/software/clusterProfiler/), [GSEApy](https://gseapy.readthedocs.io)/[Enrichr](https://maayanlab.cloud/Enrichr/), [g:Profiler](https://biit.cs.ut.ee/gprofiler/), [WGCNA](https://cran.r-project.org/package=WGCNA), [Sleuth](https://pachterlab.github.io/sleuth/), [tximport](https://bioconductor.org/packages/tximport/), [recount3](https://rna.recount.bio/)
+
+- **Immunoinformatics:** [MHCflurry](https://github.com/openvax/mhcflurry), [epitopepredict](https://github.com/dmnfarrell/epitopepredict), [PyIR](https://github.com/crowelab/PyIR) (IgBLAST V(D)J assignment), [TCRdist3](https://tcrdist3.readthedocs.io), [HunFlair](https://github.com/flairNLP/flair) (biomedical NER)
+
+- **Metabolic modeling:** [COBRApy](https://opencobra.github.io/cobrapy/) (flux balance analysis), [StrainDesign](https://github.com/klamt-lab/straindesign)
+
+- **General:** [scikit-bio](http://scikit-bio.org), [BioPandas](http://rasbt.github.io/biopandas/) (structure parsing)
 
 ## Project history
 
