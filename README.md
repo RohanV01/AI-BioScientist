@@ -8,40 +8,128 @@
   <img src="docs/media/capability-demo.gif" alt="OpenBioLab capability demo" width="720">
 </p>
 
-OpenBioLab is an open-source research assistant for biology and drug discovery. You ask it a question in a chat window, and it runs real scientific tools and databases to answer it, instead of just generating text from memory.
-
-It is free, self-hosted, and open source (MIT license). Frontier-grade AI research tooling has mostly shown up behind a paywall or a closed platform — OpenBioLab exists so a grad student, an independent lab, or a researcher anywhere can run the same class of tooling themselves, extend it, and build on it, without waiting on a vendor's roadmap.
+OpenBioLab is an open-source autonomous scientific research agent for biology and drug discovery. Ask it a research question in a chat window, and it plans a methodology, decides which of its 115 real tools and databases the question actually needs, runs them in sequence, checks its own claims against what those tools returned, and comes back with a grounded answer — not a single lookup you have to chain together by hand, and not text generated from memory.
 
 ## What it does
 
-- Answers research questions by actually querying real scientific databases and running real calculations, not guessing.
-- Every answer says exactly where it came from: which tool or database produced it, or if it's the model's own reasoning rather than a database result.
-- Can run multi-step research tasks on its own: look something up, use the result to run a second tool, and summarize the findings.
-- Covers 115 tools today, including literature search, drug and compound data, protein structure lookup, genetic variant lookup, docking simulations, and more.
+- Runs a full research investigation from one question: plans a methodology, executes the tools it needs, and synthesizes the results, instead of stopping at a single lookup.
+- Every claim in an answer is labeled: grounded in a real tool result, the model's own reasoning, or explicitly unverifiable — nothing is presented as fact without a record behind it.
+- Covers 115 tools today, spanning literature, genomics, structural biology, phylogenetics, sequence analysis, metagenomics, cheminformatics, transcriptomics, immunoinformatics, and metabolic modeling.
+- Self-hosted and open source (MIT license) — the same agent, unmodified, runs identically for a single researcher or a funded lab.
 
-## Example uses
+## Workflows you can run
 
-- Research a drug target and its known mechanism
-- Screen candidate compounds for a disease
-- Look up what's known about a genetic variant
-- Search and summarize scientific literature with citations
-- Model a biological pathway or metabolic network
-- Pull together background for regulatory or commercial due diligence
+Every workflow below starts from a single chat message — the agent decides which tools apply and chains them itself. Most real questions combine several of these in one investigation (e.g. "find known EGFR inhibitors, dock the top three against a recent EGFR structure, and rank them by predicted affinity" chains ChEMBL/Open Targets → RCSB PDB/AlphaFold DB → AutoDock Vina in a single pass).
+
+**Literature & clinical/regulatory**
+- Search and summarize literature on a topic, with every claim traced to a PMID or DOI
+- Check whether a paper has been retracted before citing it
+- Pull known clinical trial status and results for a drug or condition
+- Look up an approved drug's label, dosing, and regulatory data
+- Cross-reference a drug's pharmacogenomic guidance
+
+**Genomics, variants & population genetics**
+- Look up a gene's known variants, clinical significance, and population frequency in one pass
+- Run variant effect prediction on a specific mutation
+- Search for known associations between a variant and a trait
+- Estimate population structure or ancestry mixture from genotype data
+- Run selection-scan or diversity statistics across a population genomics dataset
+- Simulate coalescent genealogies for a population model
+- Build a population tree from allele-frequency data
+- Pull tumor variant or clinical data for a cancer type
+
+**Pathways & interactions**
+- Map a gene or protein onto its known pathways
+- Pull a protein-protein interaction network for a target
+
+**Structural biology**
+- Fetch and evaluate a protein structure before starting a task
+- Run a real docking simulation between a target structure and a candidate ligand
+- Predict a small molecule's 3D conformer and run semiempirical quantum chemistry on it
+- Compare two protein structures for architectural similarity
+- Identify a binding pocket on a structure before docking
+- Profile the interactions in a protein-ligand complex after docking
+- Design new protein sequences for a given backbone
+- Generate novel protein sequences from scratch
+- Number and annotate an antibody sequence
+- Analyze residue-residue correlated motion in a structure
+
+**Phylogenetics**
+- Build a maximum-likelihood phylogenetic tree from a sequence alignment
+- Infer a species tree from many gene trees
+- Detect orthologs and build orthogroups across genomes
+- Test for positive selection across a phylogeny
+- Compute tree-based statistics on an existing phylogeny
+
+**Sequence alignment & search**
+- Search a sequence against a reference database
+- Align long reads or whole genomes to a reference
+- Build a multiple sequence alignment
+- Run a pairwise local alignment
+- Search for protein domains with profile HMMs
+- Estimate sequence similarity or containment at scale
+- Design PCR primers for a target sequence
+
+**Metagenomics & microbial genomics**
+- Classify reads taxonomically from a metagenomic sample
+- Annotate a bacterial genome assembly
+- Screen a genome for antimicrobial resistance genes
+- Assess genome/bin completeness and contamination, or viral genome quality
+- Compute average nucleotide identity between genomes
+- Predict genes and ribosomal RNA in a genome
+- Process 16S amplicon data into an ASV table
+
+**Cheminformatics & drug discovery**
+- Look up a compound's bioactivity, targets, and known mechanism
+- Design an analog of a known drug and screen it for a specific property (e.g. lower CYP inhibition, better solubility)
+- Predict a compound's aqueous solubility or toxicity profile
+- Predict a compound's likely metabolites
+- Design a non-ribosomal peptide scaffold
+- Plan a DNA construct or simulate a cloning step
+- Compute reaction thermodynamics for a metabolic step
+- Run kinetic simulation of a reaction network
+- Rescore a proteomics search result or process mass spec data
+
+**Transcriptomics & single-cell**
+- Run standard single-cell QC, clustering, and annotation
+- Remove ambient RNA contamination from a single-cell dataset
+- Infer pseudotime trajectories across cell states
+- Detect copy-number alterations from single-cell expression
+- Analyze spatial transcriptomics data
+- Batch-correct expression data across studies
+- Run gene set enrichment or over-representation analysis
+- Build a co-expression network and find modules
+- Run differential expression on RNA-seq quantifications
+
+**Immunoinformatics**
+- Predict MHC-peptide binding for epitope discovery
+- Assign V(D)J genes to an antibody repertoire sequence
+- Analyze TCR repertoire similarity and clustering
+- Extract biomedical named entities from an immunology paper
+
+**Metabolic modeling**
+- Run flux balance analysis on a genome-scale metabolic model
+- Design a strain modification strategy for a target metabolite
+
+**General / cross-cutting**
+- Compute ecological/diversity statistics on a sample
+- Parse and manipulate structure files as part of any larger workflow
 
 ## How it works
 
-1. You type a question into a chat app called [Mattermost](https://mattermost.com) (an open-source alternative to Slack, included in this project).
-2. An AI agent reads your question and decides which tools it needs.
-3. It runs those tools against real databases and calculations, not from memory.
+1. You describe a research question or objective in a chat channel in [Mattermost](https://mattermost.com) (an open-source chat app, included in this project).
+2. The agent plans a methodology: which tools apply, and in what order.
+3. It executes that plan against real databases and calculations, not from memory.
 4. It writes an answer and labels every claim in it: backed by a real result, its own reasoning, or something it couldn't verify.
 5. The full trail — which tools ran and what they returned — is saved and viewable, so any answer can be checked.
 
 ## Why it's built this way
 
-- **Open infrastructure accelerates research.** Self-hosted and MIT-licensed means any lab can run it, fork it, and extend it — the point is to widen access to real research tooling, not gate it behind a subscription tier.
+- **It runs the investigation, not just one lookup.** Given a question, the agent plans a methodology, selects from its full tool roster, executes across whatever the plan needs, and synthesizes a report — the point is autonomous research, not a chat wrapper around a single API call.
 - **Every claim is checkable.** The system won't label something as fact-backed unless it's tied to a real tool result, so results are trustworthy enough to actually build on.
 - **Not locked to one AI provider.** Works with a Claude subscription or an API key — no separate paywall just to use it.
-- **Open to new tools.** Adding a new database or tool follows one documented pattern (see `CONTRIBUTING.md`), so the tool list keeps growing as the community adds to it.
+- **Open to new tools.** Adding a new database or tool follows one documented pattern (see `CONTRIBUTING.md`), so the tool roster keeps growing.
+- **Self-hosted and open source (MIT).** A deployment detail with a real consequence: it runs on your own infrastructure, under your own credentials, so proprietary compound lists or patient-adjacent data never have to leave your machine.
 
 ## Getting started
 
