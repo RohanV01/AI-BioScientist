@@ -8,18 +8,18 @@
   <img src="docs/media/capability-demo.gif" alt="OpenBioLab capability demo" width="720">
 </p>
 
-OpenBioLab is an open-source autonomous scientific research agent for biology and drug discovery. Ask it a research question in a chat window, and it plans a methodology, decides which of its 115 real tools and databases the question actually needs, runs them in sequence, checks its own claims against what those tools returned, and comes back with a grounded answer — not a single lookup you have to chain together by hand, and not text generated from memory.
+OpenBioLab is an open-source autonomous scientific research agent for biology and drug discovery. Ask it a research question in a chat window, and it plans a methodology, decides which of its 115 real tools and databases the question actually needs, runs them in sequence, checks its own claims against what those tools returned, and comes back with a grounded answer, not a single lookup you have to chain together by hand, and not text generated from memory.
 
 ## What it does
 
 - Runs a full research investigation from one question: plans a methodology, executes the tools it needs, and synthesizes the results, instead of stopping at a single lookup.
-- Every claim in an answer is labeled: grounded in a real tool result, the model's own reasoning, or explicitly unverifiable — nothing is presented as fact without a record behind it.
+- Every claim in an answer is labeled: grounded in a real tool result, the model's own reasoning, or explicitly unverifiable: nothing is presented as fact without a record behind it.
 - Covers 115 tools today, spanning literature, genomics, structural biology, phylogenetics, sequence analysis, metagenomics, cheminformatics, transcriptomics, immunoinformatics, and metabolic modeling.
-- Self-hosted and open source (MIT license) — the same agent, unmodified, runs identically for a single researcher or a funded lab.
+- Self-hosted and open source (MIT license): the same agent, unmodified, runs identically for a single researcher or a funded lab.
 
 ## Workflows you can run
 
-Every workflow below starts from a single chat message — the agent decides which tools apply and chains them itself. Most real questions combine several of these in one investigation (e.g. "find known EGFR inhibitors, dock the top three against a recent EGFR structure, and rank them by predicted affinity" chains ChEMBL/Open Targets → RCSB PDB/AlphaFold DB → AutoDock Vina in a single pass).
+Every workflow below starts from a single chat message; the agent decides which tools apply and chains them itself. Most real questions combine several of these in one investigation (e.g. "find known EGFR inhibitors, dock the top three against a recent EGFR structure, and rank them by predicted affinity" chains ChEMBL/Open Targets → RCSB PDB/AlphaFold DB → AutoDock Vina in a single pass).
 
 **Literature & clinical/regulatory**
 - Search and summarize literature on a topic, with every claim traced to a PMID or DOI
@@ -121,19 +121,19 @@ Every workflow below starts from a single chat message — the agent decides whi
 2. The agent plans a methodology: which tools apply, and in what order.
 3. It executes that plan against real databases and calculations, not from memory.
 4. It writes an answer and labels every claim in it: backed by a real result, its own reasoning, or something it couldn't verify.
-5. The full trail — which tools ran and what they returned — is saved and viewable, so any answer can be checked.
+5. The full trail (which tools ran and what they returned) is saved and viewable, so any answer can be checked.
 
 ## Why it's built this way
 
-- **It runs the investigation, not just one lookup.** Given a question, the agent plans a methodology, selects from its full tool roster, executes across whatever the plan needs, and synthesizes a report — the point is autonomous research, not a chat wrapper around a single API call.
+- **It runs the investigation, not just one lookup.** Given a question, the agent plans a methodology, selects from its full tool roster, executes across whatever the plan needs, and synthesizes a report: the point is autonomous research, not a chat wrapper around a single API call.
 - **Every claim is checkable.** The system won't label something as fact-backed unless it's tied to a real tool result, so results are trustworthy enough to actually build on.
-- **Not locked to one AI provider.** Works with a Claude subscription or an API key — no separate paywall just to use it.
+- **Not locked to one AI provider.** Works with a Claude subscription or an API key, no separate paywall just to use it.
 - **Open to new tools.** Adding a new database or tool follows one documented pattern (see `CONTRIBUTING.md`), so the tool roster keeps growing.
 - **Self-hosted and open source (MIT).** A deployment detail with a real consequence: it runs on your own infrastructure, under your own credentials, so proprietary compound lists or patient-adjacent data never have to leave your machine.
 
 ## Getting started
 
-**You need:** Docker and Docker Compose. That's it — it works the same on Mac, Linux, and Windows, since everything runs inside containers.
+**You need:** Docker and Docker Compose. That's it: it works the same on Mac, Linux, and Windows, since everything runs inside containers.
 
 **1. Get the code and set it up**
 
@@ -143,7 +143,7 @@ cd AI-BioScientist
 cp .env.example .env
 ```
 
-Generate two passwords and add them to `.env` (the example file ships with placeholders — fine for a quick local test, not safe if anyone else can reach this machine):
+Generate two passwords and add them to `.env` (the example file ships with placeholders, fine for a quick local test, not safe if anyone else can reach this machine):
 
 ```bash
 # For POSTGRES_PASSWORD
@@ -153,7 +153,7 @@ openssl rand -base64 24
 python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
 ```
 
-Keep a backup of `CREDENTIAL_VAULT_KEY` somewhere safe — if it's lost, any credentials you've stored can't be recovered.
+Keep a backup of `CREDENTIAL_VAULT_KEY` somewhere safe: if it's lost, any credentials you've stored can't be recovered.
 
 **2. Start everything**
 
@@ -163,7 +163,7 @@ docker compose up -d
 
 This builds and starts the chat app, database, and the AI agent together. The first run takes a few minutes.
 
-**3. Connect your Claude account** — pick one:
+**3. Connect your Claude account**, pick one:
 
 - **Using an API key:** add `ANTHROPIC_API_KEY` to `.env`, then run `docker compose up -d` again.
 - **Using a Claude subscription (Pro/Max), no API key:** run this once and follow the printed link:
@@ -178,7 +178,7 @@ This builds and starts the chat app, database, and the AI agent together. The fi
 python scripts/bootstrap_mattermost.py
 ```
 
-This creates your admin account and prints a password (also saved to `.env`), plus a ready-to-run command for the next step — copy it exactly.
+This creates your admin account and prints a password (also saved to `.env`), plus a ready-to-run command for the next step: copy it exactly.
 
 **5. Turn on the tools**
 
@@ -200,7 +200,7 @@ Go to `http://localhost:8065`, log in with the admin account from step 4, and me
 
 ### Optional
 
-- **Bulk local databases:** not required to get started. See `data/README.md` if you want to add a local literature/database corpus later — everything works fine without it.
+- **Bulk local databases:** not required to get started. See `data/README.md` if you want to add a local literature/database corpus later; everything works fine without it.
 - **GPU support:** not required either. A couple of tools run faster with an NVIDIA GPU; see `docker-compose.gpu.yml` if you have one.
 - **Your own API keys for paid tools:** add them with `orchestrator/scripts/add_credential.py`. They're stored encrypted, never shared.
 - **Full paper downloads:** works out of the box for open-access papers. For paywalled papers, it uses a built-in browser tool and clearly labels the source of every download.
@@ -214,11 +214,11 @@ docker compose logs orchestrator
 
 ## Contributing
 
-New tools, new workflows, and bug reports are all welcome. `CONTRIBUTING.md` walks through exactly how to add a new scientific tool — that's the most useful way to help.
+New tools, new workflows, and bug reports are all welcome. `CONTRIBUTING.md` walks through exactly how to add a new scientific tool: that's the most useful way to help.
 
 ## Built on
 
-OpenBioLab connects existing open tools and databases together — it doesn't reimplement them. Every one of the 115 tool sources wired in today is credited below, organized by category to match how the codebase itself is organized (`orchestrator/app/tools/`).
+OpenBioLab connects existing open tools and databases together; it doesn't reimplement them. Every one of the 115 tool sources wired in today is credited below, organized by category to match how the codebase itself is organized (`orchestrator/app/tools/`).
 
 - **Platform:** [Claude Agent SDK](https://github.com/anthropics/claude-agent-sdk-python), [Mattermost](https://mattermost.com), [Camofox](https://github.com/jo-inc/camofox-browser), [LM Studio](https://lmstudio.ai) (optional), [Hugging Face](https://huggingface.co) (BYO-credential model hosting)
 
