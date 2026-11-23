@@ -65,11 +65,12 @@ async def _openalex_get(client: httpx.AsyncClient, params: dict[str, Any]) -> ht
     single wait-and-retry turns a transient rate limit into a real result
     instead of a tool failure. Any other status is left to the caller's
     own resp.raise_for_status()."""
-    resp = await client.get(OPENALEX_URL, params=params)
+    headers = {"Authorization": f"Bearer {settings.openalex_api_key}"} if settings.openalex_api_key else {}
+    resp = await client.get(OPENALEX_URL, params=params, headers=headers)
     if resp.status_code == 429:
         retry_after = min(float(resp.json().get("retryAfter", 5)), 30.0)
         await asyncio.sleep(retry_after)
-        resp = await client.get(OPENALEX_URL, params=params)
+        resp = await client.get(OPENALEX_URL, params=params, headers=headers)
     return resp
 
 
@@ -82,6 +83,8 @@ _DISCOVER_SELECT = "id,doi,title,publication_year,open_access,primary_topic,cite
 _SEED_COUNT = 25
 # OpenAlex caps an OR filter at 100 values; 50 keeps each URL short.
 _RESOLVE_BATCH = 50
+# The main query plus up to three sub-queries, the setting that was measured.
+_MAX_QUERIES = 4
 
 
 async def _foundational_works(
@@ -151,7 +154,14 @@ def _discovery_line(work: dict[str, Any], doi: str, signal: str) -> str:
     "biomedicine) for papers on a topic. Send a short keyword query naming "
     "the entities and concepts (e.g. 'KRAS G12C covalent inhibitor'), not a "
     "full question: natural-language questions measurably retrieve worse. "
-    "Returns up to max_results papers (default 25, max 100) in two groups: "
+    "For wider coverage, add up to three keyword sub-queries after the main "
+    "one, separated by ';' -- e.g. 'KRAS G12C covalent inhibitor; KRAS G12C "
+    "sotorasib adagrasib; KRAS G12C switch II pocket mechanism; KRAS G12C lung "
+    "cancer clinical trial' (a synonym or variant name, the mechanism angle, "
+    "the clinical or application angle). Each sub-query costs one more "
+    "search; their results are merged, which finds more of the relevant "
+    "literature than the main query alone. "
+    "Returns up to max_results papers (default 25, max 200) in two groups: "
     "'Foundational' -- the works most often cited by the top matching "
     "papers, which is where landmark and primary papers turn up -- and "
     "'Most relevant matches' in search-relevance order, which carries "
@@ -163,26 +173,59 @@ def _discovery_line(work: dict[str, Any], doi: str, signal: str) -> str:
     {"query": str, "max_results": int},
 )
 async def discover_papers(args: dict[str, Any]) -> dict[str, Any]:
-    max_results = max(1, min(int(args.get("max_results", 25)), 100))
+    max_results = max(1, min(int(args.get("max_results", 25)), 200))
+    queries = [q.strip() for q in args["query"].split(";") if q.strip()] or [args["query"]]
+    notes: list[str] = []
+    if len(queries) > _MAX_QUERIES:
+        notes.append(f"Only the first {_MAX_QUERIES} queries were run; ignored: {'; '.join(queries[_MAX_QUERIES:])}.")
+        queries = queries[:_MAX_QUERIES]
+
     async with httpx.AsyncClient(timeout=30.0) as client:
-        resp = await _openalex_get(
-            client,
-            {
-                "search": args["query"],
+        per_query: list[list[dict[str, Any]]] = []
+        for i, query in enumerate(queries):
+            params = {
+                "search": query,
                 # Always the full page: OpenAlex bills a search the same at
                 # any page size, and the relevance group needs spare hits to
                 # replace the ones already listed as foundational.
                 "per_page": 100,
                 "select": _DISCOVER_SELECT + ",relevance_score,referenced_works",
-            },
-        )
-        resp.raise_for_status()
-        results = resp.json().get("results", [])
-        if not results:
+            }
+            if i == 0:
+                resp = await _openalex_get(client, params)
+                resp.raise_for_status()
+            else:
+                try:
+                    resp = await _openalex_get(client, params)
+                except httpx.HTTPError as exc:
+                    notes.append(f"Sub-query {query!r} failed ({type(exc).__name__}: {exc}); it is left out.")
+                    continue
+                if resp.status_code != 200:
+                    notes.append(f"Sub-query {query!r} failed (HTTP {resp.status_code}); it is left out.")
+                    continue
+            per_query.append(resp.json().get("results", []))
+        if not any(per_query):
             return {"content": [{"type": "text", "text": f"No OpenAlex results found for {args['query']!r}."}]}
-        foundational, lookup_error = await _foundational_works(
-            client, results[:_SEED_COUNT], (max_results + 1) // 2
-        )
+        # Summing each query's reference counts (rather than fusing per-query
+        # rankings) measured better: a work cited across several angles of
+        # the topic is more central to it.
+        seeds = [work for results in per_query for work in results[:_SEED_COUNT]]
+        foundational, lookup_error = await _foundational_works(client, seeds, (max_results + 1) // 2)
+
+    # Relevance matches merged across queries by reciprocal rank fusion, so a
+    # paper ranked high by any query (or found by several) comes first.
+    fused: dict[str, float] = {}
+    first_seen: dict[str, dict[str, Any]] = {}
+    hit_count: Counter[str] = Counter()
+    for results in per_query:
+        ranked_dois = list(dict.fromkeys(_strip_doi_prefix(w.get("doi") or "") for w in results))
+        for rank, doi in enumerate(ranked_dois, 1):
+            if doi:
+                fused[doi] = fused.get(doi, 0.0) + 1.0 / (60 + rank)  # 60: the usual RRF constant
+                hit_count[doi] += 1
+        for work in results:
+            first_seen.setdefault(_strip_doi_prefix(work.get("doi") or ""), work)
+    merged = sorted(fused, key=lambda d: -fused[d])
 
     seen: set[str] = set()
     found_lines: list[str] = []
@@ -193,27 +236,32 @@ async def discover_papers(args: dict[str, Any]) -> dict[str, Any]:
         seen.add(doi)
         cited_by = work.get("cited_by_count", 0)
         found_lines.append(
-            _discovery_line(work, doi, f"cited by {n_citing} of the top {_SEED_COUNT} matches, cited by {cited_by}")
+            _discovery_line(work, doi, f"cited by {n_citing} of the {len(seeds)} top matches, cited by {cited_by}")
         )
         _record_discovery(work, doi, None, "foundational")
 
     match_lines: list[str] = []
-    for work in results:
+    for doi in merged:
         if len(found_lines) + len(match_lines) >= max_results:
             break
-        doi = _strip_doi_prefix(work.get("doi") or "")
-        if not doi or doi in seen:
+        if doi in seen:
             continue
         seen.add(doi)
+        work = first_seen[doi]
         relevance = work.get("relevance_score")
         cited_by = work.get("cited_by_count", 0)
         signal = f"relevance {relevance:.1f}, cited by {cited_by}" if relevance is not None else f"cited by {cited_by}"
+        if len(per_query) > 1:
+            signal += f", matched by {hit_count[doi]} of {len(per_query)} queries"
         match_lines.append(_discovery_line(work, doi, signal))
         _record_discovery(work, doi, relevance, "relevant_match")
 
-    sections: list[str] = []
+    sections: list[str] = list(notes)
     if found_lines:
-        sections.append(f"Foundational (most cited by the top {_SEED_COUNT} matching papers):\n" + "\n".join(found_lines))
+        scope = " of each query" if len(per_query) > 1 else ""
+        sections.append(
+            f"Foundational (most cited by the top {_SEED_COUNT} matching papers{scope}):\n" + "\n".join(found_lines)
+        )
     elif lookup_error:
         sections.append(f"Foundational group unavailable: {lookup_error}. Only relevance matches are listed below.")
     else:

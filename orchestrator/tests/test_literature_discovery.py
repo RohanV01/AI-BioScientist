@@ -23,7 +23,7 @@ async def test_discover_papers_happy_path():
     assert "DOI" in text
 
 
-async def test_discover_papers_max_results_clamped_to_100_without_duplicates(tmp_path):
+async def test_discover_papers_max_results_clamped_to_200_without_duplicates(tmp_path):
     # One live call covers the cap, the DOI dedup across the two groups, and
     # the manifest gate (every surfaced DOI recorded with its group).
     token = current_experiment_dir.set(tmp_path)
@@ -34,11 +34,30 @@ async def test_discover_papers_max_results_clamped_to_100_without_duplicates(tmp
         current_experiment_dir.reset(token)
     text = await text_of(result)
     dois = [l.split(":")[0].removeprefix("- DOI ") for l in text.split("\n") if l.startswith("- DOI")]
-    assert 50 <= len(dois) <= 100
+    assert 100 <= len(dois) <= 200
     assert len(dois) == len(set(dois))
     assert "Foundational (most cited by the top 25 matching papers):" in text
     assert "Most relevant matches (OpenAlex relevance order):" in text
     assert {manifest[d]["discovery_group"] for d in dois} == {"foundational", "relevant_match"}
+
+
+async def test_discover_papers_merges_sub_queries_and_reports_dropped_ones():
+    # Hallin et al. 2020 (adagrasib) is missing from the main query's default
+    # 25 results; the sub-queries bring it in. A fifth query is over the limit
+    # and must be reported, not silently ignored.
+    query = (
+        "KRAS G12C covalent inhibitor; KRAS G12C sotorasib adagrasib; "
+        "KRAS G12C switch II pocket covalent binding mechanism; "
+        "KRAS G12C non-small cell lung cancer clinical trial; KRAS G12D"
+    )
+    result = await discover_papers.handler({"query": query})
+    text = await text_of(result)
+    dois = [l.split(":")[0].removeprefix("- DOI ").lower() for l in text.split("\n") if l.startswith("- DOI")]
+    assert "Only the first 4 queries were run; ignored: KRAS G12D." in text
+    assert "Foundational (most cited by the top 25 matching papers of each query):" in text
+    assert "of 4 queries" in text
+    assert "10.1158/2159-8290.cd-19-1167" in dois
+    assert len(dois) == len(set(dois)) <= 25
 
 
 # Landmark papers the old relevance-only search (top 25) did not return for

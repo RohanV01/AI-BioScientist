@@ -38,6 +38,10 @@ class Settings(BaseSettings):
     # how the Orchestrator itself reaches Mattermost's API. Defaults to
     # localhost since local dev browses from the host, not a container.
     orchestrator_public_url: str = "http://localhost:8000"
+    # OpenAlex API key (app/tools/literature_discovery.py). Without one,
+    # requests draw on the small anonymous daily budget shared by everyone
+    # on the host's IP address; a free key has its own budget.
+    openalex_api_key: str = ""
 
     # Full-text acquisition (app/tools/literature_discovery.py
     # download_paper): Camofox stealth headless browser --
