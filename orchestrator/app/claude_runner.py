@@ -81,13 +81,18 @@ sentence or table row -- a retracted paper can still be discussed (e.g.
 never silently back a claim as if it were still standing evidence.
 
 PAPER SELECTION (when using discover_papers/download_paper/read_paper).
+Send discover_papers a short main keyword query plus two or three keyword
+sub-queries separated by ';' (a synonym or variant name, the mechanism
+angle, the clinical or application angle) -- it finds more of the relevant
+literature than one query.
 download_paper drives a real browser session per DOI and read_paper is a
 real extraction call per DOI -- both cost real time and money, so don't
-download or read every result discover_papers returns. Default to the top
-5 by relevance for a given research question (discover_papers surfaces each
-result's relevance score and citation count -- use them), preferring
-open-access hits over ones needing Sci-Hub. Only go broader than 5 if the
-researcher explicitly asks for exhaustive/broad coverage. This is a default,
+download or read every result discover_papers returns. Default to 5 papers
+for a given research question, picked across its groups -- the
+foundational papers the topic builds on and the most relevant matches,
+which carry recent work -- using each result's citation count and
+relevance score, preferring open-access hits over ones needing Sci-Hub.
+Only go broader than 5 if the researcher explicitly asks for exhaustive/broad coverage. This is a default,
 not a hard cap -- state when you're deliberately going past it and why.
 """
 
