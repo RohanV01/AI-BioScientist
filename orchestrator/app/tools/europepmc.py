@@ -23,8 +23,9 @@ EUROPEPMC_BASE = "https://www.ebi.ac.uk/europepmc/webservices/rest/search"
     "includes bioRxiv/medRxiv preprints and free-full-text availability. "
     "Returns each hit's Europe PMC ID, source (MED=PubMed-indexed, "
     "PPR=preprint, PMC=full-text), title, authors, year, DOI, and whether "
-    "free full text is available. Use the returned DOI/PMID as the "
-    "citable reference, never invent one.",
+    "free full text is available. Results are ordered by citation count "
+    "(most cited first), so new preprints rarely appear. Use the returned "
+    "DOI/PMID as the citable reference, never invent one.",
     {"query": str, "max_results": int},
 )
 async def search_europepmc(args: dict[str, Any]) -> dict[str, Any]:
@@ -36,7 +37,13 @@ async def search_europepmc(args: dict[str, Any]) -> dict[str, Any]:
     async with httpx.AsyncClient(timeout=15.0) as client:
         resp = await client.get(
             EUROPEPMC_BASE,
-            params={"query": query, "format": "json", "pageSize": max_results, "resultType": "lite"},
+            # The default order ("score desc", relevance) put almost only
+            # current-year, uncited records first on benchmark topics; citation
+            # order surfaces the established papers on the topic.
+            params={
+                "query": query, "format": "json", "pageSize": max_results, "resultType": "lite",
+                "sort": "CITED desc",
+            },
         )
         resp.raise_for_status()
         data = resp.json()

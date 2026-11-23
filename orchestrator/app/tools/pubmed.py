@@ -35,7 +35,9 @@ async def search_articles(args: dict[str, Any]) -> dict[str, Any]:
     async with httpx.AsyncClient(timeout=15.0) as client:
         search_resp = await client.get(
             f"{EUTILS_BASE}/esearch.fcgi",
-            params={"db": "pubmed", "term": query, "retmode": "json", "retmax": max_results},
+            # Without sort, esearch returns the newest matches first, so the
+            # best-matching older papers never make the cut.
+            params={"db": "pubmed", "term": query, "retmode": "json", "retmax": max_results, "sort": "relevance"},
         )
         search_resp.raise_for_status()
         pmids = search_resp.json().get("esearchresult", {}).get("idlist", [])

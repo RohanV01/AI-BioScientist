@@ -37,6 +37,7 @@ import base64
 import json
 import re
 import subprocess
+from collections import Counter
 from pathlib import Path
 from typing import Any
 
@@ -72,65 +73,156 @@ async def _openalex_get(client: httpx.AsyncClient, params: dict[str, Any]) -> ht
     return resp
 
 
+# Fields every discover_papers line needs, for search hits and resolved
+# references alike.
+_DISCOVER_SELECT = "id,doi,title,publication_year,open_access,primary_topic,cited_by_count,type,is_retracted"
+# How many top relevance hits seed the reference count. On a benchmark of
+# landmark papers and review reference lists, the works these hits cite
+# most often recover far more of both than relevance order alone.
+_SEED_COUNT = 25
+# OpenAlex caps an OR filter at 100 values; 50 keeps each URL short.
+_RESOLVE_BATCH = 50
+
+
+async def _foundational_works(
+    client: httpx.AsyncClient, seeds: list[dict[str, Any]], limit: int
+) -> tuple[list[tuple[dict[str, Any], int]], str | None]:
+    """The works most often cited by `seeds` (OpenAlex search hits carrying
+    referenced_works), as (work, number of seeds citing it), most cited by
+    the seeds first, ties broken by overall citation count. Only works with a
+    DOI are kept. The second value is an error message when a reference
+    lookup failed (the list is then empty), so the caller can say why."""
+    counts: Counter[str] = Counter()
+    for seed in seeds:
+        counts.update(set(seed.get("referenced_works") or []))
+    if not counts:
+        return [], None
+
+    # A margin over `limit` covers referenced works without a DOI.
+    wanted = [work_id for work_id, _ in counts.most_common(limit + 10)]
+    resolved: dict[str, dict[str, Any]] = {}
+    for i in range(0, len(wanted), _RESOLVE_BATCH):
+        batch = wanted[i : i + _RESOLVE_BATCH]
+        short_ids = "|".join(w.rsplit("/", 1)[-1] for w in batch)
+        try:
+            resp = await _openalex_get(
+                client, {"filter": f"openalex:{short_ids}", "per_page": _RESOLVE_BATCH, "select": _DISCOVER_SELECT}
+            )
+        except httpx.HTTPError as exc:
+            return [], f"OpenAlex reference lookup failed ({type(exc).__name__}: {exc})"
+        if resp.status_code != 200:
+            return [], f"OpenAlex reference lookup failed (HTTP {resp.status_code})"
+        for work in resp.json().get("results", []):
+            resolved[work["id"]] = work
+
+    ranked = [(resolved[w], counts[w]) for w in wanted if w in resolved and resolved[w].get("doi")]
+    ranked.sort(key=lambda pair: (-pair[1], -(pair[0].get("cited_by_count") or 0)))
+    return ranked[:limit], None
+
+
+def _record_discovery(work: dict[str, Any], doi: str, relevance: float | None, group: str) -> None:
+    # Cross-cutting paper-selection gate (see the Experiments plan): every
+    # DOI this tool ever surfaces gets a manifest entry, so a later
+    # download_paper/read_paper call in the same experiment can dedup
+    # against it instead of re-fetching. No-op if no experiment is in
+    # scope (see app/experiment_context.py).
+    oa = work.get("open_access") or {}
+    update_manifest_entry(
+        doi, title=work.get("title", ""), is_oa=bool(oa.get("is_oa")), oa_url=oa.get("oa_url"),
+        relevance_score=relevance, cited_by_count=work.get("cited_by_count", 0), status="discovered",
+        discovery_group=group,
+    )
+
+
+def _discovery_line(work: dict[str, Any], doi: str, signal: str) -> str:
+    oa = work.get("open_access") or {}
+    subfield = ((work.get("primary_topic") or {}).get("subfield") or {}).get("display_name", "")
+    oa_bit = f"open access, {oa.get('oa_status')}: {oa.get('oa_url')}" if oa.get("is_oa") else "not open access"
+    flags = ("RETRACTED " if work.get("is_retracted") else "") + ("[review] " if work.get("type") == "review" else "")
+    return (
+        f"- DOI {doi}: {flags}{work.get('title', '')} ({work.get('publication_year', '')}, {subfield}) "
+        f"-- {oa_bit} [{signal}]"
+    )
+
+
 @tool(
     "discover_papers",
     "Search all of scholarship (OpenAlex -- every field, not just "
-    "biomedicine) for papers matching a topic. Returns each paper's DOI, "
-    "title, year, primary field/subfield, and open-access status/URL if "
-    "one exists. Use the returned DOIs as citable record references, and "
-    "pass any DOI NOT already open access to check_scihub_availability "
-    "before assuming it's unreachable.",
+    "biomedicine) for papers on a topic. Send a short keyword query naming "
+    "the entities and concepts (e.g. 'KRAS G12C covalent inhibitor'), not a "
+    "full question: natural-language questions measurably retrieve worse. "
+    "Returns up to max_results papers (default 25, max 100) in two groups: "
+    "'Foundational' -- the works most often cited by the top matching "
+    "papers, which is where landmark and primary papers turn up -- and "
+    "'Most relevant matches' in search-relevance order, which carries "
+    "recent work. Each line gives the DOI, title, year, subfield, "
+    "open-access status/URL if one exists and citation count; reviews are "
+    "marked [review] and retracted works RETRACTED. Use the returned DOIs "
+    "as citable record references, and pass any DOI NOT already open "
+    "access to check_scihub_availability before assuming it's unreachable.",
     {"query": str, "max_results": int},
 )
 async def discover_papers(args: dict[str, Any]) -> dict[str, Any]:
-    max_results = min(int(args.get("max_results", 10)), 25)
-    async with httpx.AsyncClient(timeout=20.0) as client:
+    max_results = max(1, min(int(args.get("max_results", 25)), 100))
+    async with httpx.AsyncClient(timeout=30.0) as client:
         resp = await _openalex_get(
             client,
             {
                 "search": args["query"],
-                "per_page": max_results,
-                # relevance_score/cited_by_count are real OpenAlex fields
-                # this was already paying for but not surfacing -- the
-                # selection-gate policy (system prompt) needs real signal to
-                # rank against instead of guessing from titles alone.
-                "select": "doi,title,publication_year,open_access,primary_topic,relevance_score,cited_by_count",
+                # Always the full page: OpenAlex bills a search the same at
+                # any page size, and the relevance group needs spare hits to
+                # replace the ones already listed as foundational.
+                "per_page": 100,
+                "select": _DISCOVER_SELECT + ",relevance_score,referenced_works",
             },
         )
         resp.raise_for_status()
         results = resp.json().get("results", [])
+        if not results:
+            return {"content": [{"type": "text", "text": f"No OpenAlex results found for {args['query']!r}."}]}
+        foundational, lookup_error = await _foundational_works(
+            client, results[:_SEED_COUNT], (max_results + 1) // 2
+        )
 
-    if not results:
-        return {"content": [{"type": "text", "text": f"No OpenAlex results found for {args['query']!r}."}]}
-
-    lines = []
-    for r in results:
-        doi = _strip_doi_prefix(r.get("doi") or "")
-        if not doi:
+    seen: set[str] = set()
+    found_lines: list[str] = []
+    for work, n_citing in foundational:
+        doi = _strip_doi_prefix(work["doi"])
+        if doi in seen:
             continue
-        oa = r.get("open_access") or {}
-        subfield = ((r.get("primary_topic") or {}).get("subfield") or {}).get("display_name", "")
-        oa_bit = f"open access, {oa.get('oa_status')}: {oa.get('oa_url')}" if oa.get("is_oa") else "not open access"
-        title = r.get("title", "")
-        year = r.get("publication_year", "")
-        relevance = r.get("relevance_score")
-        cited_by = r.get("cited_by_count", 0)
-        lines.append(
-            f"- DOI {doi}: {title} ({year}, {subfield}) -- {oa_bit} "
-            f"[relevance {relevance:.1f}, cited by {cited_by}]"
-            if relevance is not None
-            else f"- DOI {doi}: {title} ({year}, {subfield}) -- {oa_bit} [cited by {cited_by}]"
+        seen.add(doi)
+        cited_by = work.get("cited_by_count", 0)
+        found_lines.append(
+            _discovery_line(work, doi, f"cited by {n_citing} of the top {_SEED_COUNT} matches, cited by {cited_by}")
         )
-        # Cross-cutting paper-selection gate (see the Experiments plan): every
-        # DOI this tool ever surfaces gets a manifest entry, so a later
-        # download_paper/read_paper call in the same experiment can dedup
-        # against it instead of re-fetching. No-op if no experiment is in
-        # scope (see app/experiment_context.py).
-        update_manifest_entry(
-            doi, title=title, is_oa=bool(oa.get("is_oa")), oa_url=oa.get("oa_url"),
-            relevance_score=relevance, cited_by_count=cited_by, status="discovered",
+        _record_discovery(work, doi, None, "foundational")
+
+    match_lines: list[str] = []
+    for work in results:
+        if len(found_lines) + len(match_lines) >= max_results:
+            break
+        doi = _strip_doi_prefix(work.get("doi") or "")
+        if not doi or doi in seen:
+            continue
+        seen.add(doi)
+        relevance = work.get("relevance_score")
+        cited_by = work.get("cited_by_count", 0)
+        signal = f"relevance {relevance:.1f}, cited by {cited_by}" if relevance is not None else f"cited by {cited_by}"
+        match_lines.append(_discovery_line(work, doi, signal))
+        _record_discovery(work, doi, relevance, "relevant_match")
+
+    sections: list[str] = []
+    if found_lines:
+        sections.append(f"Foundational (most cited by the top {_SEED_COUNT} matching papers):\n" + "\n".join(found_lines))
+    elif lookup_error:
+        sections.append(f"Foundational group unavailable: {lookup_error}. Only relevance matches are listed below.")
+    else:
+        sections.append(
+            f"Foundational group empty: none of the top {_SEED_COUNT} matches has a reference list in OpenAlex."
         )
-    return {"content": [{"type": "text", "text": "\n".join(lines)}]}
+    if match_lines:
+        sections.append("Most relevant matches (OpenAlex relevance order):\n" + "\n".join(match_lines))
+    return {"content": [{"type": "text", "text": "\n\n".join(sections)}]}
 
 
 def _run_grep(dois: list[str], index_path: Path) -> subprocess.CompletedProcess:
