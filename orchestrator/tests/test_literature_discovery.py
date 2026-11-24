@@ -1,12 +1,34 @@
 """Real tests for app/tools/literature_discovery.py -- no mocking, hits
 the real OpenAlex API and greps the real local Sci-Hub DOI index
 (SCIHUB_DOI_INDEX_PATH, confirmed present in this dev environment)."""
-from app.experiment_context import current_experiment_dir, update_manifest_entry
-from app.tools.literature_discovery import _try_direct_oa_download, check_scihub_availability, discover_papers
+import re
+from datetime import date
+
+import httpx
+import pytest
+
+from app.experiment_context import current_experiment_dir, load_manifest, update_manifest_entry
+from app.tools.literature_discovery import (
+    _foundational_works,
+    _recent_since,
+    _try_direct_oa_download,
+    check_scihub_availability,
+    discover_papers,
+)
 
 
 async def text_of(result):
     return result["content"][0]["text"]
+
+
+def dois_in(text):
+    return [l.split(":")[0].removeprefix("- DOI ") for l in text.split("\n") if l.startswith("- DOI")]
+
+
+def split_recent(text):
+    """(text before the recent group, text of the recent group or '')."""
+    head, _, recent = text.partition("\nRecent (")
+    return head, recent
 
 
 async def test_discover_papers_happy_path():
@@ -15,10 +37,106 @@ async def test_discover_papers_happy_path():
     assert "DOI" in text
 
 
-async def test_discover_papers_max_results_clamped_to_25():
-    result = await discover_papers.handler({"query": "cancer", "max_results": 999})
-    lines = [l for l in (await text_of(result)).split("\n") if l.startswith("- DOI")]
-    assert len(lines) <= 25
+async def test_discover_papers_max_results_clamped_to_200_without_duplicates(tmp_path):
+    # One live call covers the cap, the DOI dedup across the two groups, and
+    # the manifest gate (every surfaced DOI recorded with its group).
+    token = current_experiment_dir.set(tmp_path)
+    try:
+        result = await discover_papers.handler({"query": "CRISPR Cas9 genome editing", "max_results": 999})
+        manifest = load_manifest()
+    finally:
+        current_experiment_dir.reset(token)
+    text = await text_of(result)
+    main_dois = dois_in(split_recent(text)[0])
+    dois = dois_in(text)
+    assert 100 <= len(main_dois) <= 200
+    assert len(dois) == len(set(dois))
+    assert "Foundational (most cited by the top 25 matching papers):" in text
+    assert "Most relevant matches (OpenAlex relevance order):" in text
+    assert {manifest[d]["discovery_group"] for d in main_dois} == {"foundational", "relevant_match"}
+
+
+async def test_discover_papers_merges_sub_queries_and_reports_dropped_ones():
+    # Hallin et al. 2020 (adagrasib) is missing from the main query's default
+    # 25 results; the sub-queries bring it in. A fifth query is over the limit
+    # and must be reported, not silently ignored.
+    query = (
+        "KRAS G12C covalent inhibitor; KRAS G12C sotorasib adagrasib; "
+        "KRAS G12C switch II pocket covalent binding mechanism; "
+        "KRAS G12C non-small cell lung cancer clinical trial; KRAS G12D"
+    )
+    result = await discover_papers.handler({"query": query})
+    text = await text_of(result)
+    dois = [d.lower() for d in dois_in(split_recent(text)[0])]
+    assert "Only the first 4 queries were run; ignored: KRAS G12D." in text
+    assert "Foundational (most cited by the top 25 matching papers of each query):" in text
+    assert "of 4 queries" in text
+    assert "10.1158/2159-8290.cd-19-1167" in dois
+    assert len(dois) == len(set(dois)) <= 25
+
+
+# Landmark papers the old relevance-only search (top 25) did not return for
+# these keyword queries; the foundational group should.
+@pytest.mark.parametrize(
+    "query, landmark_doi",
+    [
+        ("KRAS G12C covalent inhibitor", "10.1038/nature12796"),
+        ("PCSK9 loss-of-function LDL cholesterol coronary heart disease", "10.1056/nejmoa054013"),
+        ("CD19 CAR T cell therapy B-cell acute lymphoblastic leukemia", "10.1056/nejmoa1709866"),
+    ],
+)
+async def test_discover_papers_surfaces_landmark_paper(query, landmark_doi):
+    result = await discover_papers.handler({"query": query})
+    text = (await text_of(result)).lower()
+    assert f"- doi {landmark_doi}:" in text
+
+
+async def test_discover_papers_recent_group_is_dated_distinct_and_recorded(tmp_path):
+    # A well-covered topic: papers from the last three years that cite its
+    # foundational works come back as a third group, inside the window, not
+    # repeating any DOI of the other two groups, and recorded as "recent".
+    token = current_experiment_dir.set(tmp_path)
+    try:
+        result = await discover_papers.handler({"query": "gut microbiome anti-PD-1 immunotherapy response"})
+        manifest = load_manifest()
+    finally:
+        current_experiment_dir.reset(token)
+    text = await text_of(result)
+    since = _recent_since(date.today())
+    head, recent = split_recent(text)
+    assert recent.startswith(f"published since {since.isoformat()}, citing the top foundational papers")
+    recent_lines = [l for l in recent.split("\n") if l.startswith("- DOI")]
+    assert 1 <= len(recent_lines) <= 6
+    for line in recent_lines:
+        year = int(re.findall(r"\((\d{4}), [^()]*\) -- ", line)[-1])
+        assert since.year <= year <= date.today().year
+    main_dois, recent_dois = dois_in(head), dois_in(recent)
+    assert not set(main_dois) & set(recent_dois)
+    assert len(main_dois + recent_dois) == len(set(main_dois + recent_dois))
+    assert {manifest[d]["discovery_group"] for d in recent_dois} == {"recent"}
+    assert {manifest[d]["discovery_group"] for d in main_dois} == {"foundational", "relevant_match"}
+
+
+async def test_discover_papers_flags_retracted_work():
+    # The Lancet's 2021 obesity pharmacotherapy network meta-analysis is
+    # marked is_retracted in OpenAlex.
+    result = await discover_papers.handler(
+        {"query": "Pharmacotherapy for Overweight and Obese Adults network meta-analysis randomised controlled trials"}
+    )
+    line = next(l for l in (await text_of(result)).split("\n") if l.lower().startswith("- doi 10.1016/s0140-6736(21)01640-8:"))
+    assert "RETRACTED" in line
+
+
+async def test_foundational_works_with_no_reference_lists_is_empty_not_an_error():
+    # Seeds shaped like OpenAlex search hits whose referenced_works are empty
+    # or missing (common for preprints, datasets and old papers): there is
+    # nothing to resolve, so no lookup call is made and no error is reported.
+    seeds = [
+        {"id": "https://openalex.org/W1", "doi": "https://doi.org/10.1234/a", "referenced_works": []},
+        {"id": "https://openalex.org/W2", "doi": "https://doi.org/10.1234/b"},
+    ]
+    async with httpx.AsyncClient() as client:
+        assert await _foundational_works(client, seeds, 10) == ([], None)
 
 
 async def test_discover_papers_nonsense_query_returns_no_results():

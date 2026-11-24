@@ -44,7 +44,10 @@ targets, compounds, variants, pathways, clinical data, plus literature via \
 discover_papers) are relevant, and call as many as genuinely needed -- this \
 is a real multi-tool survey, not one lookup. Do not call download_paper or \
 any tool not available to you; only discover_papers is available for \
-literature, never full-text acquisition.
+literature, never full-text acquisition. Send discover_papers a short \
+main keyword query plus two or three keyword sub-queries separated by ';' \
+(a synonym or variant name, the mechanism angle, the clinical or \
+application angle).
 4. Synthesize a comprehensive "current state of knowledge" perspective: \
 what's established, what's contested between sources, and what's simply \
 unknown or unexplored. Every claim must carry its record ID inline, same \

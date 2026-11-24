@@ -14,6 +14,22 @@ import httpx
 from claude_agent_sdk import create_sdk_mcp_server, tool
 
 EUROPEPMC_BASE = "https://www.ebi.ac.uk/europepmc/webservices/rest/search"
+# Measured responses took 2-54 s (with occasional 503s), so 15 s failed whenever
+# the service was slow.
+_TIMEOUT_SECONDS = 60.0
+_RETRY_STATUSES = {502, 503, 504}
+
+
+async def _get_with_one_retry(client: httpx.AsyncClient, params: dict[str, Any]) -> httpx.Response:
+    """GET EUROPEPMC_BASE, retried once on a timeout or a 502/503/504; a
+    second failure is left to the caller (raised or raise_for_status)."""
+    try:
+        resp = await client.get(EUROPEPMC_BASE, params=params)
+    except httpx.TimeoutException:
+        return await client.get(EUROPEPMC_BASE, params=params)
+    if resp.status_code in _RETRY_STATUSES:
+        return await client.get(EUROPEPMC_BASE, params=params)
+    return resp
 
 
 @tool(
@@ -23,8 +39,9 @@ EUROPEPMC_BASE = "https://www.ebi.ac.uk/europepmc/webservices/rest/search"
     "includes bioRxiv/medRxiv preprints and free-full-text availability. "
     "Returns each hit's Europe PMC ID, source (MED=PubMed-indexed, "
     "PPR=preprint, PMC=full-text), title, authors, year, DOI, and whether "
-    "free full text is available. Use the returned DOI/PMID as the "
-    "citable reference, never invent one.",
+    "free full text is available. Results are ordered by citation count "
+    "(most cited first), so new preprints rarely appear. Use the returned "
+    "DOI/PMID as the citable reference, never invent one.",
     {"query": str, "max_results": int},
 )
 async def search_europepmc(args: dict[str, Any]) -> dict[str, Any]:
@@ -33,10 +50,16 @@ async def search_europepmc(args: dict[str, Any]) -> dict[str, Any]:
     if not query:
         return {"content": [{"type": "text", "text": "query must be non-empty."}]}
 
-    async with httpx.AsyncClient(timeout=15.0) as client:
-        resp = await client.get(
-            EUROPEPMC_BASE,
-            params={"query": query, "format": "json", "pageSize": max_results, "resultType": "lite"},
+    async with httpx.AsyncClient(timeout=_TIMEOUT_SECONDS) as client:
+        resp = await _get_with_one_retry(
+            client,
+            # The default order ("score desc", relevance) put almost only
+            # current-year, uncited records first on benchmark topics; citation
+            # order surfaces the established papers on the topic.
+            params={
+                "query": query, "format": "json", "pageSize": max_results, "resultType": "lite",
+                "sort": "CITED desc",
+            },
         )
         resp.raise_for_status()
         data = resp.json()

@@ -17,6 +17,15 @@ async def test_happy_path_returns_real_articles():
     assert result["articles"][0]["pmid"].isdigit()
 
 
+async def test_results_are_in_relevance_order_not_newest_first():
+    # Jinek et al. 2012 (PMID 22745249) is the best match for this query; a
+    # newest-first esearch returns only recent papers and misses it.
+    result = await search_articles.handler(
+        {"query": "CRISPR Cas9 programmable RNA-guided DNA endonuclease genome editing", "max_results": 5}
+    )
+    assert "22745249" in [a["pmid"] for a in result["articles"]]
+
+
 async def test_max_results_is_respected():
     result = await search_articles.handler({"query": "cancer", "max_results": 2})
     assert len(result["articles"]) <= 2

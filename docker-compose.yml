@@ -132,6 +132,7 @@ services:
       # through to the container at all -- Camofox itself could be
       # perfectly healthy and every download would still silently fail.
       SCIHUB_MIRROR_URLS: ${SCIHUB_MIRROR_URLS:-}
+      OPENALEX_API_KEY: ${OPENALEX_API_KEY:-}
       # Two mutually exclusive ways to authenticate the `claude` CLI
       # (app/claude_runner.py) -- pick whichever you actually have:
       #  (a) API key: set ANTHROPIC_API_KEY below, nothing else to do.

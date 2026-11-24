@@ -15,6 +15,16 @@ async def test_happy_path_returns_real_results():
     assert 1 <= len(lines) <= 3
 
 
+async def test_results_put_the_landmark_paper_first_not_new_uncited_records():
+    # Jinek et al. 2012 is the most cited match for this query; Europe PMC's
+    # default order returns current-year, uncited records instead.
+    result = await search_europepmc.handler(
+        {"query": "CRISPR Cas9 programmable RNA-guided DNA endonuclease genome editing", "max_results": 5}
+    )
+    text = (await text_of(result)).lower()
+    assert "10.1126/science.1225829" in text
+
+
 async def test_default_max_results_is_five():
     result = await search_europepmc.handler({"query": "CRISPR"})
     text = await text_of(result)
