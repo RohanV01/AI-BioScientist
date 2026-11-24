@@ -1,12 +1,16 @@
 """Real tests for app/tools/literature_discovery.py -- no mocking, hits
 the real OpenAlex API and greps the real local Sci-Hub DOI index
 (SCIHUB_DOI_INDEX_PATH, confirmed present in this dev environment)."""
+import re
+from datetime import date
+
 import httpx
 import pytest
 
 from app.experiment_context import current_experiment_dir, load_manifest, update_manifest_entry
 from app.tools.literature_discovery import (
     _foundational_works,
+    _recent_since,
     _try_direct_oa_download,
     check_scihub_availability,
     discover_papers,
@@ -15,6 +19,16 @@ from app.tools.literature_discovery import (
 
 async def text_of(result):
     return result["content"][0]["text"]
+
+
+def dois_in(text):
+    return [l.split(":")[0].removeprefix("- DOI ") for l in text.split("\n") if l.startswith("- DOI")]
+
+
+def split_recent(text):
+    """(text before the recent group, text of the recent group or '')."""
+    head, _, recent = text.partition("\nRecent (")
+    return head, recent
 
 
 async def test_discover_papers_happy_path():
@@ -33,12 +47,13 @@ async def test_discover_papers_max_results_clamped_to_200_without_duplicates(tmp
     finally:
         current_experiment_dir.reset(token)
     text = await text_of(result)
-    dois = [l.split(":")[0].removeprefix("- DOI ") for l in text.split("\n") if l.startswith("- DOI")]
-    assert 100 <= len(dois) <= 200
+    main_dois = dois_in(split_recent(text)[0])
+    dois = dois_in(text)
+    assert 100 <= len(main_dois) <= 200
     assert len(dois) == len(set(dois))
     assert "Foundational (most cited by the top 25 matching papers):" in text
     assert "Most relevant matches (OpenAlex relevance order):" in text
-    assert {manifest[d]["discovery_group"] for d in dois} == {"foundational", "relevant_match"}
+    assert {manifest[d]["discovery_group"] for d in main_dois} == {"foundational", "relevant_match"}
 
 
 async def test_discover_papers_merges_sub_queries_and_reports_dropped_ones():
@@ -52,7 +67,7 @@ async def test_discover_papers_merges_sub_queries_and_reports_dropped_ones():
     )
     result = await discover_papers.handler({"query": query})
     text = await text_of(result)
-    dois = [l.split(":")[0].removeprefix("- DOI ").lower() for l in text.split("\n") if l.startswith("- DOI")]
+    dois = [d.lower() for d in dois_in(split_recent(text)[0])]
     assert "Only the first 4 queries were run; ignored: KRAS G12D." in text
     assert "Foundational (most cited by the top 25 matching papers of each query):" in text
     assert "of 4 queries" in text
@@ -74,6 +89,32 @@ async def test_discover_papers_surfaces_landmark_paper(query, landmark_doi):
     result = await discover_papers.handler({"query": query})
     text = (await text_of(result)).lower()
     assert f"- doi {landmark_doi}:" in text
+
+
+async def test_discover_papers_recent_group_is_dated_distinct_and_recorded(tmp_path):
+    # A well-covered topic: papers from the last three years that cite its
+    # foundational works come back as a third group, inside the window, not
+    # repeating any DOI of the other two groups, and recorded as "recent".
+    token = current_experiment_dir.set(tmp_path)
+    try:
+        result = await discover_papers.handler({"query": "gut microbiome anti-PD-1 immunotherapy response"})
+        manifest = load_manifest()
+    finally:
+        current_experiment_dir.reset(token)
+    text = await text_of(result)
+    since = _recent_since(date.today())
+    head, recent = split_recent(text)
+    assert recent.startswith(f"published since {since.isoformat()}, citing the top foundational papers")
+    recent_lines = [l for l in recent.split("\n") if l.startswith("- DOI")]
+    assert 1 <= len(recent_lines) <= 6
+    for line in recent_lines:
+        year = int(re.findall(r"\((\d{4}), [^()]*\) -- ", line)[-1])
+        assert since.year <= year <= date.today().year
+    main_dois, recent_dois = dois_in(head), dois_in(recent)
+    assert not set(main_dois) & set(recent_dois)
+    assert len(main_dois + recent_dois) == len(set(main_dois + recent_dois))
+    assert {manifest[d]["discovery_group"] for d in recent_dois} == {"recent"}
+    assert {manifest[d]["discovery_group"] for d in main_dois} == {"foundational", "relevant_match"}
 
 
 async def test_discover_papers_flags_retracted_work():

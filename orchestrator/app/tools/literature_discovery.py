@@ -38,6 +38,7 @@ import json
 import re
 import subprocess
 from collections import Counter
+from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -85,6 +86,26 @@ _SEED_COUNT = 25
 _RESOLVE_BATCH = 50
 # The main query plus up to three sub-queries, the setting that was measured.
 _MAX_QUERIES = 4
+# Recent group: papers from the last _RECENT_YEARS years that cite the top
+# _RECENT_SEED foundational works, most of those works cited first. On the
+# same benchmark this found two to four times more of the recent literature
+# the reviews cite than relevance order did, but citation alone also lets in
+# off-topic papers, so one model call checks the candidates against the main
+# query. _RECENT_POOL_FACTOR candidates go to the check per recent line wanted.
+_RECENT_YEARS = 3
+_RECENT_SEED = 10
+_RECENT_POOL_FACTOR = 4
+_ON_TOPIC_PROMPT = """You are screening recent papers for a literature search.
+
+<query>{query}</query>
+
+Below are numbered paper titles. A paper counts only if it is clearly about the query's topic: its main subject is the same method, intervention, molecule or question the query names. Leave out papers from a neighbouring field, broad reviews of a wider area, and papers that only use the topic as a tool for something else. When unsure, leave it out.
+
+<papers>
+{papers}
+</papers>
+
+Reply with only a JSON array of the numbers of the papers that are clearly about the topic, for example [1, 4, 7], or [] if none are."""
 
 
 async def _foundational_works(
@@ -121,6 +142,58 @@ async def _foundational_works(
     ranked = [(resolved[w], counts[w]) for w in wanted if w in resolved and resolved[w].get("doi")]
     ranked.sort(key=lambda pair: (-pair[1], -(pair[0].get("cited_by_count") or 0)))
     return ranked[:limit], None
+
+
+def _recent_since(today: date) -> date:
+    # February 29 has no counterpart three years earlier.
+    day = 28 if (today.month, today.day) == (2, 29) else today.day
+    return today.replace(year=today.year - _RECENT_YEARS, day=day)
+
+
+async def _citing_works(
+    client: httpx.AsyncClient, cited: list[dict[str, Any]], since: date
+) -> tuple[list[tuple[dict[str, Any], int]], str | None]:
+    """Works with a DOI published since `since` that cite any of `cited`, as
+    (work, number of `cited` works it cites), most of them cited first, ties
+    broken by overall citation count. The second value is an error message
+    when the lookup failed (the list is then empty)."""
+    cited_ids = [work["id"] for work in cited]
+    short_ids = "|".join(w.rsplit("/", 1)[-1] for w in cited_ids)
+    try:
+        resp = await _openalex_get(
+            client,
+            {
+                "filter": f"cites:{short_ids},from_publication_date:{since.isoformat()}",
+                "sort": "cited_by_count:desc",
+                "per_page": 200,
+                "select": _DISCOVER_SELECT + ",referenced_works",
+            },
+        )
+    except httpx.HTTPError as exc:
+        return [], f"OpenAlex citing-papers lookup failed ({type(exc).__name__}: {exc})"
+    if resp.status_code != 200:
+        return [], f"OpenAlex citing-papers lookup failed (HTTP {resp.status_code})"
+    cited_set = set(cited_ids)
+    ranked = [
+        (work, len(cited_set & set(work.get("referenced_works") or [])))
+        for work in resp.json().get("results", [])
+        if work.get("doi")
+    ]
+    ranked.sort(key=lambda pair: (-pair[1], -(pair[0].get("cited_by_count") or 0)))
+    return ranked, None
+
+
+async def _on_topic(query: str, works: list[dict[str, Any]]) -> list[bool]:
+    """One model call judging which of `works` (by title) are clearly about
+    `query`. Raises LLMBackendError when no backend answered and ValueError
+    when the reply holds no readable list."""
+    papers = "\n".join(f"{i}. {work.get('title') or ''}" for i, work in enumerate(works, 1))
+    raw = await llm_complete(_ON_TOPIC_PROMPT.format(query=query, papers=papers), max_tokens=2000)
+    match = re.search(r"\[[\d,\s]*\]", raw)
+    if match is None:
+        raise ValueError(f"the model's reply held no list of paper numbers: {raw[:200]!r}")
+    kept = {int(n) for n in json.loads(match.group(0))}
+    return [i in kept for i in range(1, len(works) + 1)]
 
 
 def _record_discovery(work: dict[str, Any], doi: str, relevance: float | None, group: str) -> None:
@@ -164,8 +237,11 @@ def _discovery_line(work: dict[str, Any], doi: str, signal: str) -> str:
     "Returns up to max_results papers (default 25, max 200) in two groups: "
     "'Foundational' -- the works most often cited by the top matching "
     "papers, which is where landmark and primary papers turn up -- and "
-    "'Most relevant matches' in search-relevance order, which carries "
-    "recent work. Each line gives the DOI, title, year, subfield, "
+    "'Most relevant matches' in search-relevance order; then a third group, "
+    "'Recent', of up to a quarter as many papers again: papers from the "
+    "last three years that cite the top foundational ones, kept only when "
+    "a model check of their titles judges them on topic for the main query. "
+    "Each line gives the DOI, title, year, subfield, "
     "open-access status/URL if one exists and citation count; reviews are "
     "marked [review] and retracted works RETRACTED. Use the returned DOIs "
     "as citable record references, and pass any DOI NOT already open "
@@ -211,6 +287,9 @@ async def discover_papers(args: dict[str, Any]) -> dict[str, Any]:
         # the topic is more central to it.
         seeds = [work for results in per_query for work in results[:_SEED_COUNT]]
         foundational, lookup_error = await _foundational_works(client, seeds, (max_results + 1) // 2)
+        since = _recent_since(date.today())
+        cited = [work for work, _ in foundational[:_RECENT_SEED]]
+        citing, citing_error = await _citing_works(client, cited, since) if cited else ([], None)
 
     # Relevance matches merged across queries by reciprocal rank fusion, so a
     # paper ranked high by any query (or found by several) comes first.
@@ -256,6 +335,36 @@ async def discover_papers(args: dict[str, Any]) -> dict[str, Any]:
         match_lines.append(_discovery_line(work, doi, signal))
         _record_discovery(work, doi, relevance, "relevant_match")
 
+    # The recent group comes on top of max_results: up to a quarter as many
+    # lines again, fewer when the check judges fewer on topic.
+    recent_wanted = max(5, round(max_results / 4))
+    pool: list[tuple[dict[str, Any], int]] = []
+    pool_dois: set[str] = set()
+    for work, n_cited in citing:
+        doi = _strip_doi_prefix(work["doi"])
+        if doi in seen or doi in pool_dois:
+            continue
+        pool_dois.add(doi)
+        pool.append((work, n_cited))
+        if len(pool) == _RECENT_POOL_FACTOR * recent_wanted:
+            break
+    check_error: str | None = None
+    recent: list[tuple[dict[str, Any], int]] = []
+    if pool:
+        try:
+            verdicts = await _on_topic(queries[0], [work for work, _ in pool])
+            recent = [pair for pair, keep in zip(pool, verdicts) if keep][:recent_wanted]
+        except (LLMBackendError, ValueError) as exc:
+            check_error = str(exc)
+            recent = pool[:recent_wanted]
+    recent_lines: list[str] = []
+    for work, n_cited in recent:
+        doi = _strip_doi_prefix(work["doi"])
+        seen.add(doi)
+        signal = f"cites {n_cited} of the top {len(cited)} foundational papers, cited by {work.get('cited_by_count', 0)}"
+        recent_lines.append(_discovery_line(work, doi, signal))
+        _record_discovery(work, doi, None, "recent")
+
     sections: list[str] = list(notes)
     if found_lines:
         scope = " of each query" if len(per_query) > 1 else ""
@@ -270,6 +379,26 @@ async def discover_papers(args: dict[str, Any]) -> dict[str, Any]:
         )
     if match_lines:
         sections.append("Most relevant matches (OpenAlex relevance order):\n" + "\n".join(match_lines))
+    recent_scope = f"published since {since.isoformat()}, citing the top foundational papers"
+    if not cited:
+        sections.append("Recent group unavailable: it is built from papers citing the foundational group, which is empty.")
+    elif citing_error:
+        sections.append(f"Recent group unavailable: {citing_error}.")
+    elif not citing:
+        sections.append(f"Recent group empty: OpenAlex has no paper {recent_scope}.")
+    elif not pool:
+        sections.append(f"Recent group empty: every paper {recent_scope} is already listed above.")
+    elif check_error:
+        sections.append(
+            f"On-topic check for the recent group could not run ({check_error}); the recent papers below are unchecked.\n"
+            f"Recent ({recent_scope}; unchecked):\n" + "\n".join(recent_lines)
+        )
+    elif not recent_lines:
+        sections.append(f"Recent group empty: none of the {len(pool)} papers {recent_scope} was judged on topic.")
+    else:
+        sections.append(
+            f"Recent ({recent_scope}, checked as on topic against the main query):\n" + "\n".join(recent_lines)
+        )
     return {"content": [{"type": "text", "text": "\n\n".join(sections)}]}
 
 

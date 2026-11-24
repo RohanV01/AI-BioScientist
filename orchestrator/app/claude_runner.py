@@ -89,8 +89,9 @@ download_paper drives a real browser session per DOI and read_paper is a
 real extraction call per DOI -- both cost real time and money, so don't
 download or read every result discover_papers returns. Default to 5 papers
 for a given research question, picked across its groups -- the
-foundational papers the topic builds on and the most relevant matches,
-which carry recent work -- using each result's citation count and
+foundational papers the topic builds on, the most relevant matches, and
+the recent papers (last three years) that cite the foundational ones --
+using each result's citation count and
 relevance score, preferring open-access hits over ones needing Sci-Hub.
 Only go broader than 5 if the researcher explicitly asks for exhaustive/broad coverage. This is a default,
 not a hard cap -- state when you're deliberately going past it and why.
